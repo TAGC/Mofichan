@@ -3,12 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Mofichan
+namespace Mofichan.Core.Interfaces
 {
-    public class Program
+    public interface IMofichanBackend : IMessageContextHandler
     {
-        public static void Main(string[] args)
-        {
-        }
     }
 }
