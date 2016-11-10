@@ -1,48 +1,38 @@
 ﻿using System;
-using Mofichan.Core;
-using Mofichan.Core.Interfaces;
 using TestStack.BDDfy;
+using Xunit;
 
 namespace Mofichan.Spec.Core.Feature
 {
-    public class MofichanIsGreeted : ScenarioFor<Kernel, Specification>
+    public class MofichanIsGreeted : BaseScenario
     {
-        private const string AddBehaviourTemplate = "Given Mofichan is configured to use behaviour '{0}'";
-        private const string WhenGreetingTemplate = "When I say '{0} Mofichan'";
-
-        private Kernel kernel;
-        private bool responded = false;
-
-        public MofichanIsGreeted()
+        private const string WhenGreetingTemplate = "When I say '<greeting> Mofichan'";
+        
+        public MofichanIsGreeted() : base(scenarioTitle: "Mofichan is greeted")
         {
-            Examples = new ExampleTable("greeting")
-            {
-                { "Hello" },
-                { "Hey"   },
-                { "Hi"    },
-                { "Yo"    },
-                { "Sup"   },
-            };
+            var greeting = default(string);
+
+            this.Given(s => s.Given_Mofichan_is_configured_with_behaviour("identity"), AddBehaviourTemplate)
+                .Given(s => s.Given_Mofichan_is_configured_with_behaviour("greeting"), AddBehaviourTemplate)
+                    .And(s => s.Given_Mofichan_is_running())
+                .When(s => s.When_I_say_greeting(greeting), WhenGreetingTemplate)
+                .Then(s => s.Then_Mofichan_should_greet_me_back())
+                .WithExamples(new ExampleTable("greeting")
+                {
+                    { "Hello" },
+                    { "Hey"   },
+                    { "Hi"    },
+                    { "Yo"    },
+                    { "Sup"   },
+                });
         }
 
-        [RunStepWithArgs("identity", StepTextTemplate = AddBehaviourTemplate)]
-        [RunStepWithArgs("greeting", StepTextTemplate = AddBehaviourTemplate)]
-        public void Given_Mofichan_is_configured_with_the_following_behaviours(string behaviour)
-        {
-            this.Container.Set(behaviour);
-        }
-
-        public void Given_Mofichan_is_running()
+        private void When_I_say_greeting(string greeting)
         {
             throw new NotImplementedException();
         }
 
-        public void When_I_say_greeting(string greeting)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Then_Mofichan_should_greet_me_back()
+        private void Then_Mofichan_should_greet_me_back()
         {
             throw new NotImplementedException();
         }
