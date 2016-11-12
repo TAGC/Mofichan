@@ -9,11 +9,9 @@ namespace Mofichan.Behaviour
 {
     public abstract class BaseBehaviour : IMofichanBehaviour
     {
-        private ITargetBlock<ReplyContext> downstreamTarget;
-        private ITargetBlock<ReplyContext> upstreamTarget;
+        private ITargetBlock<IncomingMessage> downstreamTarget;
+        private ITargetBlock<OutgoingMessage> upstreamTarget;
         private bool passThroughMessages;
-
-        public abstract Task Completion { get; }
 
         Task IDataflowBlock.Completion
         {
@@ -33,24 +31,23 @@ namespace Mofichan.Behaviour
             // Override if necessary.
         }
 
-        public abstract void Dispose();
-
-        protected abstract bool CanHandleIncomingMessage(ReplyContext context);
-        protected abstract bool CanHandleOutgoingMessage(ReplyContext context);
-        protected abstract void HandleIncomingMessage(ReplyContext context);
-        protected abstract void HandleOutgoingMessage(ReplyContext context);
-
-        void IReplyContextHandler.Start()
+        public virtual void Fault(Exception exception)
         {
-            throw new NotImplementedException();
+            // Override if necessary.
+            throw exception;
         }
 
-        #region DataFlow Members
-        public DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader, ReplyContext replyContext,
-            ISourceBlock<ReplyContext> source, bool consumeToAccept)
-        {
-            var message = replyContext.Message;
+        public abstract void Dispose();
 
+        protected abstract bool CanHandleIncomingMessage(IncomingMessage message);
+        protected abstract bool CanHandleOutgoingMessage(OutgoingMessage message);
+        protected abstract void HandleIncomingMessage(IncomingMessage message);
+        protected abstract void HandleOutgoingMessage(OutgoingMessage message);
+
+        #region Incoming Message Handling
+        public DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader, IncomingMessage message,
+            ISourceBlock<IncomingMessage> source, bool consumeToAccept)
+        {
             if (consumeToAccept)
             {
                 bool consumeSuccessful;
@@ -59,70 +56,101 @@ namespace Mofichan.Behaviour
                 Debug.Assert(consumeSuccessful);
             }
 
-            if (message.Direction == MessageContext.MessageDirection.Outgoing
-                && this.CanHandleOutgoingMessage(replyContext))
+            if (this.CanHandleIncomingMessage(message))
             {
-                this.HandleOutgoingMessage(replyContext);
-            }
-            else if (this.CanHandleIncomingMessage(replyContext))
-            {
-                this.HandleIncomingMessage(replyContext);
-            }
-
-            if (this.passThroughMessages && this.downstreamTarget != null)
-            {
-                this.downstreamTarget.OfferMessage(messageHeader, replyContext, source, consumeToAccept);
+                this.HandleIncomingMessage(message);
                 return DataflowMessageStatus.Accepted;
             }
-
-            return DataflowMessageStatus.Declined;
-        }
-
-        IDisposable ISourceBlock<ReplyContext>.LinkTo(ITargetBlock<ReplyContext> target,
-            DataflowLinkOptions linkOptions)
-        {
-            if (this.downstreamTarget == null)
+            else if (this.passThroughMessages)
             {
-                this.downstreamTarget = target;
-            }
-            else if (this.upstreamTarget == null)
-            {
-                this.upstreamTarget = target;
+                return this.downstreamTarget.OfferMessage(messageHeader, message, this, consumeToAccept);
             }
             else
             {
-                throw new InvalidOperationException("The downstream and upstream targets have already been linked");
+                return DataflowMessageStatus.Declined;
             }
+        }
 
+        public IDisposable LinkTo(ITargetBlock<IncomingMessage> target, DataflowLinkOptions linkOptions)
+        {
+            this.downstreamTarget = target;
             return null;
         }
 
-        ReplyContext ISourceBlock<ReplyContext>.ConsumeMessage(DataflowMessageHeader messageHeader,
-            ITargetBlock<ReplyContext> target, out bool messageConsumed)
+        public IncomingMessage ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target,
+            out bool messageConsumed)
         {
             throw new NotImplementedException();
         }
 
-        bool ISourceBlock<ReplyContext>.ReserveMessage(DataflowMessageHeader messageHeader,
-            ITargetBlock<ReplyContext> target)
+        public bool ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target)
         {
             throw new NotImplementedException();
         }
 
-        void ISourceBlock<ReplyContext>.ReleaseReservation(DataflowMessageHeader messageHeader,
-            ITargetBlock<ReplyContext> target)
+        public void ReleaseReservation(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target)
         {
             throw new NotImplementedException();
         }
 
-        void IDataflowBlock.Complete()
+        protected void SendDownstream(IncomingMessage message)
+        {
+            this.downstreamTarget.OfferMessage(default(DataflowMessageHeader), message, this, false);
+        }
+        #endregion
+
+        #region Outgoing Message Handling
+
+        public DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader, OutgoingMessage message,
+            ISourceBlock<OutgoingMessage> source, bool consumeToAccept)
+        {
+            if (consumeToAccept)
+            {
+                bool consumeSuccessful;
+                source.ConsumeMessage(messageHeader, this, out consumeSuccessful);
+
+                Debug.Assert(consumeSuccessful);
+            }
+
+            if (this.CanHandleOutgoingMessage(message))
+            {
+                this.HandleOutgoingMessage(message);
+                return DataflowMessageStatus.Accepted;
+            }
+            else if (this.passThroughMessages)
+            {
+                return this.upstreamTarget.OfferMessage(messageHeader, message, this, consumeToAccept);
+            }
+            else
+            {
+                return DataflowMessageStatus.Declined;
+            }
+        }
+
+        public IDisposable LinkTo(ITargetBlock<OutgoingMessage> target, DataflowLinkOptions linkOptions)
+        {
+            this.upstreamTarget = target;
+            return null;
+        }
+
+        public OutgoingMessage ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<OutgoingMessage> target, out bool messageConsumed)
         {
             throw new NotImplementedException();
         }
 
-        void IDataflowBlock.Fault(Exception exception)
+        public bool ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<OutgoingMessage> target)
         {
             throw new NotImplementedException();
+        }
+
+        public void ReleaseReservation(DataflowMessageHeader messageHeader, ITargetBlock<OutgoingMessage> target)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected void SendUpstream(OutgoingMessage message)
+        {
+            this.upstreamTarget.OfferMessage(default(DataflowMessageHeader), message, this, false);
         }
         #endregion
 

@@ -1,6 +1,9 @@
-﻿namespace Mofichan.Core.Interfaces
+﻿using System;
+using System.Threading.Tasks.Dataflow;
+
+namespace Mofichan.Core.Interfaces
 {
-    public interface IMofichanBackend : IMessageContextHandler
+    public interface IMofichanBackend : IPropagatorBlock<OutgoingMessage, IncomingMessage>, IDisposable
     {
         void Join(string roomId);
         void Leave(string roomId);

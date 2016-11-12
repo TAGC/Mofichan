@@ -2,8 +2,11 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using Autofac;
+using Mofichan.Behaviour;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
+using Moq;
 using TestStack.BDDfy;
 
 namespace Mofichan.Spec.Core.Feature
@@ -14,21 +17,90 @@ namespace Mofichan.Spec.Core.Feature
         protected const string AddBehaviourTemplate = "Given Mofichan is configured to use behaviour '{0}'";
 
         private readonly string scenarioTitle;
+        private readonly IContainer container;
 
+        private ITargetBlock<IncomingMessage> backendTarget;
+
+        #region Setup
         public BaseScenario(string scenarioTitle = null) : base(scenarioTitle: scenarioTitle)
         {
             this.scenarioTitle = scenarioTitle;
-            this.Backend = new MockBackend("mock");
+            this.MofichanUser = ConstructMockUser("Mofichan", "Mofichan", UserType.Self);
+            this.DeveloperUser = ConstructMockUser("ThymineC", "ThymineC", UserType.Adminstrator);
+            this.Backend = ConstructMockBackend();
             this.Behaviours = new List<IMofichanBehaviour>();
+
+            Func<Type, string> getBehaviourName = it =>
+                it.Name.ToLowerInvariant().Replace("behaviour", string.Empty);
+
+            var behaviourAssembly = typeof(BaseBehaviour).Assembly();
+            var containerBuilder = new ContainerBuilder();
+            containerBuilder
+                .RegisterAssemblyTypes(behaviourAssembly)
+                .AssignableTo(typeof(IMofichanBehaviour))
+                .Named<IMofichanBehaviour>(getBehaviourName)
+                .AsImplementedInterfaces();
+
+            this.container = containerBuilder.Build();
         }
+
+        private IMofichanBackend ConstructMockBackend()
+        {
+            var mock = new Mock<IMofichanBackend>();
+            mock.Setup(backend => backend.LinkTo(
+                    It.IsAny<ITargetBlock<IncomingMessage>>(),
+                    It.IsAny<DataflowLinkOptions>()))
+                .Callback<ITargetBlock<IncomingMessage>, DataflowLinkOptions>(
+                    (target, _) => this.backendTarget = target);
+
+            mock.Setup(backend => backend.OfferMessage(
+                    It.IsAny<DataflowMessageHeader>(),
+                    It.IsAny<OutgoingMessage>(),
+                    It.IsAny<ISourceBlock<OutgoingMessage>>(),
+                    It.IsAny<bool>()))
+                .Callback<DataflowMessageHeader, OutgoingMessage, ISourceBlock<OutgoingMessage>, bool>(
+                    (_, message, __, ___) => this.OnMessageSent(message));
+            return mock.Object;
+        }
+
+        private void OnMessageSent(OutgoingMessage message)
+        {
+            this.MessageSent?.Invoke(this, new MessageSentEventArgs(message));
+        }
+
+        public class MessageSentEventArgs : EventArgs
+        {
+            public MessageSentEventArgs(OutgoingMessage message)
+            {
+                this.Message = message;
+            }
+
+            public OutgoingMessage Message { get; }
+        }
+        #endregion
 
         protected IList<IMofichanBehaviour> Behaviours { get; }
         protected IMofichanBackend Backend { get; }
+        protected IUser MofichanUser { get; }
+        protected IUser DeveloperUser { get; }
         protected Kernel Mofichan { get; private set; }
+
+        protected event EventHandler<MessageSentEventArgs> MessageSent;
+
+        protected static IUser ConstructMockUser(string userId, string userName,
+            UserType userType = UserType.NormalUser)
+        {
+            var mock = new Mock<IUser>();
+            mock.SetupGet(user => user.UserId).Returns(userId);
+            mock.SetupGet(user => user.Name).Returns(userName);
+            mock.SetupGet(user => user.Type).Returns(userType);
+
+            return mock.Object;
+        }
 
         protected void Given_Mofichan_is_configured_with_behaviour(string behaviour)
         {
-            this.Behaviours.Add(new MockBehaviour(behaviour));
+            this.Behaviours.Add(this.container.ResolveNamed<IMofichanBehaviour>(behaviour));
         }
 
         protected void Given_Mofichan_is_running()
@@ -36,142 +108,12 @@ namespace Mofichan.Spec.Core.Feature
             this.Mofichan = new Kernel("Mofichan", this.Backend, this.Behaviours);
         }
 
-        #region Temporary
-        public class MockBehaviour : IMofichanBehaviour
+        protected void When_Mofichan_receives_a_message(IUser sender, string message)
         {
-            private readonly string name;
+            var incomingMessage = new IncomingMessage(
+                new MessageContext(from: sender, to: this.MofichanUser, body: message));
 
-            public MockBehaviour(string name)
-            {
-                this.name = name;
-            }
-
-            public Task Completion
-            {
-                get
-                {
-                    throw new NotImplementedException();
-                }
-            }
-
-            public void Complete()
-            {
-                throw new NotImplementedException();
-            }
-
-            public ReplyContext ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<ReplyContext> target, out bool messageConsumed)
-            {
-                throw new NotImplementedException();
-            }
-
-            public void Dispose()
-            {
-                throw new NotImplementedException();
-            }
-
-            public void Fault(Exception exception)
-            {
-                throw new NotImplementedException();
-            }
-
-            public IDisposable LinkTo(ITargetBlock<ReplyContext> target, DataflowLinkOptions linkOptions)
-            {
-                throw new NotImplementedException();
-            }
-
-            public DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader, ReplyContext messageValue, ISourceBlock<ReplyContext> source, bool consumeToAccept)
-            {
-                throw new NotImplementedException();
-            }
-
-            public void ReleaseReservation(DataflowMessageHeader messageHeader, ITargetBlock<ReplyContext> target)
-            {
-                throw new NotImplementedException();
-            }
-
-            public bool ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<ReplyContext> target)
-            {
-                throw new NotImplementedException();
-            }
-
-            public void Start()
-            {
-                throw new NotImplementedException();
-            }
+            this.backendTarget.Post(incomingMessage);
         }
-
-        public class MockBackend : IMofichanBackend
-        {
-            private readonly string name;
-
-            public MockBackend(string name)
-            {
-                this.name = name;
-            }
-
-            public Task Completion
-            {
-                get
-                {
-                    throw new NotImplementedException();
-                }
-            }
-
-            public void Complete()
-            {
-                throw new NotImplementedException();
-            }
-
-            public MessageContext ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<MessageContext> target, out bool messageConsumed)
-            {
-                throw new NotImplementedException();
-            }
-
-            public void Dispose()
-            {
-                throw new NotImplementedException();
-            }
-
-            public void Fault(Exception exception)
-            {
-                throw new NotImplementedException();
-            }
-
-            public void Join(string roomId)
-            {
-                throw new NotImplementedException();
-            }
-
-            public void Leave(string roomId)
-            {
-                throw new NotImplementedException();
-            }
-
-            public IDisposable LinkTo(ITargetBlock<MessageContext> target, DataflowLinkOptions linkOptions)
-            {
-                throw new NotImplementedException();
-            }
-
-            public DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader, MessageContext messageValue, ISourceBlock<MessageContext> source, bool consumeToAccept)
-            {
-                throw new NotImplementedException();
-            }
-
-            public void ReleaseReservation(DataflowMessageHeader messageHeader, ITargetBlock<MessageContext> target)
-            {
-                throw new NotImplementedException();
-            }
-
-            public bool ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<MessageContext> target)
-            {
-                throw new NotImplementedException();
-            }
-
-            public void Start()
-            {
-                throw new NotImplementedException();
-            }
-        }
-        #endregion
     }
 }

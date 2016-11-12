@@ -2,6 +2,12 @@
   "version": "1.0.0-*",
 
   "dependencies": {
+    "Mofichan.Backend": {
+      "target": "project"
+    },
+    "Mofichan.Behaviour": {
+      "target": "project"
+    },
     "Mofichan.Core": {
       "target": "project"
     },
@@ -13,7 +19,9 @@
     "Serilog.Sinks.Literate": "2.1.0-dev-00034",
     "TestStack.BDDfy": "4.3.2",
     "System.Composition": "1.0.31-preview1-24530-04",
-    "Autofac": "4.2.0"  },
+    "Autofac": "4.2.0",
+    "Moq": "4.6.38-alpha"
+  },
 
   "frameworks": {
     "netcoreapp1.0": {
