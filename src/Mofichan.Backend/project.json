@@ -2,16 +2,17 @@
   "version": "1.0.0-*",
 
   "dependencies": {
-    "Discore": "1.0.0",
+    "Discord.Net": "1.0.0-beta2-00453",
     "Mofichan.Core": {
       "target": "project"
     },
-    "NETStandard.Library": "1.6.1-preview1-24530-04"
+    "NETStandard.Library": "1.6.1-preview1-24530-04",
+    "System.Net.WebSockets.Client": "4.0.1-*"
   },
 
   "frameworks": {
     "netstandard1.6": {
-      "imports": "dnxcore50"
+      "imports": [ "dnxcore50", "net46" ]
     }
   }
 }

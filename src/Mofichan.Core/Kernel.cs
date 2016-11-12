@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
@@ -12,7 +13,7 @@ namespace Mofichan.Core
     public class Kernel : IDisposable
     {
         private IMofichanBackend backend;
-        private IMofichanBehaviour[] behaviours;
+        private IMofichanBehaviour rootBehaviour;
 
         public Kernel(string name, IMofichanBackend backend, IEnumerable<IMofichanBehaviour> behaviours)
         {
@@ -21,15 +22,34 @@ namespace Mofichan.Core
                 string.Format("At least one behaviour must be specified for {0}", name));
 
             this.backend = backend;
-            this.behaviours = behaviours.ToArray();
+            this.rootBehaviour = BuildBehaviourChain(behaviours);
 
-            this.backend.LinkTo(this.behaviours[0]);
-            this.behaviours[0].LinkTo(this.backend);
+            this.backend.LinkTo(this.rootBehaviour);
+            this.rootBehaviour.LinkTo(this.backend);
         }
 
         public void Start()
         {
-            throw new NotImplementedException();
+            this.backend.Start();
+            this.rootBehaviour.Start();
+        }
+
+        private static IMofichanBehaviour BuildBehaviourChain(IEnumerable<IMofichanBehaviour> behaviours)
+        {
+            Debug.Assert(behaviours.Any());
+
+            var behaviourArray = behaviours.ToArray();
+
+            for (var i = 0; i < behaviourArray.Length - 1; i++)
+            {
+                var upstreamBehaviour = behaviourArray[i];
+                var downstreamBehaviour = behaviourArray[i + 1];
+
+                upstreamBehaviour.LinkTo<IncomingMessage>(downstreamBehaviour);
+                downstreamBehaviour.LinkTo<OutgoingMessage>(upstreamBehaviour);
+            }
+
+            return behaviourArray[0];
         }
 
         #region IDisposable Support

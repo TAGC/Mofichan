@@ -106,6 +106,7 @@ namespace Mofichan.Spec.Core.Feature
         protected void Given_Mofichan_is_running()
         {
             this.Mofichan = new Kernel("Mofichan", this.Backend, this.Behaviours);
+            this.Mofichan.Start();
         }
 
         protected void When_Mofichan_receives_a_message(IUser sender, string message)

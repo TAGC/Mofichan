@@ -71,9 +71,10 @@ namespace Mofichan.Behaviour
             var recipient = message.Context.To as IUser;
 
             var senderIsUser = sender != null;
+            var senderIsNotSelf = sender.Type != UserType.Self;
             var messageIsGreeting = this.greetingPattern.IsMatch(message.Context.Body);
 
-            return senderIsUser && messageIsGreeting;
+            return senderIsUser && senderIsNotSelf && messageIsGreeting;
         }
 
         private OutgoingMessage ConstructGreetingMessage(IUser mofichan, IUser target)

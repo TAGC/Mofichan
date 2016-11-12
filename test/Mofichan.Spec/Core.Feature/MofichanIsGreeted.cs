@@ -24,7 +24,7 @@ namespace Mofichan.Spec.Core.Feature
             {
                 return new ExampleTable("greeting");
             }
-        }        
+        }
 
         protected void When_I_say_greeting(string greeting)
         {
@@ -34,6 +34,7 @@ namespace Mofichan.Spec.Core.Feature
         protected void Teardown()
         {
             this.sentMessages.Clear();
+            this.Mofichan?.Dispose();
         }
     }
 
@@ -124,6 +125,23 @@ namespace Mofichan.Spec.Core.Feature
 
                 return table;
             }
+        }
+
+        private void Then_Mofichan_should_not_have_said_anything()
+        {
+            this.sentMessages.ShouldBeEmpty();
+        }
+    }
+
+    public class MofichanGreetingHerself : MofichanIsGreeted
+    {
+        public MofichanGreetingHerself() : base("Mofichan sees a greeting from herself")
+        {
+            this.Given(s => s.Given_Mofichan_is_configured_with_behaviour("greeting"), AddBehaviourTemplate)
+                .And(s => s.Given_Mofichan_is_running())
+            .When(s => s.When_Mofichan_receives_a_message(this.MofichanUser, "Hello Mofichan"),
+                "When Mofichan receives message: '{1}'")
+            .Then(s => s.Then_Mofichan_should_not_have_said_anything());
         }
 
         private void Then_Mofichan_should_not_have_said_anything()

@@ -93,11 +93,64 @@ namespace Mofichan.Backend
         public abstract void Start();
         protected abstract IUser GetUserById(string userId);
         protected abstract IRoom GetRoomById(string roomId);
-        protected abstract void SendMessage(MessageContext message);
+
+        protected virtual void SendMessage(MessageContext message)
+        {
+            message.To.ReceiveMessage(message.Body);
+        }
 
         protected void OnReceiveMessage(IncomingMessage message)
         {
             this.target?.OfferMessage(default(DataflowMessageHeader), message, this, false);
+        }
+    }
+
+    public class RoomOccupant : IRoomOccupant
+    {
+        private readonly IUser user;
+        private readonly IRoom room;
+
+        public RoomOccupant(IUser user, IRoom room)
+        {
+            this.user = user;
+            this.room = room;
+        }
+
+        public string Name
+        {
+            get
+            {
+                return this.user.Name;
+            }
+        }
+
+        public IRoom Room
+        {
+            get
+            {
+                return this.room;
+            }
+        }
+
+        public UserType Type
+        {
+            get
+            {
+                return this.user.Type;
+            }
+        }
+
+        public string UserId
+        {
+            get
+            {
+                return this.user.UserId;
+            }
+        }
+
+        public void ReceiveMessage(string message)
+        {
+            this.room.ReceiveMessage(message);
         }
     }
 }

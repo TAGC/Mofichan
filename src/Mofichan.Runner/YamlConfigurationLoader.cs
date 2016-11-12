@@ -22,15 +22,22 @@ namespace Mofichan.Runner
             // TODO: Inspect YAML tree for possible overrides of these values.
             configBuilder.SetBotName(DefaultBotName);
             configBuilder.SetDeveloperName(DefaultDeveloperName);
-            configBuilder.SetSelectedBackend(backendNode.ToString());
 
             if (backendNode is YamlMappingNode)
             {
-                foreach (var childNode in (YamlMappingNode)backendNode)
+                foreach (var childNode in ((YamlMappingNode)backendNode).Children)
                 {
                     string configKey = childNode.Key.ToString();
                     string configValue = childNode.Value.ToString();
-                    configBuilder.WithBackendSetting(configKey, configValue);
+
+                    if (configKey == "name")
+                    {
+                        configBuilder.SetSelectedBackend(configValue.ToLowerInvariant());
+                    }
+                    else
+                    {
+                        configBuilder.WithBackendSetting(configKey, configValue);
+                    }
                 }
             }
 

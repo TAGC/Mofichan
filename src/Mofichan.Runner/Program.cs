@@ -19,6 +19,10 @@ namespace Mofichan.Runner
             using (var mofichan = CreateMofichan())
             {
                 mofichan.Start();
+
+                Console.WriteLine("Started Mofichan");
+                Console.WriteLine("Press any key to shut down...");
+                Console.ReadKey();
             }
         }
 
