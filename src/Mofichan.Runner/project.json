@@ -1,0 +1,30 @@
+﻿{
+  "version": "1.0.0-*",
+  "buildOptions": {
+    "emitEntryPoint": true
+  },
+
+  "dependencies": {
+    "Mofichan.Backend": {
+      "target": "project"
+    },
+    "Mofichan.Behaviour": {
+      "target": "project"
+    },
+    "Mofichan.Core": {
+      "target": "project"
+    },
+    "Microsoft.NETCore.App": {
+      "type": "platform",
+      "version": "1.0.1"
+    },
+    "YamlDotNet": "4.0.1-pre291",
+    "Autofac": "4.2.0"
+  },
+
+  "frameworks": {
+    "netcoreapp1.0": {
+      "imports": "dnxcore50"
+    }
+  }
+}

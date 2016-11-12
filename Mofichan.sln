@@ -20,6 +20,8 @@ Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Mofichan.Behaviour", "src\M
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Mofichan.Backend", "src\Mofichan.Backend\Mofichan.Backend.xproj", "{F58B68AE-D432-4028-926E-CBBF4BA200AD}"
 EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Mofichan.Runner", "src\Mofichan.Runner\Mofichan.Runner.xproj", "{67CF68F0-40A4-47C0-B60E-8BF6FE51AC8E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,6 +44,10 @@ Global
 		{F58B68AE-D432-4028-926E-CBBF4BA200AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F58B68AE-D432-4028-926E-CBBF4BA200AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F58B68AE-D432-4028-926E-CBBF4BA200AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{67CF68F0-40A4-47C0-B60E-8BF6FE51AC8E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{67CF68F0-40A4-47C0-B60E-8BF6FE51AC8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{67CF68F0-40A4-47C0-B60E-8BF6FE51AC8E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{67CF68F0-40A4-47C0-B60E-8BF6FE51AC8E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -51,5 +57,6 @@ Global
 		{96F2BE8F-59F3-4545-BCDD-C3B753EC5318} = {E144338F-4D18-4543-816E-4C1BAC32A1B1}
 		{759B8CEB-6625-4F25-ADCE-441EB869CC2C} = {36DD43D0-D8FF-4D6B-BA8D-79C7F24F041D}
 		{F58B68AE-D432-4028-926E-CBBF4BA200AD} = {36DD43D0-D8FF-4D6B-BA8D-79C7F24F041D}
+		{67CF68F0-40A4-47C0-B60E-8BF6FE51AC8E} = {36DD43D0-D8FF-4D6B-BA8D-79C7F24F041D}
 	EndGlobalSection
 EndGlobal

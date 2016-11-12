@@ -11,5 +11,6 @@ namespace Mofichan.Core.Interfaces
         IPropagatorBlock<OutgoingMessage, OutgoingMessage>,
         IDisposable
     {
+        void Start();
     }
 }

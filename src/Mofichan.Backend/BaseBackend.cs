@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Mofichan.Core;
@@ -13,16 +11,17 @@ namespace Mofichan.Backend
     {
         private ITargetBlock<IncomingMessage> target;
 
+        public BaseBackend()
+        {
+        }
+
+        #region Dataflow Members
         Task IDataflowBlock.Completion
         {
             get
             {
                 throw new NotImplementedException();
             }
-        }
-
-        public BaseBackend()
-        {
         }
 
         public IDisposable LinkTo(ITargetBlock<IncomingMessage> target, DataflowLinkOptions linkOptions)
@@ -47,43 +46,22 @@ namespace Mofichan.Backend
             return DataflowMessageStatus.Accepted;
         }
 
-        public abstract void Complete();
-        public abstract IncomingMessage ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target,
-            out bool messageConsumed);
-        public abstract void Dispose();
-        public abstract void Fault(Exception exception);
-        public abstract void Join(string roomId);
-        public abstract void Leave(string roomId);
-        public abstract void ReleaseReservation(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target);
-        public abstract bool ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target);
-
-        protected abstract IUser GetUserById(string userId);
-        protected abstract IRoom GetRoomById(string roomId);
-        protected abstract void SendMessage(MessageContext message);
-
-        void IMofichanBackend.Join(string roomId)
+        public virtual IncomingMessage ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target,
+            out bool messageConsumed)
         {
             throw new NotImplementedException();
         }
 
-        void IMofichanBackend.Leave(string roomId)
+        public virtual void Join(string roomId)
         {
-            throw new NotImplementedException();
+            var room = this.GetRoomById(roomId);
+            room.Join();
         }
 
-        DataflowMessageStatus ITargetBlock<OutgoingMessage>.OfferMessage(DataflowMessageHeader messageHeader, OutgoingMessage messageValue, ISourceBlock<OutgoingMessage> source, bool consumeToAccept)
+        public virtual void Leave(string roomId)
         {
-            throw new NotImplementedException();
-        }
-
-        IDisposable ISourceBlock<IncomingMessage>.LinkTo(ITargetBlock<IncomingMessage> target, DataflowLinkOptions linkOptions)
-        {
-            throw new NotImplementedException();
-        }
-
-        IncomingMessage ISourceBlock<IncomingMessage>.ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target, out bool messageConsumed)
-        {
-            throw new NotImplementedException();
+            var room = this.GetRoomById(roomId);
+            room.Leave();
         }
 
         bool ISourceBlock<IncomingMessage>.ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target)
@@ -105,10 +83,21 @@ namespace Mofichan.Backend
         {
             throw new NotImplementedException();
         }
+        #endregion
 
         void IDisposable.Dispose()
         {
             throw new NotImplementedException();
+        }
+
+        public abstract void Start();
+        protected abstract IUser GetUserById(string userId);
+        protected abstract IRoom GetRoomById(string roomId);
+        protected abstract void SendMessage(MessageContext message);
+
+        protected void OnReceiveMessage(IncomingMessage message)
+        {
+            this.target?.OfferMessage(default(DataflowMessageHeader), message, this, false);
         }
     }
 }

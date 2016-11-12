@@ -9,7 +9,7 @@ using PommaLabs.Thrower;
 
 namespace Mofichan.Core
 {
-    public class Kernel
+    public class Kernel : IDisposable
     {
         private IMofichanBackend backend;
         private IMofichanBehaviour[] behaviours;
@@ -25,6 +25,11 @@ namespace Mofichan.Core
 
             this.backend.LinkTo(this.behaviours[0]);
             this.behaviours[0].LinkTo(this.backend);
+        }
+
+        public void Start()
+        {
+            throw new NotImplementedException();
         }
 
         #region IDisposable Support

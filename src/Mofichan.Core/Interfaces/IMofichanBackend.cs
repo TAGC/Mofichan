@@ -5,6 +5,7 @@ namespace Mofichan.Core.Interfaces
 {
     public interface IMofichanBackend : IPropagatorBlock<OutgoingMessage, IncomingMessage>, IDisposable
     {
+        void Start();
         void Join(string roomId);
         void Leave(string roomId);
     }
@@ -13,6 +14,9 @@ namespace Mofichan.Core.Interfaces
     {
         string RoomId { get; }
         string Name { get; }
+
+        void Join();
+        void Leave();
     }
 
     public interface IUser : IMessageTarget
