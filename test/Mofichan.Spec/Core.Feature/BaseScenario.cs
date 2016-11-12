@@ -33,7 +33,7 @@ namespace Mofichan.Spec.Core.Feature
 
         protected void Given_Mofichan_is_running()
         {
-            this.Mofichan = new Kernel(this.Backend, this.Behaviours);
+            this.Mofichan = new Kernel("Mofichan", this.Backend, this.Behaviours);
         }
 
         #region Temporary
@@ -59,7 +59,12 @@ namespace Mofichan.Spec.Core.Feature
                 throw new NotImplementedException();
             }
 
-            public MessageContext ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<MessageContext> target, out bool messageConsumed)
+            public ReplyContext ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<ReplyContext> target, out bool messageConsumed)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void Dispose()
             {
                 throw new NotImplementedException();
             }
@@ -69,22 +74,27 @@ namespace Mofichan.Spec.Core.Feature
                 throw new NotImplementedException();
             }
 
-            public IDisposable LinkTo(ITargetBlock<MessageContext> target, DataflowLinkOptions linkOptions)
+            public IDisposable LinkTo(ITargetBlock<ReplyContext> target, DataflowLinkOptions linkOptions)
             {
                 throw new NotImplementedException();
             }
 
-            public DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader, MessageContext messageValue, ISourceBlock<MessageContext> source, bool consumeToAccept)
+            public DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader, ReplyContext messageValue, ISourceBlock<ReplyContext> source, bool consumeToAccept)
             {
                 throw new NotImplementedException();
             }
 
-            public void ReleaseReservation(DataflowMessageHeader messageHeader, ITargetBlock<MessageContext> target)
+            public void ReleaseReservation(DataflowMessageHeader messageHeader, ITargetBlock<ReplyContext> target)
             {
                 throw new NotImplementedException();
             }
 
-            public bool ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<MessageContext> target)
+            public bool ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<ReplyContext> target)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void Start()
             {
                 throw new NotImplementedException();
             }
@@ -117,7 +127,22 @@ namespace Mofichan.Spec.Core.Feature
                 throw new NotImplementedException();
             }
 
+            public void Dispose()
+            {
+                throw new NotImplementedException();
+            }
+
             public void Fault(Exception exception)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void Join(string roomId)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void Leave(string roomId)
             {
                 throw new NotImplementedException();
             }
@@ -138,6 +163,11 @@ namespace Mofichan.Spec.Core.Feature
             }
 
             public bool ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<MessageContext> target)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void Start()
             {
                 throw new NotImplementedException();
             }

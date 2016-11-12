@@ -5,7 +5,8 @@ using System.Threading.Tasks;
 
 namespace Mofichan.Core.Interfaces
 {
-    public interface IMofichanBehaviour : IReplyContextHandler
+    public interface IMessageTarget
     {
+        void ReceiveMessage(string message);
     }
 }

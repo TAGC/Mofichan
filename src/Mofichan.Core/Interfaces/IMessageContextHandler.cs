@@ -6,7 +6,8 @@ using System.Threading.Tasks.Dataflow;
 
 namespace Mofichan.Core.Interfaces
 {
-    public interface IMessageContextHandler : IPropagatorBlock<MessageContext, MessageContext>
+    public interface IMessageContextHandler : IPropagatorBlock<MessageContext, MessageContext>, IDisposable
     {
+        void Start();
     }
 }
