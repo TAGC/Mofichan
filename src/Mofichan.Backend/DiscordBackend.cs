@@ -10,22 +10,27 @@ namespace Mofichan.Backend
     public sealed class DiscordBackend : BaseBackend
     {
         private readonly string apiToken;
-        private readonly DiscordSettings settings;
         private readonly DiscordSocketClient client;
+        private readonly string adminId;
 
-        public DiscordBackend(string token, string botId, string adminId)
+        private DiscordSettings settings;
+
+        public DiscordBackend(string token, string adminId)
         {
             this.apiToken = token;
-            this.settings = new DiscordSettings(botId, adminId);
+            this.adminId = adminId;
             this.client = new DiscordSocketClient();
         }
 
         public override void Start()
         {
-            this.client.LoginAsync(TokenType.Bot, this.apiToken);
-            this.client.ConnectAsync();
+            this.client.LoginAsync(TokenType.Bot, this.apiToken).Wait();
+            this.client.ConnectAsync().Wait();
 
             this.client.MessageReceived += HandleIncomingMessage;
+
+            var botId = this.client.CurrentUser.Id.ToString();
+            this.settings = new DiscordSettings(botId, this.adminId);
         }
 
         private Task HandleIncomingMessage(SocketMessage message)

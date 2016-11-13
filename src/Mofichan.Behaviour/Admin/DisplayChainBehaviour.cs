@@ -12,6 +12,9 @@ namespace Mofichan.Behaviour.Admin
 {
     public class DisplayChainBehaviour : BaseBehaviour
     {
+        private const string Tick = "✓";
+        private const string Cross = "⨉";
+
         private readonly Regex displayChainPattern;
         private IList<IMofichanBehaviour> behaviourStack;
 
@@ -21,7 +24,7 @@ namespace Mofichan.Behaviour.Admin
             var identityMatch = @"(mofichan|mofi)";
 
             this.displayChainPattern = new Regex(
-                string.Format(@"{0},? (display|show your) behaviour chain", identityMatch),
+                string.Format(@"{0},? (display|show( your)?) behaviour chain", identityMatch),
                 RegexOptions.IgnoreCase);
         }
 
@@ -96,7 +99,7 @@ namespace Mofichan.Behaviour.Admin
             {
                 var enabled = (behaviour as ToggleEnableBehaviour.EnableableBehaviourDecorator).Enabled;
 
-                return string.Format("[{0} {1}]", id, enabled ? "✓" : "✖");
+                return string.Format("[{0} {1}]", id, enabled ? Tick : Cross);
             }
             else
             {

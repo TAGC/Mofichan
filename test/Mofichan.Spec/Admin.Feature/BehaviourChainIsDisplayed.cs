@@ -45,7 +45,7 @@ namespace Mofichan.Spec.Admin.Feature
             var mockB = ConstructMockBehaviourWithId("mockB");
             var mockC = ConstructMockBehaviourWithId("mockC");
 
-            string substring = "[administration] ⇄ [mockA ✓] ⇄ [mockB ✖] ⇄ [mockC ✓]";
+            string substring = "[administration] ⇄ [mockA ✓] ⇄ [mockB ⨉] ⇄ [mockC ✓]";
 
             this.Given(s => s.Given_Mofichan_is_configured_with_behaviour("administration"), AddBehaviourTemplate)
                 .Given(s => s.Given_Mofichan_is_configured_with_behaviour(mockA), AddMockBehaviourTemplate)
