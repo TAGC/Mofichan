@@ -9,7 +9,7 @@ using Mofichan.Core.Interfaces;
 
 namespace Mofichan.Behaviour
 {
-    public static class Extensions
+    internal static class Extensions
     {
         public static OutgoingMessage Reply(this IncomingMessage message, string replyBody)
         {

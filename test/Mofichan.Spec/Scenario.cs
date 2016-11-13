@@ -153,6 +153,13 @@ namespace Mofichan.Spec
                 .Select(it => it.Context.Body)
                 .Any(it => Regex.Match(it, pattern, options).Success));
         }
+
+        protected void Then_Mofichan_should_have_sent_response_containing__substring__(string substring)
+        {
+            Assert.True(this.SentMessages
+                .Select(it => it.Context.Body)
+                .Any(it => it.Contains(substring)));
+        }
         #endregion
     }
 }

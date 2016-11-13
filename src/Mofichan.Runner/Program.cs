@@ -42,9 +42,10 @@ namespace Mofichan.Runner
 
             var backend = container.ResolveNamed<IMofichanBackend>(backendName, backendParams);
 
-            // TODO: refactor behaviour bootstrapping logic.
+            // TODO: refactor behaviour bootstrapping logic.&
             var behaviours = new[]
             {
+                container.ResolveNamed<IMofichanBehaviour>("administration"),
                 container.ResolveNamed<IMofichanBehaviour>("greeting")
             };
 

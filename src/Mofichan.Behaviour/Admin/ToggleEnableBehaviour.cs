@@ -1,17 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks.Dataflow;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
 
-namespace Mofichan.Behaviour
+namespace Mofichan.Behaviour.Admin
 {
-    public class AdministrationBehaviour : BaseBehaviour
+    internal class ToggleEnableBehaviour : BaseBehaviour
     {
-        private class EnableableBehaviourDecorator : BaseBehaviourDecorator
+        internal class EnableableBehaviourDecorator : BaseBehaviourDecorator
         {
             private ITargetBlock<IncomingMessage> downstreamTarget;
             private ITargetBlock<OutgoingMessage> upstreamTarget;
@@ -19,6 +18,7 @@ namespace Mofichan.Behaviour
             public EnableableBehaviourDecorator(IMofichanBehaviour delegateBehaviour)
                 : base(delegateBehaviour)
             {
+                this.Enabled = true;
             }
 
             public bool Enabled { get; set; }
@@ -80,7 +80,7 @@ namespace Mofichan.Behaviour
 
         private readonly IDictionary<string, EnableableBehaviourDecorator> behaviourMap;
 
-        public AdministrationBehaviour()
+        public ToggleEnableBehaviour()
         {
             this.behaviourMap = new Dictionary<string, EnableableBehaviourDecorator>();
 
@@ -110,7 +110,7 @@ namespace Mofichan.Behaviour
             {
                 var behaviour = stack[i];
 
-                if (behaviour.Equals(this))
+                if (behaviour.Id == AdministrationBehaviour.AdministrationBehaviourId)
                 {
                     continue;
                 }
@@ -137,11 +137,6 @@ namespace Mofichan.Behaviour
             var isUserAuthorised = fromUser?.Type == UserType.Adminstrator;
 
             return isRequestValid && isUserAuthorised;
-        }
-
-        protected override bool CanHandleOutgoingMessage(OutgoingMessage message)
-        {
-            return false;
         }
 
         protected override void HandleIncomingMessage(IncomingMessage message)
@@ -184,6 +179,11 @@ namespace Mofichan.Behaviour
                     this.HandleNonExistentBehaviour(behaviour, "disabled", message);
                 }
             }
+        }
+
+        protected override bool CanHandleOutgoingMessage(OutgoingMessage message)
+        {
+            return false;
         }
 
         protected override void HandleOutgoingMessage(OutgoingMessage message)

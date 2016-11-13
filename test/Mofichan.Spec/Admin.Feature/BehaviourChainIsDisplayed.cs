@@ -15,7 +15,7 @@ namespace Mofichan.Spec.Admin.Feature
             var mockB = ConstructMockBehaviourWithId("mockB");
             var mockC = ConstructMockBehaviourWithId("mockC");
 
-            string pattern = "[admin] ⇄ [mockA ✓] ⇄ [mockB ✓] ⇄ [mockC ✓]";
+            string substring = "[administration] ⇄ [mockA ✓] ⇄ [mockB ✓] ⇄ [mockC ✓]";
 
             this.Given(s => s.Given_Mofichan_is_configured_with_behaviour("administration"), AddBehaviourTemplate)
                 .Given(s => s.Given_Mofichan_is_configured_with_behaviour(mockA), AddMockBehaviourTemplate)
@@ -23,7 +23,7 @@ namespace Mofichan.Spec.Admin.Feature
                 .Given(s => s.Given_Mofichan_is_configured_with_behaviour(mockC), AddMockBehaviourTemplate)
                     .And(s => s.Given_Mofichan_is_running())
                 .When(s => s.When_Mofichan_receives_a_message(this.DeveloperUser, "Mofichan, show your behaviour chain"))
-                .Then(s => s.Then_Mofichan_should_have_sent_response_with_pattern(pattern, RegexOptions.IgnoreCase));
+                .Then(s => s.Then_Mofichan_should_have_sent_response_containing__substring__(substring));
         }
 
         private static IMofichanBehaviour ConstructMockBehaviourWithId(string id)
@@ -45,7 +45,7 @@ namespace Mofichan.Spec.Admin.Feature
             var mockB = ConstructMockBehaviourWithId("mockB");
             var mockC = ConstructMockBehaviourWithId("mockC");
 
-            string pattern = "[admin] ⇄ [mockA ✓] ⇄ [mockB ✖] ⇄ [mockC ✓]";
+            string substring = "[administration] ⇄ [mockA ✓] ⇄ [mockB ✖] ⇄ [mockC ✓]";
 
             this.Given(s => s.Given_Mofichan_is_configured_with_behaviour("administration"), AddBehaviourTemplate)
                 .Given(s => s.Given_Mofichan_is_configured_with_behaviour(mockA), AddMockBehaviourTemplate)
@@ -55,7 +55,7 @@ namespace Mofichan.Spec.Admin.Feature
                     .And(s => s.When_Mofichan_receives_a_message(this.DeveloperUser, "Mofichan, disable mockB behaviour"),
                         "Given that I've requested to disable the 'mockB' behaviour")
                 .When(s => s.When_Mofichan_receives_a_message(this.DeveloperUser, "Mofichan, show your behaviour chain"))
-                .Then(s => s.Then_Mofichan_should_have_sent_response_with_pattern(pattern, RegexOptions.IgnoreCase));
+                .Then(s => s.Then_Mofichan_should_have_sent_response_containing__substring__(substring));
         }
 
         private static IMofichanBehaviour ConstructMockBehaviourWithId(string id)
