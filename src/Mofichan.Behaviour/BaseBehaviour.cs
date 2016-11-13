@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Mofichan.Core;
@@ -13,11 +14,29 @@ namespace Mofichan.Behaviour
         private ITargetBlock<OutgoingMessage> upstreamTarget;
         private bool passThroughMessages;
 
+        protected BaseBehaviour(bool passThroughMessages = true)
+        {
+            this.passThroughMessages = passThroughMessages;
+        }
+
         Task IDataflowBlock.Completion
         {
             get
             {
                 throw new NotImplementedException();
+            }
+        }
+
+        public virtual string Id
+        {
+            get
+            {
+                return this
+                    .GetType()
+                    .GetTypeInfo()
+                    .Name
+                    .Replace("Behaviour", string.Empty)
+                    .ToLowerInvariant();
             }
         }
 
@@ -61,7 +80,7 @@ namespace Mofichan.Behaviour
                 this.HandleIncomingMessage(message);
                 return DataflowMessageStatus.Accepted;
             }
-            else if (this.passThroughMessages)
+            else if (this.passThroughMessages && this.downstreamTarget != null)
             {
                 return this.downstreamTarget.OfferMessage(messageHeader, message, this, consumeToAccept);
             }

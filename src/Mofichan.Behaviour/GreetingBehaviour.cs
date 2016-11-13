@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Mofichan.Core;
@@ -38,7 +39,7 @@ namespace Mofichan.Behaviour
 
         protected override bool CanHandleIncomingMessage(IncomingMessage message)
         {
-            return true;
+            return this.IsGreetingForMofichan(message);
         }
 
         protected override bool CanHandleOutgoingMessage(OutgoingMessage message)
@@ -48,16 +49,15 @@ namespace Mofichan.Behaviour
 
         protected override void HandleIncomingMessage(IncomingMessage message)
         {
+            Debug.Assert(this.IsGreetingForMofichan(message));
+
             var sender = message.Context.From as IUser;
             var recipient = message.Context.To as IUser;
 
-            if (this.IsGreetingForMofichan(message))
-            {
-                var outgoingMessage = this.ConstructGreetingMessage(
-                    mofichan: recipient, target: sender);
+            var outgoingMessage = this.ConstructGreetingMessage(
+                mofichan: recipient, target: sender);
 
-                this.SendUpstream(outgoingMessage);
-            }
+            this.SendUpstream(outgoingMessage);
         }
 
         protected override void HandleOutgoingMessage(OutgoingMessage message)

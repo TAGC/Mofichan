@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 
 namespace Mofichan.Core.Interfaces
@@ -11,6 +8,7 @@ namespace Mofichan.Core.Interfaces
         IPropagatorBlock<OutgoingMessage, OutgoingMessage>,
         IDisposable
     {
+        string Id { get; }
         void Start();
     }
 }

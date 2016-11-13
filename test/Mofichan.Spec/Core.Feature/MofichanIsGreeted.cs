@@ -80,6 +80,7 @@ namespace Mofichan.Spec.Core.Feature
         private void TearDown()
         {
             this.sentMessages.Clear();
+            this.Mofichan.Dispose();
         }
 
         private void Then_Mofichan_should_greet_me_back()
