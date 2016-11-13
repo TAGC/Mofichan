@@ -1,4 +1,6 @@
-﻿namespace Mofichan.Behaviour.Admin
+﻿using Mofichan.Behaviour.Base;
+
+namespace Mofichan.Behaviour.Admin
 {
     public class AdministrationBehaviour : BaseMultiBehaviour
     {

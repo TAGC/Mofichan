@@ -6,7 +6,7 @@ using System.Threading.Tasks.Dataflow;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
 
-namespace Mofichan.Behaviour
+namespace Mofichan.Behaviour.Base
 {
     public abstract class BaseMultiBehaviour : IMofichanBehaviour
     {

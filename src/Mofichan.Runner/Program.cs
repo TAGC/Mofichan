@@ -4,6 +4,7 @@ using System.Reflection;
 using Autofac;
 using Mofichan.Backend;
 using Mofichan.Behaviour;
+using Mofichan.Behaviour.Base;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
 
