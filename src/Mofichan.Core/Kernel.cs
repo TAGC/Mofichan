@@ -38,18 +38,28 @@ namespace Mofichan.Core
         {
             Debug.Assert(behaviours.Any());
 
-            var behaviourArray = behaviours.ToArray();
+            var behaviourList = behaviours.ToList();
 
-            for (var i = 0; i < behaviourArray.Length - 1; i++)
+            /*
+             * Allows behaviours a chance to inspect/modify
+             * other behaviours in the stack before they are
+             * wired up and started.
+             */
+            foreach (var behaviour in behaviours)
             {
-                var upstreamBehaviour = behaviourArray[i];
-                var downstreamBehaviour = behaviourArray[i + 1];
+                behaviour.InspectBehaviourStack(behaviourList);
+            }
+
+            for (var i = 0; i < behaviourList.Count - 1; i++)
+            {
+                var upstreamBehaviour = behaviourList[i];
+                var downstreamBehaviour = behaviourList[i + 1];
 
                 upstreamBehaviour.LinkTo<IncomingMessage>(downstreamBehaviour);
                 downstreamBehaviour.LinkTo<OutgoingMessage>(upstreamBehaviour);
             }
 
-            return behaviourArray[0];
+            return behaviourList[0];
         }
 
         #region IDisposable Support

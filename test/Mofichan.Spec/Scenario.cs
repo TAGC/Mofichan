@@ -1,11 +1,15 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks.Dataflow;
 using Autofac;
 using Mofichan.Behaviour;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
 using Moq;
+using Shouldly;
 using TestStack.BDDfy;
 using Xunit;
 
@@ -42,6 +46,8 @@ namespace Mofichan.Spec
                 .AsImplementedInterfaces();
 
             this.container = containerBuilder.Build();
+            this.SentMessages = new List<OutgoingMessage>();
+            this.MessageSent += (s, e) => this.SentMessages.Add(e.Message);
         }
 
         private IMofichanBackend ConstructMockBackend()
@@ -70,30 +76,7 @@ namespace Mofichan.Spec
             this.BDDfy(scenarioTitle: this.scenarioTitle);
         }
 
-        protected void Given_Mofichan_is_configured_with_behaviour(string behaviour)
-        {
-            this.Behaviours.Add(this.container.ResolveNamed<IMofichanBehaviour>(behaviour));
-        }
-
-        protected void Given_Mofichan_is_configured_with_behaviour(IMofichanBehaviour behaviour)
-        {
-            this.Behaviours.Add(behaviour);
-        }
-
-        protected void Given_Mofichan_is_running()
-        {
-            this.Mofichan = new Kernel("Mofichan", this.Backend, this.Behaviours);
-            this.Mofichan.Start();
-        }
-
-        protected void When_Mofichan_receives_a_message(IUser sender, string message)
-        {
-            var incomingMessage = new IncomingMessage(
-                new MessageContext(from: sender, to: this.MofichanUser, body: message));
-
-            this.backendTarget.Post(incomingMessage);
-        }
-
+        protected IList<OutgoingMessage> SentMessages { get; }
         protected IList<IMofichanBehaviour> Behaviours { get; }
         protected IMofichanBackend Backend { get; }
         protected IUser MofichanUser { get; }
@@ -128,5 +111,48 @@ namespace Mofichan.Spec
 
             public OutgoingMessage Message { get; }
         }
+
+        #region Given
+        protected void Given_Mofichan_is_configured_with_behaviour(string behaviour)
+        {
+            this.Behaviours.Add(this.container.ResolveNamed<IMofichanBehaviour>(behaviour));
+        }
+
+        protected void Given_Mofichan_is_configured_with_behaviour(IMofichanBehaviour behaviour)
+        {
+            this.Behaviours.Add(behaviour);
+        }
+
+        protected void Given_Mofichan_is_running()
+        {
+            this.Mofichan = new Kernel("Mofichan", this.Backend, this.Behaviours);
+            this.Mofichan.Start();
+        }
+        #endregion
+
+        #region When
+        protected void When_Mofichan_receives_a_message(IUser sender, string message)
+        {
+            var incomingMessage = new IncomingMessage(
+                new MessageContext(from: sender, to: this.MofichanUser, body: message));
+
+            this.backendTarget.Post(incomingMessage);
+        }
+        #endregion
+
+        #region Then
+        protected void Then_Mofichan_should_have_sent__body__(string body)
+        {
+            this.SentMessages.Select(it => it.Context.Body).ShouldContain(body);
+        }
+
+        protected void Then_Mofichan_should_have_sent_response_with_pattern(
+            string pattern, RegexOptions options)
+        {
+            Assert.True(this.SentMessages
+                .Select(it => it.Context.Body)
+                .Any(it => Regex.Match(it, pattern, options).Success));
+        }
+        #endregion
     }
 }

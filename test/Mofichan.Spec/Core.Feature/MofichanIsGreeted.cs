@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using Mofichan.Core;
+﻿using System.Linq;
 using Shouldly;
 using TestStack.BDDfy;
 
@@ -10,12 +8,8 @@ namespace Mofichan.Spec.Core.Feature
     {
         protected const string WhenGreetingTemplate = "When I say '<greeting>'";
 
-        protected readonly IList<OutgoingMessage> sentMessages;
-
         public MofichanIsGreeted(string scenarioTitle) : base(scenarioTitle)
         {
-            this.sentMessages = new List<OutgoingMessage>();
-            this.MessageSent += (s, e) => this.sentMessages.Add(e.Message);
         }
 
         protected ExampleTable EmptyExampleTable
@@ -33,7 +27,7 @@ namespace Mofichan.Spec.Core.Feature
 
         protected void Teardown()
         {
-            this.sentMessages.Clear();
+            this.SentMessages.Clear();
             this.Mofichan?.Dispose();
         }
     }
@@ -79,13 +73,13 @@ namespace Mofichan.Spec.Core.Feature
 
         private void TearDown()
         {
-            this.sentMessages.Clear();
+            this.SentMessages.Clear();
             this.Mofichan.Dispose();
         }
 
         private void Then_Mofichan_should_greet_me_back()
         {
-            var message = this.sentMessages.ShouldHaveSingleItem();
+            var message = this.SentMessages.ShouldHaveSingleItem();
             message.Context.To.ShouldBe(this.DeveloperUser);
             message.Context.Body.ShouldMatch(this.greetingPattern);
         }
@@ -130,7 +124,7 @@ namespace Mofichan.Spec.Core.Feature
 
         private void Then_Mofichan_should_not_have_said_anything()
         {
-            this.sentMessages.ShouldBeEmpty();
+            this.SentMessages.ShouldBeEmpty();
         }
     }
 
@@ -147,7 +141,7 @@ namespace Mofichan.Spec.Core.Feature
 
         private void Then_Mofichan_should_not_have_said_anything()
         {
-            this.sentMessages.ShouldBeEmpty();
+            this.SentMessages.ShouldBeEmpty();
         }
     }
 }

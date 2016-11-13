@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -21,7 +20,7 @@ namespace Mofichan.Behaviour
 
         public GreetingBehaviour()
         {
-            // TODO: refactor to inject indentity match logic.
+            // TODO: refactor to inject identity match logic.
             var identityMatch = @"(mofichan|mofi)";
 
             var greetingMatch = string.Concat("(", string.Join("|", UserGreetings), ")");

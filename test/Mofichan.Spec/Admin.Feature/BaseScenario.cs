@@ -38,24 +38,28 @@ namespace Mofichan.Spec.Admin.Feature
         }
 
         #region When
-        protected void When_I_request_that_the_mock_behaviour_is_enabled()
+        protected void When_I_request_that__behaviour__behaviour_is_enabled(string behaviour)
         {
-            this.When_Mofichan_receives_a_message(this.DeveloperUser, "Mofichan, enable mock behaviour");
+            this.When_Mofichan_receives_a_message(this.DeveloperUser,
+                string.Format("Mofichan, enable {0} behaviour", behaviour));
         }
 
-        protected void When_I_request_that_the_mock_behaviour_is_disabled()
+        protected void When_I_request_that__behaviour__behaviour_is_disabled(string behaviour)
         {
-            this.When_Mofichan_receives_a_message(this.DeveloperUser, "Mofichan, disable mock behaviour");
+            this.When_Mofichan_receives_a_message(this.DeveloperUser,
+                string.Format("Mofichan, disable {0} behaviour", behaviour));
         }
 
-        protected void When_John_Smith_requests_that_the_mock_behaviour_is_enabled()
+        protected void When_John_Smith_requests_that__behaviour__behaviour_is_enabled(string behaviour)
         {
-            this.When_Mofichan_receives_a_message(this.JohnSmithUser, "Mofichan, enable mock behaviour");
+            this.When_Mofichan_receives_a_message(this.JohnSmithUser,
+                string.Format("Mofichan, disable {0} behaviour", behaviour));
         }
 
-        protected void When_John_Smith_requests_that_the_mock_behaviour_is_disabled()
+        protected void When_John_Smith_requests_that__behaviour__behaviour_is_disabled(string behaviour)
         {
-            this.When_Mofichan_receives_a_message(this.JohnSmithUser, "Mofichan, disable mock behaviour");
+            this.When_Mofichan_receives_a_message(this.JohnSmithUser,
+                string.Format("Mofichan, disable {0} behaviour", behaviour));
         }
         #endregion
 

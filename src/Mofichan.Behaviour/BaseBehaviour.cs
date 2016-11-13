@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -8,6 +9,19 @@ using Mofichan.Core.Interfaces;
 
 namespace Mofichan.Behaviour
 {
+    public static class Extensions
+    {
+        public static OutgoingMessage Reply(this IncomingMessage message, string replyBody)
+        {
+            var from = message.Context.From;
+            var to = message.Context.To;
+
+            var replyContext = new MessageContext(from: to, to: from, body: replyBody);
+
+            return new OutgoingMessage(replyContext);
+        }
+    }
+
     public abstract class BaseBehaviour : IMofichanBehaviour
     {
         private ITargetBlock<IncomingMessage> downstreamTarget;
@@ -38,6 +52,11 @@ namespace Mofichan.Behaviour
                     .Replace("Behaviour", string.Empty)
                     .ToLowerInvariant();
             }
+        }
+
+        public virtual void InspectBehaviourStack(IList<IMofichanBehaviour> stack)
+        {
+            // Override if necessary.
         }
 
         public virtual void Start()
@@ -176,6 +195,11 @@ namespace Mofichan.Behaviour
         void IDisposable.Dispose()
         {
             throw new NotImplementedException();
+        }
+
+        public override string ToString()
+        {
+            return string.Concat("Mofichan behaviour: ", this.Id);
         }
     }
 }
