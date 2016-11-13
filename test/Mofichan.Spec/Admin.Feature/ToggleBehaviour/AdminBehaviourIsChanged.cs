@@ -1,7 +1,7 @@
 ﻿using System.Text.RegularExpressions;
 using TestStack.BDDfy;
 
-namespace Mofichan.Spec.Admin.Feature
+namespace Mofichan.Spec.Admin.Feature.ToggleBehaviour
 {
     public class AdminBehaviourIsEnabled : BaseScenario
     {

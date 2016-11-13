@@ -4,9 +4,9 @@ using Mofichan.Core.Interfaces;
 using Moq;
 using TestStack.BDDfy;
 
-namespace Mofichan.Spec.Admin.Feature
+namespace Mofichan.Spec.Admin.Feature.ToggleBehaviour
 {
-    [Story(Title = "Administration Functionality")]
+    [Story(Title = "Administration Functionality - Toggling Behaviour Enable States")]
     public abstract class BaseScenario : Scenario
     {
         protected const string AddMockBehaviourTemplate = "Given Mofichan is configured with a mock behaviour";
