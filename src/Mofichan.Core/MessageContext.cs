@@ -1,24 +1,27 @@
-﻿using Mofichan.Core.Interfaces;
+﻿using System;
+using Mofichan.Core.Interfaces;
 
 namespace Mofichan.Core
 {
     public struct MessageContext
     {
-        public MessageContext(IMessageTarget from, IMessageTarget to, string body)
+        public MessageContext(IMessageTarget from, IMessageTarget to, string body, TimeSpan? delay = null)
         {
             this.From = from;
             this.To = to;
             this.Body = body;
+            this.Delay = delay ?? TimeSpan.Zero;
         }
 
         public IMessageTarget From { get; }
         public IMessageTarget To { get; }
         public string Body { get; }
+        public TimeSpan Delay { get; }
 
         public override string ToString()
         {
-            return string.Format("Message (from={0}, to={1}, body={2}",
-                this.From, this.To, this.Body);
+            return string.Format("Message (from={0}, to={1}, body={2} delay={3})",
+                this.From, this.To, this.Body, this.Delay);
         }
     }
 
@@ -40,23 +43,18 @@ namespace Mofichan.Core
 
         public override string ToString()
         {
-            return string.Format("Incoming message (context={0}, potential reply={1}",
+            return string.Format("Incoming message (context={0}, potential reply={1})",
                 this.Context, this.PotentialReply);
         }
     }
 
     public struct OutgoingMessage
     {
-        public OutgoingMessage(MessageContext context)
-        {
-            this.Context = context;
-        }
-
-        public MessageContext Context { get; }
+        public MessageContext Context { set;  get; }
 
         public override string ToString()
         {
-            return string.Format("Outgoing message (context={0}", this.Context);
+            return string.Format("Outgoing message (context={0}, delay={1})", this.Context);
         }
     }
 }

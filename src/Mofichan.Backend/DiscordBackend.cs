@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
@@ -48,6 +49,32 @@ namespace Mofichan.Backend
             this.OnReceiveMessage(incomingMessage);
 
             return Task.CompletedTask;
+        }
+
+        protected override async Task HandleMessageDelayAsync(MessageContext context)
+        {
+            DiscordRoom room;
+
+            if (context.To is RoomOccupant && (context.To as RoomOccupant).Room is DiscordRoom)
+            {
+                room = (context.To as RoomOccupant).Room as DiscordRoom;
+            }
+            else if (context.To is DiscordRoom)
+            {
+                room = context.To as DiscordRoom;
+            }
+            else
+            {
+                return;
+            }
+
+            /*
+             * Simulate bot typing before message gets sent in room.
+             */
+            using (room.EnterTypingState())
+            {
+                await Task.Delay(context.Delay);
+            }
         }
 
         protected override IRoom GetRoomById(string roomId)
@@ -127,6 +154,11 @@ namespace Mofichan.Backend
             {
                 return channel.Id.ToString();
             }
+        }
+
+        public IDisposable EnterTypingState()
+        {
+            return this.channel.EnterTypingState();
         }
 
         public void Join()

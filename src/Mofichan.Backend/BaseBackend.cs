@@ -96,12 +96,27 @@ namespace Mofichan.Backend
 
         protected virtual void SendMessage(MessageContext message)
         {
-            message.To.ReceiveMessage(message.Body);
+            if (message.Delay > TimeSpan.Zero)
+            {
+                Task.Run(() => HandleMessageDelayAsync(message))
+                    .ContinueWith(_ => message.To.ReceiveMessage(message.Body));
+            }
+            else
+            {
+                message.To.ReceiveMessage(message.Body);
+            }
+
         }
 
         protected void OnReceiveMessage(IncomingMessage message)
         {
             this.target?.OfferMessage(default(DataflowMessageHeader), message, this, false);
+        }
+        
+        protected virtual Task HandleMessageDelayAsync(MessageContext context)
+        {
+            // Override if necessary.
+            return Task.CompletedTask;
         }
     }
 

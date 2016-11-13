@@ -46,6 +46,7 @@ namespace Mofichan.Runner
             // TODO: refactor behaviour bootstrapping logic.&
             var behaviours = new[]
             {
+                container.ResolveNamed<IMofichanBehaviour>("delay"),
                 container.ResolveNamed<IMofichanBehaviour>("administration"),
                 container.ResolveNamed<IMofichanBehaviour>("greeting")
             };

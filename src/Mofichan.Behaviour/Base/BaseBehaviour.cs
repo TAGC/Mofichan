@@ -18,7 +18,7 @@ namespace Mofichan.Behaviour.Base
 
             var replyContext = new MessageContext(from: to, to: from, body: replyBody);
 
-            return new OutgoingMessage(replyContext);
+            return new OutgoingMessage { Context = replyContext };
         }
     }
 

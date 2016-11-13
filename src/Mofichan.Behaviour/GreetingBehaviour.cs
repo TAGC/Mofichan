@@ -89,7 +89,7 @@ namespace Mofichan.Behaviour
 
             var body = string.Format("{0} {1}{2}", greeting, target.Name, emote);
             var context = new MessageContext(from: mofichan, to: target, body: body);
-            return new OutgoingMessage(context);
+            return new OutgoingMessage { Context = context };
         }
     }
 }
