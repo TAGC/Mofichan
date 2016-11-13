@@ -5,6 +5,12 @@ using Mofichan.Core;
 
 namespace Mofichan.Behaviour
 {
+    /// <summary>
+    /// This <see cref="IMofichanBehaviour"/> causes Mofichan to delay her responses.
+    /// <para></para>
+    /// Adding this module to the behaviour chain will make Mofichan seem less bot-like in
+    /// her response rate.
+    /// </summary>
     public class DelayBehaviour : BaseBehaviour
     {
         private static readonly TimeSpan FixedDelay = TimeSpan.FromSeconds(0.4);

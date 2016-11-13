@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
@@ -8,6 +7,10 @@ using Mofichan.Core.Interfaces;
 
 namespace Mofichan.Backend
 {
+    /// <summary>
+    /// An implementation of <see cref="IMofichanBackend"/> that allows her to talk to
+    /// people on Discord.
+    /// </summary>
     public sealed class DiscordBackend : BaseBackend
     {
         private readonly string apiToken;
@@ -16,6 +19,11 @@ namespace Mofichan.Backend
 
         private DiscordSettings settings;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DiscordBackend"/> class.
+        /// </summary>
+        /// <param name="token">Mofichan's API token.</param>
+        /// <param name="adminId">The Discord identifier of Mofichan's sole administrator.</param>
         public DiscordBackend(string token, string adminId)
         {
             this.apiToken = token;
@@ -23,6 +31,9 @@ namespace Mofichan.Backend
             this.client = new DiscordSocketClient();
         }
 
+        /// <summary>
+        /// Initialises the backend.
+        /// </summary>
         public override void Start()
         {
             this.client.LoginAsync(TokenType.Bot, this.apiToken).Wait();
@@ -34,23 +45,13 @@ namespace Mofichan.Backend
             this.settings = new DiscordSettings(botId, this.adminId);
         }
 
-        private Task HandleIncomingMessage(SocketMessage message)
-        {
-            var user = new DiscordUser(message.Author, this.settings);
-            var room = new DiscordRoom(message.Channel);
-
-            var from = new RoomOccupant(user, room);
-            var to = room;
-            var body = message.Content;
-
-            var context = new MessageContext(from, to, body);
-            var incomingMessage = new IncomingMessage(context);
-
-            this.OnReceiveMessage(incomingMessage);
-
-            return Task.CompletedTask;
-        }
-
+        /// <summary>
+        /// Handles the case where an outgoing message has a configured delay.
+        /// </summary>
+        /// <param name="context">The outgoing message context.</param>
+        /// <returns>
+        /// A task representing this execution.
+        /// </returns>
         protected override async Task HandleMessageDelayAsync(MessageContext context)
         {
             DiscordRoom room;
@@ -77,31 +78,94 @@ namespace Mofichan.Backend
             }
         }
 
+        /// <summary>
+        /// Tries to retrieve a room by its ID.
+        /// </summary>
+        /// <param name="roomId">The room identifier.</param>
+        /// <returns>
+        /// The room corresponding to the ID, if it exists.
+        /// </returns>
+        /// <exception cref="System.NotImplementedException"></exception>
         protected override IRoom GetRoomById(string roomId)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Tries to retrieve a user by its ID.
+        /// </summary>
+        /// <param name="userId">The user identifier.</param>
+        /// <returns>
+        /// The user corresponding to the ID, if it exists.
+        /// </returns>
+        /// <exception cref="System.NotImplementedException"></exception>
         protected override Core.Interfaces.IUser GetUserById(string userId)
         {
             throw new NotImplementedException();
         }
+
+        private Task HandleIncomingMessage(SocketMessage message)
+        {
+            var user = new DiscordUser(message.Author, this.settings);
+            var room = new DiscordRoom(message.Channel);
+
+            var from = new RoomOccupant(user, room);
+            var to = room;
+            var body = message.Content;
+
+            var context = new MessageContext(from, to, body);
+            var incomingMessage = new IncomingMessage(context);
+
+            this.OnReceiveMessage(incomingMessage);
+
+            return Task.CompletedTask;
+        }
     }
 
+    /// <summary>
+    /// Represents a collection of Discord-specific settings.
+    /// </summary>
     public struct DiscordSettings
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DiscordSettings"/> struct.
+        /// </summary>
+        /// <param name="botId">The bot identifier.</param>
+        /// <param name="adminId">The admin identifier.</param>
         public DiscordSettings(string botId, string adminId)
         {
             this.BotId = botId;
             this.AdminId = adminId;
         }
 
+        /// <summary>
+        /// Gets the bot identifier.
+        /// </summary>
+        /// <value>
+        /// The bot identifier.
+        /// </value>
         public string BotId { get; }
+
+        /// <summary>
+        /// Gets the admin identifier.
+        /// </summary>
+        /// <value>
+        /// The admin identifier.
+        /// </value>
         public string AdminId { get; }
     }
 
+    /// <summary>
+    /// Represents a Discord user.
+    /// </summary>
+    /// <seealso cref="Mofichan.Core.Interfaces.IUser" />
     public sealed class DiscordUser : Core.Interfaces.IUser
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DiscordUser"/> class.
+        /// </summary>
+        /// <param name="user">The user instance to adapt.</param>
+        /// <param name="settings">The current Discord settings.</param>
         public DiscordUser(Discord.IUser user, DiscordSettings settings)
         {
             this.UserId = user.Id.ToString();
@@ -121,25 +185,64 @@ namespace Mofichan.Backend
             }
         }
 
+        /// <summary>
+        /// Gets the user identifier.
+        /// </summary>
+        /// <value>
+        /// The user identifier.
+        /// </value>
         public string UserId { get; }
+
+        /// <summary>
+        /// Gets the name.
+        /// </summary>
+        /// <value>
+        /// The name.
+        /// </value>
         public string Name { get; }
+
+        /// <summary>
+        /// Gets the type.
+        /// </summary>
+        /// <value>
+        /// The type.
+        /// </value>
         public UserType Type { get; }
 
+        /// <summary>
+        /// Receives the message.
+        /// </summary>
+        /// <param name="message">The message to process.</param>
+        /// <exception cref="System.NotImplementedException"></exception>
         public void ReceiveMessage(string message)
         {
             throw new NotImplementedException();
         }
     }
 
+    /// <summary>
+    /// Represents a Discord room.
+    /// </summary>
+    /// <seealso cref="Mofichan.Core.Interfaces.IRoom" />
     public sealed class DiscordRoom : IRoom
     {
         private readonly ISocketMessageChannel channel;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DiscordRoom"/> class.
+        /// </summary>
+        /// <param name="channel">The Discord socket channel to wrap.</param>
         public DiscordRoom(ISocketMessageChannel channel)
         {
             this.channel = channel;
         }
 
+        /// <summary>
+        /// Gets the room name.
+        /// </summary>
+        /// <value>
+        /// The name.
+        /// </value>
         public string Name
         {
             get
@@ -148,6 +251,12 @@ namespace Mofichan.Backend
             }
         }
 
+        /// <summary>
+        /// Gets the room identifier.
+        /// </summary>
+        /// <value>
+        /// The room identifier.
+        /// </value>
         public string RoomId
         {
             get
@@ -156,20 +265,37 @@ namespace Mofichan.Backend
             }
         }
 
+        /// <summary>
+        /// Enters a "user typing" context.
+        /// </summary>
+        /// <returns>A token that ends the context when disposed.</returns>
         public IDisposable EnterTypingState()
         {
             return this.channel.EnterTypingState();
         }
 
+        /// <summary>
+        /// Connects Mofichan to this room.
+        /// </summary>
+        /// <exception cref="System.NotImplementedException"></exception>
         public void Join()
         {
+            throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Disconnects Mofichan from this room.
+        /// </summary>
+        /// <exception cref="System.NotImplementedException"></exception>
         public void Leave()
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Receives the message.
+        /// </summary>
+        /// <param name="message">The message to process.</param>
         public void ReceiveMessage(string message)
         {
             this.channel.SendMessageAsync(message).Wait();

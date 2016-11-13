@@ -3,18 +3,24 @@ using System.Linq;
 using System.Reflection;
 using Autofac;
 using Mofichan.Backend;
-using Mofichan.Behaviour;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
 
 namespace Mofichan.Runner
 {
+    /// <summary>
+    /// Launches Mofichan as a console application.
+    /// </summary>
     public class Program
     {
         private const string MofichanName = "Mofichan";
         private static readonly string DefaultConfigPath = "mofichan.config";
 
+        /// <summary>
+        /// The program entry-point.
+        /// </summary>
+        /// <param name="args">The program arguments.</param>
         public static void Main(string[] args)
         {
             using (var mofichan = CreateMofichan())

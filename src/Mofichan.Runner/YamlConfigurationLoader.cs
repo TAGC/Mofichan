@@ -1,16 +1,24 @@
 ﻿using System.IO;
-using System.Linq;
-using Autofac;
 using Mofichan.Core;
 using YamlDotNet.RepresentationModel;
 
 namespace Mofichan.Runner
 {
+    /// <summary>
+    /// Loads Mofichan's configuration from a YAML configuration file.
+    /// </summary>
     public class YamlConfigurationLoader : IConfigurationLoader
     {
         private static readonly string DefaultBotName = "Mofichan";
         private static readonly string DefaultDeveloperName = "ThymineC";
 
+        /// <summary>
+        /// Loads Mofichan's configuration from a configuration file.
+        /// </summary>
+        /// <param name="configPath">The path of the configuration file.</param>
+        /// <returns>
+        /// The configuration specified in the file.
+        /// </returns>
         public BotConfiguration LoadConfiguration(string configPath)
         {
             YamlStream yaml = GetYamlStream(configPath);

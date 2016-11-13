@@ -9,6 +9,15 @@ using Mofichan.Core.Interfaces;
 
 namespace Mofichan.Behaviour.Admin
 {
+    /// <summary>
+    /// This <see cref="IMofichanBehaviour"/> extends Mofichan with the administrative ability
+    /// to control whether other modules are active.
+    /// <para></para>
+    /// Adding this module to the behaviour chain will allow Mofichan dynamically enable or disable
+    /// other behaviour modules, but not add or remove them.
+    /// <para></para>
+    /// Certain modules (such as the "administrator" module) cannot be enabled or disabled.
+    /// </summary>
     internal class ToggleEnableBehaviour : BaseBehaviour
     {
         internal class EnableableBehaviourDecorator : BaseBehaviourDecorator

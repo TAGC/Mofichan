@@ -8,10 +8,20 @@ using Mofichan.Core.Interfaces;
 
 namespace Mofichan.Behaviour.Base
 {
+    /// <summary>
+    /// An implementation of <see cref="IMofichanBehaviour"/> that is composed of multiple
+    /// sub-behaviours that are internally linked together.
+    /// <para></para>
+    /// This type can be subclassed to allow closely-related behaviours to be grouped together.
+    /// </summary>
     public abstract class BaseMultiBehaviour : IMofichanBehaviour
     {
         private readonly List<IMofichanBehaviour> subBehaviours;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BaseMultiBehaviour"/> class.
+        /// </summary>
+        /// <param name="subBehaviours">The sub-behaviours to use.</param>
         public BaseMultiBehaviour(params IMofichanBehaviour[] subBehaviours)
         {
             this.subBehaviours = subBehaviours.ToList();
@@ -29,8 +39,20 @@ namespace Mofichan.Behaviour.Base
             }
         }
 
+        /// <summary>
+        /// Gets the behaviour module identifier.
+        /// </summary>
+        /// <value>
+        /// The identifier.
+        /// </value>
         public abstract string Id { get; }
 
+        /// <summary>
+        /// Gets the collection of sub-behaviours.
+        /// </summary>
+        /// <value>
+        /// The sub-behaviours.
+        /// </value>
         protected IEnumerable<IMofichanBehaviour> SubBehaviours
         {
             get
@@ -39,6 +61,12 @@ namespace Mofichan.Behaviour.Base
             }
         }
 
+        /// <summary>
+        /// Gets the sub-behaviour closest to the root of the behaviour chain. 
+        /// </summary>
+        /// <value>
+        /// The most upstream sub-behaviour.
+        /// </value>
         protected IMofichanBehaviour MostUpstreamSubBehaviour
         {
             get
@@ -47,6 +75,12 @@ namespace Mofichan.Behaviour.Base
             }
         }
 
+        /// <summary>
+        /// Gets the sub-behaviour furthest from the root of the behaviour chain.
+        /// </summary>
+        /// <value>
+        /// The most downstream sub-behaviour.
+        /// </value>
         protected IMofichanBehaviour MostDownstreamSubBehaviour
         {
             get
@@ -63,11 +97,23 @@ namespace Mofichan.Behaviour.Base
             }
         }
 
+        /// <summary>
+        /// Allows the behaviour to inspect the stack of behaviours Mofichan
+        /// will be loaded with.
+        /// </summary>
+        /// <param name="stack">The behaviour stack.</param>
+        /// <remarks>
+        /// This method should be invoked before the behaviour <i>chain</i>
+        /// is created.
+        /// </remarks>
         public virtual void InspectBehaviourStack(IList<IMofichanBehaviour> stack)
         {
             this.subBehaviours.ForEach(it => it.InspectBehaviourStack(stack));
         }
 
+        /// <summary>
+        /// Initialises the behaviour module.
+        /// </summary>
         public virtual void Start()
         {
             this.subBehaviours.ForEach(it => it.Start());
@@ -137,6 +183,10 @@ namespace Mofichan.Behaviour.Base
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        /// <exception cref="System.NotImplementedException"></exception>
         public virtual void Dispose()
         {
             throw new NotImplementedException();

@@ -11,6 +11,13 @@ namespace Mofichan.Behaviour.Base
 {
     internal static class Extensions
     {
+        /// <summary>
+        /// Forms an <see cref="OutgoingMessage"/> in response to an <see cref="IncomingMessage"/>
+        /// with a specified body.
+        /// </summary>
+        /// <param name="message">The message to form a reply to.</param>
+        /// <param name="replyBody">The body of the reply.</param>
+        /// <returns>The generated reply.</returns>
         public static OutgoingMessage Reply(this IncomingMessage message, string replyBody)
         {
             var from = message.Context.From;
@@ -22,12 +29,22 @@ namespace Mofichan.Behaviour.Base
         }
     }
 
+    /// <summary>
+    /// A base implementation of <see cref="IMofichanBehaviour"/>. 
+    /// </summary>
     public abstract class BaseBehaviour : IMofichanBehaviour
     {
         private ITargetBlock<IncomingMessage> downstreamTarget;
         private ITargetBlock<OutgoingMessage> upstreamTarget;
         private bool passThroughMessages;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BaseBehaviour"/> class.
+        /// </summary>
+        /// <param name="passThroughMessages">
+        /// If set to <c>true</c>, unhandled messages will automatically
+        /// be passed downstream.
+        /// </param>
         protected BaseBehaviour(bool passThroughMessages = true)
         {
             this.passThroughMessages = passThroughMessages;
@@ -41,6 +58,12 @@ namespace Mofichan.Behaviour.Base
             }
         }
 
+        /// <summary>
+        /// Gets the behaviour module identifier.
+        /// </summary>
+        /// <value>
+        /// The identifier.
+        /// </value>
         public virtual string Id
         {
             get
@@ -54,11 +77,23 @@ namespace Mofichan.Behaviour.Base
             }
         }
 
+        /// <summary>
+        /// Allows the behaviour to inspect the stack of behaviours Mofichan
+        /// will be loaded with.
+        /// </summary>
+        /// <param name="stack">The behaviour stack.</param>
+        /// <remarks>
+        /// This method should be invoked before the behaviour <i>chain</i>
+        /// is created.
+        /// </remarks>
         public virtual void InspectBehaviourStack(IList<IMofichanBehaviour> stack)
         {
             // Override if necessary.
         }
 
+        /// <summary>
+        /// Initialises the behaviour module.
+        /// </summary>
         public virtual void Start()
         {
             // Override if necessary.
@@ -75,11 +110,46 @@ namespace Mofichan.Behaviour.Base
             throw exception;
         }
 
-        public abstract void Dispose();
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public virtual void Dispose()
+        {
+            // Override if necessary.
+        }
 
+        /// <summary>
+        /// Determines whether this instance can process the specified incoming message.
+        /// </summary>
+        /// <param name="message">The message to check can be handled.</param>
+        /// <returns>
+        ///   <c>true</c> if this instance can process the incoming message; otherwise, <c>false</c>.
+        /// </returns>
         protected abstract bool CanHandleIncomingMessage(IncomingMessage message);
+
+        /// <summary>
+        /// Determines whether this instance can process the specified outgoing message.
+        /// </summary>
+        /// <param name="message">The message to check can be handled.</param>
+        /// <returns>
+        ///   <c>true</c> if this instance can process the outgoing messagee; otherwise, <c>false</c>.
+        /// </returns>
         protected abstract bool CanHandleOutgoingMessage(OutgoingMessage message);
+
+        /// <summary>
+        /// Handles the incoming message.
+        /// <para></para>
+        /// This method will only be invoked if <code>CanHandleIncomingMessage(message)</code> is <code>true</code>.
+        /// </summary>
+        /// <param name="message">The message to process.</param>
         protected abstract void HandleIncomingMessage(IncomingMessage message);
+
+        /// <summary>
+        /// Handles the outgoing message.
+        /// <para></para>
+        /// This method will only be invoked if <code>CanHandleOutgoingMessage(message)</code> is <code>true</code>.
+        /// </summary>
+        /// <param name="message">The message to process.</param>
         protected abstract void HandleOutgoingMessage(OutgoingMessage message);
 
         #region Incoming Message Handling
@@ -197,6 +267,12 @@ namespace Mofichan.Behaviour.Base
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Returns a <see cref="System.String" /> that represents this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance.
+        /// </returns>
         public override string ToString()
         {
             return string.Concat("Mofichan behaviour: ", this.Id);

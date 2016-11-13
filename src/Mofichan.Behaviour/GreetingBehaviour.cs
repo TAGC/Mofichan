@@ -8,6 +8,11 @@ using Mofichan.Core.Interfaces;
 
 namespace Mofichan.Behaviour
 {
+    /// <summary>
+    /// This <see cref="IMofichanBehaviour"/> extends Mofichan with greeting-related functionality.
+    /// <para></para>
+    /// Adding this module to the behaviour chain will allow Mofichan to respond to people greeting her.
+    /// </summary>
     public class GreetingBehaviour : BaseBehaviour
     {
         private static readonly string[] MofiGreetings = new[] { "Hey", "Hi", "Hello" };

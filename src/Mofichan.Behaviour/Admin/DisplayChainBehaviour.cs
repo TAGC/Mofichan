@@ -10,6 +10,15 @@ using Mofichan.Core.Interfaces;
 
 namespace Mofichan.Behaviour.Admin
 {
+    /// <summary>
+    /// This <see cref="IMofichanBehaviour"/> extends Mofichan with the administrative ability
+    /// to display her behaviour chain.
+    /// <para></para>
+    /// Adding this module to the behaviour chain will allow Mofichan to respond to admin requests
+    /// to show Mofichan's configured behaviour chain.
+    /// <para></para>
+    /// This chain will also represent the enable state of enableable behaviour modules.
+    /// </summary>
     public class DisplayChainBehaviour : BaseBehaviour
     {
         private const string Tick = "✓";

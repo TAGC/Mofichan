@@ -7,10 +7,17 @@ using Mofichan.Core.Interfaces;
 
 namespace Mofichan.Behaviour.Base
 {
+    /// <summary>
+    /// A base implementation of an <see cref="IMofichanBehaviour"/> that wraps around another. 
+    /// </summary>
     public abstract class BaseBehaviourDecorator : IMofichanBehaviour
     {
         private readonly IMofichanBehaviour delegateBehaviour;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BaseBehaviourDecorator"/> class.
+        /// </summary>
+        /// <param name="delegateBehaviour">The delegate behaviour.</param>
         protected BaseBehaviourDecorator(IMofichanBehaviour delegateBehaviour)
         {
             this.delegateBehaviour = delegateBehaviour;
