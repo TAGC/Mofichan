@@ -37,11 +37,6 @@ namespace Mofichan.Behaviour
             this.random = new Random();
         }
 
-        public override void Dispose()
-        {
-            throw new NotImplementedException();
-        }
-
         protected override bool CanHandleIncomingMessage(IncomingMessage message)
         {
             return this.IsGreetingForMofichan(message);

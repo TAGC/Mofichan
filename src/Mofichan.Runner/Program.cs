@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using Autofac;
@@ -6,6 +7,7 @@ using Mofichan.Backend;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
+using Serilog;
 
 namespace Mofichan.Runner
 {
@@ -49,15 +51,18 @@ namespace Mofichan.Runner
 
             var backend = container.ResolveNamed<IMofichanBackend>(backendName, backendParams);
 
-            // TODO: refactor behaviour bootstrapping logic.&
+            // TODO: refactor behaviour bootstrapping logic.
             var behaviours = new[]
             {
                 container.ResolveNamed<IMofichanBehaviour>("delay"),
                 container.ResolveNamed<IMofichanBehaviour>("administration"),
+                container.ResolveNamed<IMofichanBehaviour>("diagnostics"),
                 container.ResolveNamed<IMofichanBehaviour>("greeting")
             };
 
-            var mofichan = new Kernel(MofichanName, backend, behaviours);
+            var rootLogger = container.Resolve<ILogger>();
+
+            var mofichan = new Kernel(MofichanName, backend, behaviours, rootLogger);
 
             return mofichan;
         }
@@ -79,6 +84,8 @@ namespace Mofichan.Runner
                 .RegisterType<YamlConfigurationLoader>()
                 .As<IConfigurationLoader>();
 
+            containerBuilder.RegisterInstance(CreateRootLogger());
+
             // Register behaviour plugins.
             containerBuilder
                 .RegisterAssemblyTypes(behaviourAssembly)
@@ -94,6 +101,19 @@ namespace Mofichan.Runner
                 .AsImplementedInterfaces();
 
             return containerBuilder.Build();
+        }
+
+        private static ILogger CreateRootLogger()
+        {
+            var template = "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] [{ThreadId}] {SourceContext} {Message}{NewLine}{Exception}";
+            var logPath = Path.Combine(Path.GetDirectoryName(AppContext.BaseDirectory), "logs", "app-{Date}.log");
+
+            return new LoggerConfiguration()
+                .MinimumLevel.Verbose()
+                .Enrich.WithThreadId()
+                .WriteTo.LiterateConsole(outputTemplate: template)
+                .WriteTo.RollingFile(logPath, outputTemplate: template)
+                .CreateLogger();
         }
     }
 }

@@ -262,11 +262,6 @@ namespace Mofichan.Behaviour.Base
         }
         #endregion
 
-        void IDisposable.Dispose()
-        {
-            throw new NotImplementedException();
-        }
-
         /// <summary>
         /// Returns a <see cref="System.String" /> that represents this instance.
         /// </summary>

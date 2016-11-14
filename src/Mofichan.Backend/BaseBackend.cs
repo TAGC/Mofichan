@@ -84,15 +84,18 @@ namespace Mofichan.Backend
         }
         #endregion
 
-        void IDisposable.Dispose()
-        {
-            throw new NotImplementedException();
-        }
-
         /// <summary>
         /// Initialises the backend.
         /// </summary>
         public abstract void Start();
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public virtual void Dispose()
+        {
+            // Override if necessary.
+        }
 
         /// <summary>
         /// Tries to retrieve a user by its ID.
@@ -144,6 +147,50 @@ namespace Mofichan.Backend
         {
             // Override if necessary.
             return Task.CompletedTask;
+        }
+    }
+
+    public abstract class User : IUser
+    {
+        /// <summary>
+        /// Gets the name.
+        /// </summary>
+        /// <value>
+        /// The name.
+        /// </value>
+        public abstract string Name { get; }
+
+        /// <summary>
+        /// Gets the type.
+        /// </summary>
+        /// <value>
+        /// The type.
+        /// </value>
+        public abstract UserType Type { get; }
+
+        /// <summary>
+        /// Gets the user identifier.
+        /// </summary>
+        /// <value>
+        /// The user identifier.
+        /// </value>
+        public abstract string UserId { get; }
+
+        /// <summary>
+        /// Receives the message.
+        /// </summary>
+        /// <param name="message">The message to process.</param>
+        public abstract void ReceiveMessage(string message);
+
+        /// <summary>
+        /// Returns a <see cref="System.String" /> that represents this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance.
+        /// </returns>
+        public override string ToString()
+        {
+            return this.Name;
         }
     }
 
@@ -230,6 +277,17 @@ namespace Mofichan.Backend
         public void ReceiveMessage(string message)
         {
             this.room.ReceiveMessage(message);
+        }
+
+        /// <summary>
+        /// Returns a <see cref="System.String" /> that represents this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance.
+        /// </returns>
+        public override string ToString()
+        {
+            return this.user.ToString();
         }
     }
 }

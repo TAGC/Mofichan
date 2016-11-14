@@ -119,6 +119,15 @@ namespace Mofichan.Behaviour.Base
             this.subBehaviours.ForEach(it => it.Start());
         }
 
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public virtual void Dispose()
+        {
+            this.subBehaviours.ForEach(it => it.Dispose());
+        }
+
         public virtual IDisposable LinkTo(ITargetBlock<OutgoingMessage> target, DataflowLinkOptions linkOptions)
         {
             return this.MostUpstreamSubBehaviour.LinkTo(target);
@@ -179,15 +188,6 @@ namespace Mofichan.Behaviour.Base
         }
 
         public virtual void Fault(Exception exception)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        /// <exception cref="System.NotImplementedException"></exception>
-        public virtual void Dispose()
         {
             throw new NotImplementedException();
         }

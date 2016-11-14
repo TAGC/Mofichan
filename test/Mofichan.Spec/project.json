@@ -20,7 +20,8 @@
     "TestStack.BDDfy": "4.3.2",
     "System.Composition": "1.0.31-preview1-24530-04",
     "Autofac": "4.2.0",
-    "Moq": "4.6.38-alpha"
+    "Moq": "4.6.38-alpha",
+    "Serilog.Sinks.TextWriter": "2.1.0"
   },
 
   "frameworks": {

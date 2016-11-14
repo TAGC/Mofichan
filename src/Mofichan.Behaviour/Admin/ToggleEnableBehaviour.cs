@@ -20,7 +20,7 @@ namespace Mofichan.Behaviour.Admin
     /// </summary>
     internal class ToggleEnableBehaviour : BaseBehaviour
     {
-        internal class EnableableBehaviourDecorator : BaseBehaviourDecorator
+        private class EnableableBehaviourDecorator : BaseBehaviourDecorator
         {
             private const string Tick = "✓";
             private const string Cross = "⨉";
@@ -133,11 +133,6 @@ namespace Mofichan.Behaviour.Admin
                 this.behaviourMap[behaviour.Id] = wrappedBehaviour;
                 stack[i] = wrappedBehaviour;
             }
-        }
-
-        public override void Dispose()
-        {
-            throw new NotImplementedException();
         }
 
         protected override bool CanHandleIncomingMessage(IncomingMessage message)

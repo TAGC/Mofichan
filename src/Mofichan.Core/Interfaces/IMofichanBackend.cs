@@ -73,6 +73,7 @@ namespace Mofichan.Core.Interfaces
         string UserId { get; }
         string Name { get; }
         UserType Type { get; }
+        string ToString();
     }
 
     /// <summary>

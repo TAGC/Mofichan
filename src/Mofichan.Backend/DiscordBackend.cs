@@ -4,6 +4,7 @@ using Discord;
 using Discord.WebSocket;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
+using Serilog;
 
 namespace Mofichan.Backend
 {
@@ -14,8 +15,9 @@ namespace Mofichan.Backend
     public sealed class DiscordBackend : BaseBackend
     {
         private readonly string apiToken;
-        private readonly DiscordSocketClient client;
         private readonly string adminId;
+        private readonly ILogger logger;
+        private readonly DiscordSocketClient client;
 
         private DiscordSettings settings;
 
@@ -24,10 +26,11 @@ namespace Mofichan.Backend
         /// </summary>
         /// <param name="token">Mofichan's API token.</param>
         /// <param name="adminId">The Discord identifier of Mofichan's sole administrator.</param>
-        public DiscordBackend(string token, string adminId)
+        public DiscordBackend(string token, string adminId, ILogger logger)
         {
             this.apiToken = token;
             this.adminId = adminId;
+            this.logger = logger.ForContext<DiscordBackend>();
             this.client = new DiscordSocketClient();
         }
 
@@ -43,6 +46,16 @@ namespace Mofichan.Backend
 
             var botId = this.client.CurrentUser.Id.ToString();
             this.settings = new DiscordSettings(botId, this.adminId);
+        }
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public override void Dispose()
+        {
+            base.Dispose();
+            this.client.Dispose();
+            this.logger.Debug("Disposed {Client}", this.client);
         }
 
         /// <summary>
@@ -159,7 +172,7 @@ namespace Mofichan.Backend
     /// Represents a Discord user.
     /// </summary>
     /// <seealso cref="Mofichan.Core.Interfaces.IUser" />
-    public sealed class DiscordUser : Core.Interfaces.IUser
+    public sealed class DiscordUser : User
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="DiscordUser"/> class.
@@ -191,7 +204,7 @@ namespace Mofichan.Backend
         /// <value>
         /// The user identifier.
         /// </value>
-        public string UserId { get; }
+        public override string UserId { get; }
 
         /// <summary>
         /// Gets the name.
@@ -199,7 +212,7 @@ namespace Mofichan.Backend
         /// <value>
         /// The name.
         /// </value>
-        public string Name { get; }
+        public override string Name { get; }
 
         /// <summary>
         /// Gets the type.
@@ -207,14 +220,14 @@ namespace Mofichan.Backend
         /// <value>
         /// The type.
         /// </value>
-        public UserType Type { get; }
+        public override UserType Type { get; }
 
         /// <summary>
         /// Receives the message.
         /// </summary>
         /// <param name="message">The message to process.</param>
         /// <exception cref="System.NotImplementedException"></exception>
-        public void ReceiveMessage(string message)
+        public override void ReceiveMessage(string message)
         {
             throw new NotImplementedException();
         }

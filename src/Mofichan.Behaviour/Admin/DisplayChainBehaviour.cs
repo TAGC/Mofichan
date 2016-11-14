@@ -36,11 +36,6 @@ namespace Mofichan.Behaviour.Admin
                 RegexOptions.IgnoreCase);
         }
 
-        public override void Dispose()
-        {
-            throw new NotImplementedException();
-        }
-
         public override void InspectBehaviourStack(IList<IMofichanBehaviour> stack)
         {
             this.behaviourStack = stack;

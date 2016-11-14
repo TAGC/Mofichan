@@ -6,6 +6,7 @@ using System.Reactive.Linq;
 using System.Threading.Tasks.Dataflow;
 using Mofichan.Core.Interfaces;
 using PommaLabs.Thrower;
+using Serilog;
 
 namespace Mofichan.Core
 {
@@ -17,6 +18,8 @@ namespace Mofichan.Core
     /// </summary>
     public class Kernel : IDisposable
     {
+        private readonly ILogger logger;
+
         private IMofichanBackend backend;
         private IMofichanBehaviour rootBehaviour;
 
@@ -26,11 +29,14 @@ namespace Mofichan.Core
         /// <param name="name">Mofichan's name (which should of course just be Mofichan).</param>
         /// <param name="backend">The selected backend.</param>
         /// <param name="behaviours">The collection of behaviours to determine Mofichan's personality.</param>
-        public Kernel(string name, IMofichanBackend backend, IEnumerable<IMofichanBehaviour> behaviours)
+        public Kernel(string name, IMofichanBackend backend, IEnumerable<IMofichanBehaviour> behaviours, ILogger logger)
         {
             Raise.ArgumentNullException.IfIsNull(behaviours, nameof(behaviours));
             Raise.ArgumentException.IfNot(behaviours.Any(), nameof(behaviours),
                 string.Format("At least one behaviour must be specified for {0}", name));
+
+            this.logger = logger.ForContext<Kernel>();
+            this.logger.Information("Initialising Mofichan with {Backend} and {Behaviours}", backend, behaviours);
 
             this.backend = backend;
             this.rootBehaviour = BuildBehaviourChain(behaviours);
@@ -49,6 +55,7 @@ namespace Mofichan.Core
         {
             this.backend.Start();
             this.rootBehaviour.Start();
+            this.logger.Information("Initialised Mofichan");
         }
 
         /// <summary>
@@ -95,9 +102,16 @@ namespace Mofichan.Core
         {
             if (!disposedValue)
             {
+                this.logger.Information("Disposing Mofichan");
                 if (disposing)
                 {
-                    // TODO: dispose managed state (managed objects).
+                    this.backend.Dispose();
+
+                    /*
+                     * Disposing the root behaviour should
+                     * propagate disposal down the chain.
+                     */
+                    this.rootBehaviour.Dispose();
                 }
 
                 disposedValue = true;

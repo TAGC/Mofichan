@@ -12,22 +12,22 @@ namespace Mofichan.Behaviour.Base
     /// </summary>
     public abstract class BaseBehaviourDecorator : IMofichanBehaviour
     {
-        private readonly IMofichanBehaviour delegateBehaviour;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="BaseBehaviourDecorator"/> class.
         /// </summary>
-        /// <param name="delegateBehaviour">The delegate behaviour.</param>
-        protected BaseBehaviourDecorator(IMofichanBehaviour delegateBehaviour)
+        /// <param name="DelegateBehaviour">The delegate behaviour.</param>
+        protected BaseBehaviourDecorator(IMofichanBehaviour DelegateBehaviour)
         {
-            this.delegateBehaviour = delegateBehaviour;
+            this.DelegateBehaviour = DelegateBehaviour;
         }
+
+        protected IMofichanBehaviour DelegateBehaviour { get; }
 
         public virtual Task Completion
         {
             get
             {
-                return delegateBehaviour.Completion;
+                return DelegateBehaviour.Completion;
             }
         }
 
@@ -35,88 +35,88 @@ namespace Mofichan.Behaviour.Base
         {
             get
             {
-                return delegateBehaviour.Id;
+                return DelegateBehaviour.Id;
             }
         }
 
         public virtual void Complete()
         {
-            delegateBehaviour.Complete();
+            DelegateBehaviour.Complete();
         }
 
         public virtual OutgoingMessage ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<OutgoingMessage> target, out bool messageConsumed)
         {
-            return delegateBehaviour.ConsumeMessage(messageHeader, target, out messageConsumed);
+            return DelegateBehaviour.ConsumeMessage(messageHeader, target, out messageConsumed);
         }
 
         public virtual IncomingMessage ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target, out bool messageConsumed)
         {
-            return delegateBehaviour.ConsumeMessage(messageHeader, target, out messageConsumed);
+            return DelegateBehaviour.ConsumeMessage(messageHeader, target, out messageConsumed);
         }
 
         public virtual void Dispose()
         {
-            delegateBehaviour.Dispose();
+            DelegateBehaviour.Dispose();
         }
 
         public virtual void Fault(Exception exception)
         {
-            delegateBehaviour.Fault(exception);
+            DelegateBehaviour.Fault(exception);
         }
 
         public virtual void InspectBehaviourStack(IList<IMofichanBehaviour> stack)
         {
-            delegateBehaviour.InspectBehaviourStack(stack);
+            DelegateBehaviour.InspectBehaviourStack(stack);
         }
 
         public virtual IDisposable LinkTo(ITargetBlock<OutgoingMessage> target, DataflowLinkOptions linkOptions)
         {
-            return delegateBehaviour.LinkTo(target, linkOptions);
+            return DelegateBehaviour.LinkTo(target, linkOptions);
         }
 
         public virtual IDisposable LinkTo(ITargetBlock<IncomingMessage> target, DataflowLinkOptions linkOptions)
         {
-            return delegateBehaviour.LinkTo(target, linkOptions);
+            return DelegateBehaviour.LinkTo(target, linkOptions);
         }
 
         public virtual DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader, OutgoingMessage messageValue, ISourceBlock<OutgoingMessage> source, bool consumeToAccept)
         {
-            return delegateBehaviour.OfferMessage(messageHeader, messageValue, source, consumeToAccept);
+            return DelegateBehaviour.OfferMessage(messageHeader, messageValue, source, consumeToAccept);
         }
 
         public virtual DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader, IncomingMessage messageValue, ISourceBlock<IncomingMessage> source, bool consumeToAccept)
         {
-            return delegateBehaviour.OfferMessage(messageHeader, messageValue, source, consumeToAccept);
+            return DelegateBehaviour.OfferMessage(messageHeader, messageValue, source, consumeToAccept);
         }
 
         public virtual void ReleaseReservation(DataflowMessageHeader messageHeader, ITargetBlock<OutgoingMessage> target)
         {
-            delegateBehaviour.ReleaseReservation(messageHeader, target);
+            DelegateBehaviour.ReleaseReservation(messageHeader, target);
         }
 
         public virtual void ReleaseReservation(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target)
         {
-            delegateBehaviour.ReleaseReservation(messageHeader, target);
+            DelegateBehaviour.ReleaseReservation(messageHeader, target);
         }
 
         public virtual bool ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<OutgoingMessage> target)
         {
-            return delegateBehaviour.ReserveMessage(messageHeader, target);
+            return DelegateBehaviour.ReserveMessage(messageHeader, target);
         }
 
         public virtual bool ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target)
         {
-            return delegateBehaviour.ReserveMessage(messageHeader, target);
+            return DelegateBehaviour.ReserveMessage(messageHeader, target);
         }
 
         public virtual void Start()
         {
-            delegateBehaviour.Start();
+            DelegateBehaviour.Start();
         }
 
         public override string ToString()
         {
-            return delegateBehaviour.ToString();
+            return DelegateBehaviour.ToString();
         }
     }
 }

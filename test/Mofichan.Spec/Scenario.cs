@@ -8,6 +8,7 @@ using Mofichan.Behaviour.Base;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
 using Moq;
+using Serilog;
 using Shouldly;
 using TestStack.BDDfy;
 using Xunit;
@@ -19,7 +20,6 @@ namespace Mofichan.Spec
         protected const string AddBehaviourTemplate = "Given Mofichan is configured to use behaviour '{0}'";
 
         private readonly string scenarioTitle;
-        private readonly IContainer container;
 
         private ITargetBlock<IncomingMessage> backendTarget;
 
@@ -32,11 +32,23 @@ namespace Mofichan.Spec
             this.JohnSmithUser = ConstructMockUser("John Smith", "JohnSmith", UserType.NormalUser);
             this.Backend = ConstructMockBackend();
             this.Behaviours = new List<IMofichanBehaviour>();
+            this.SentMessages = new List<OutgoingMessage>();
+            this.Container = CreateContainerBuilder().Build();
+            this.MessageSent += (s, e) => this.SentMessages.Add(e.Message);
+        }
 
+        /// <summary>
+        /// Test specifications can override this method to customise the creation
+        /// of the test IoC container.
+        /// </summary>
+        /// <returns>The test IoC container builder.</returns>
+        protected virtual ContainerBuilder CreateContainerBuilder()
+        {
             Func<Type, string> getBehaviourName = it =>
                 it.Name.ToLowerInvariant().Replace("behaviour", string.Empty);
 
             var behaviourAssembly = typeof(BaseBehaviour).Assembly();
+
             var containerBuilder = new ContainerBuilder();
             containerBuilder
                 .RegisterAssemblyTypes(behaviourAssembly)
@@ -44,9 +56,11 @@ namespace Mofichan.Spec
                 .Named<IMofichanBehaviour>(getBehaviourName)
                 .AsImplementedInterfaces();
 
-            this.container = containerBuilder.Build();
-            this.SentMessages = new List<OutgoingMessage>();
-            this.MessageSent += (s, e) => this.SentMessages.Add(e.Message);
+            containerBuilder
+                .RegisterInstance(new LoggerConfiguration().CreateLogger())
+                .As<ILogger>();
+
+            return containerBuilder;
         }
 
         private IMofichanBackend ConstructMockBackend()
@@ -75,6 +89,7 @@ namespace Mofichan.Spec
             this.BDDfy(scenarioTitle: this.scenarioTitle);
         }
 
+        protected IContainer Container { get; }
         protected IList<OutgoingMessage> SentMessages { get; }
         protected IList<IMofichanBehaviour> Behaviours { get; }
         protected IMofichanBackend Backend { get; }
@@ -114,7 +129,7 @@ namespace Mofichan.Spec
         #region Given
         protected void Given_Mofichan_is_configured_with_behaviour(string behaviour)
         {
-            this.Behaviours.Add(this.container.ResolveNamed<IMofichanBehaviour>(behaviour));
+            this.Behaviours.Add(this.Container.ResolveNamed<IMofichanBehaviour>(behaviour));
         }
 
         protected void Given_Mofichan_is_configured_with_behaviour(IMofichanBehaviour behaviour)
@@ -124,7 +139,8 @@ namespace Mofichan.Spec
 
         protected void Given_Mofichan_is_running()
         {
-            this.Mofichan = new Kernel("Mofichan", this.Backend, this.Behaviours);
+            this.Mofichan = new Kernel("Mofichan", this.Backend, this.Behaviours,
+                this.Container.Resolve<ILogger>());
             this.Mofichan.Start();
         }
         #endregion
