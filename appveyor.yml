@@ -1,15 +1,16 @@
-version: '0.1.{build}'
+version: '0.1.0.{build}-{branch}'
 
 configuration:
 - Debug
 - Release
 
-platform: Any CPU
+platform: x64
 
 init:
 - ps: $Env:LABEL = "CI" + $Env:APPVEYOR_BUILD_NUMBER.PadLeft(5, "0")
 
 before_build:
+- cmd: copy NUL src\Mofichan.Runner\mofichan.config
 - appveyor-retry dotnet restore -v Minimal
 
 build_script:
