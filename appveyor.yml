@@ -1,0 +1,25 @@
+version: '0.1.{build}'
+
+configuration:
+- Debug
+- Release
+
+platform: Any CPU
+
+init:
+- ps: $Env:LABEL = "CI" + $Env:APPVEYOR_BUILD_NUMBER.PadLeft(5, "0")
+
+before_build:
+- appveyor-retry dotnet restore -v Minimal
+
+build_script:
+- dotnet build "src\Mofichan.Core" -c %CONFIGURATION% --no-dependencies
+- dotnet build "src\Mofichan.Backend" -c %CONFIGURATION% --no-dependencies
+- dotnet build "src\Mofichan.Behaviour" -c %CONFIGURATION% --no-dependencies
+- dotnet build "src\Mofichan.Runner" -c %CONFIGURATION% --no-dependencies
+
+test_script:
+- dotnet test "test\Mofichan.Spec" -c %CONFIGURATION%
+
+cache:
+- '%USERPROFILE%\.nuget\packages'

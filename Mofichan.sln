@@ -7,8 +7,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{36DD43D0-D8F
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{3E697D74-4991-4C97-ADDA-7CA192E8F323}"
 	ProjectSection(SolutionItems) = preProject
+		appveyor.yml = appveyor.yml
 		global.json = global.json
 		nuget.config = nuget.config
+		README.rst = README.rst
 	EndProjectSection
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Mofichan.Core", "src\Mofichan.Core\Mofichan.Core.xproj", "{C015F8DF-EB89-471C-85CE-B7C2B96AEDED}"
