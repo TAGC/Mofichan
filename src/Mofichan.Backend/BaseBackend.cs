@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
+using Serilog;
 
 namespace Mofichan.Backend
 {
@@ -13,6 +14,17 @@ namespace Mofichan.Backend
     public abstract class BaseBackend : IMofichanBackend
     {
         private ITargetBlock<IncomingMessage> target;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BaseBackend"/> class.
+        /// </summary>
+        /// <param name="logger">The logger to use for logging.</param>
+        protected BaseBackend(ILogger logger)
+        {
+            this.Logger = logger;
+        }
+
+        protected ILogger Logger { get; }
 
         #region Dataflow Members
         Task IDataflowBlock.Completion
@@ -119,11 +131,15 @@ namespace Mofichan.Backend
         {
             if (message.Delay > TimeSpan.Zero)
             {
+                this.Logger.Debug("Sending {MessageBody} to {Recipient} with {Delay} delay",
+                    message.Body, message.To, message.Delay);
                 Task.Run(() => HandleMessageDelayAsync(message))
                     .ContinueWith(_ => message.To.ReceiveMessage(message.Body));
             }
             else
             {
+                this.Logger.Debug("Sending {MessageBody} to {Recipient} with no delay",
+                    message.Body, message.To);
                 message.To.ReceiveMessage(message.Body);
             }
 
@@ -135,6 +151,20 @@ namespace Mofichan.Backend
         /// <param name="message">The received message.</param>
         protected void OnReceiveMessage(IncomingMessage message)
         {
+            var fromSelf = message.Context.From is IUser
+                && (message.Context.From as IUser).Type == UserType.Self;
+
+            if (fromSelf)
+            {
+                this.Logger.Verbose("Received {MessageBody} from Mofichan herself",
+                    message.Context.Body);
+            }
+            else
+            {
+                this.Logger.Debug("Received {MessageBody} from {Sender}",
+                    message.Context.Body, message.Context.From);
+            }
+
             this.target?.OfferMessage(default(DataflowMessageHeader), message, this, false);
         }
 

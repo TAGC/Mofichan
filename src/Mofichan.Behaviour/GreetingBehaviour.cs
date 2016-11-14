@@ -68,7 +68,6 @@ namespace Mofichan.Behaviour
         private bool IsGreetingForMofichan(IncomingMessage message)
         {
             var sender = message.Context.From as IUser;
-            var recipient = message.Context.To as IUser;
 
             var senderIsUser = sender != null;
             var senderIsNotSelf = sender.Type != UserType.Self;

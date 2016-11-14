@@ -16,7 +16,6 @@ namespace Mofichan.Backend
     {
         private readonly string apiToken;
         private readonly string adminId;
-        private readonly ILogger logger;
         private readonly DiscordSocketClient client;
 
         private DiscordSettings settings;
@@ -26,11 +25,10 @@ namespace Mofichan.Backend
         /// </summary>
         /// <param name="token">Mofichan's API token.</param>
         /// <param name="adminId">The Discord identifier of Mofichan's sole administrator.</param>
-        public DiscordBackend(string token, string adminId, ILogger logger)
+        public DiscordBackend(string token, string adminId, ILogger logger) : base(logger.ForContext<DiscordBackend>())
         {
             this.apiToken = token;
             this.adminId = adminId;
-            this.logger = logger.ForContext<DiscordBackend>();
             this.client = new DiscordSocketClient();
         }
 
@@ -41,6 +39,7 @@ namespace Mofichan.Backend
         {
             this.client.LoginAsync(TokenType.Bot, this.apiToken).Wait();
             this.client.ConnectAsync().Wait();
+            this.Logger.Information("Successfully connected to Discord bot account");
 
             this.client.MessageReceived += HandleIncomingMessage;
 
@@ -55,7 +54,7 @@ namespace Mofichan.Backend
         {
             base.Dispose();
             this.client.Dispose();
-            this.logger.Debug("Disposed {Client}", this.client);
+            this.Logger.Debug("Disposed {Client}", this.client);
         }
 
         /// <summary>

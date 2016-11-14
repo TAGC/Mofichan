@@ -54,6 +54,7 @@ namespace Mofichan.Runner
             // TODO: refactor behaviour bootstrapping logic.
             var behaviours = new[]
             {
+                container.ResolveNamed<IMofichanBehaviour>("selfignore"),
                 container.ResolveNamed<IMofichanBehaviour>("delay"),
                 container.ResolveNamed<IMofichanBehaviour>("administration"),
                 container.ResolveNamed<IMofichanBehaviour>("diagnostics"),
@@ -105,11 +106,11 @@ namespace Mofichan.Runner
 
         private static ILogger CreateRootLogger()
         {
-            var template = "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] [{ThreadId}] {SourceContext} {Message}{NewLine}{Exception}";
+            var template = "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] [{ThreadId}] {SourceContext}   {Message}{NewLine}{Exception}";
             var logPath = Path.Combine(Path.GetDirectoryName(AppContext.BaseDirectory), "logs", "app-{Date}.log");
 
             return new LoggerConfiguration()
-                .MinimumLevel.Verbose()
+                .MinimumLevel.Debug()
                 .Enrich.WithThreadId()
                 .WriteTo.LiterateConsole(outputTemplate: template)
                 .WriteTo.RollingFile(logPath, outputTemplate: template)
