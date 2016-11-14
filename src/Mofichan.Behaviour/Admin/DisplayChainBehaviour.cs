@@ -21,8 +21,7 @@ namespace Mofichan.Behaviour.Admin
     /// </summary>
     public class DisplayChainBehaviour : BaseBehaviour
     {
-        private const string Tick = "✓";
-        private const string Cross = "⨉";
+        private const string BehaviourChainConnector = " ⇄ ";
 
         private readonly Regex displayChainPattern;
         private IList<IMofichanBehaviour> behaviourStack;
@@ -85,40 +84,11 @@ namespace Mofichan.Behaviour.Admin
 
             for (var i = 0; i < behaviourStack.Count - 1; i++)
             {
-                var representation = BuildBehaviourRepresentation(behaviourStack[i]);
-                var connection = BuildConnector();
-
-                reprBuilder.AppendFormat("{0}{1}", representation, connection);
+                reprBuilder.AppendFormat("{0}{1}", behaviourStack[i], BehaviourChainConnector);
             }
 
-            reprBuilder.Append(BuildBehaviourRepresentation(behaviourStack.Last()));
-
+            reprBuilder.Append(behaviourStack.Last());
             return reprBuilder.ToString();
-        }
-
-        private static string BuildBehaviourRepresentation(IMofichanBehaviour behaviour)
-        {
-            var id = behaviour.Id;
-
-            /*
-             * We form a tight coupling between two related sub-behaviours here, but
-             * that shouldn't cause too much of a maintainability problem.
-             */
-            if (behaviour is ToggleEnableBehaviour.EnableableBehaviourDecorator)
-            {
-                var enabled = (behaviour as ToggleEnableBehaviour.EnableableBehaviourDecorator).Enabled;
-
-                return string.Format("[{0} {1}]", id, enabled ? Tick : Cross);
-            }
-            else
-            {
-                return string.Format("[{0}]", id);
-            }
-        }
-
-        private static string BuildConnector()
-        {
-            return " ⇄ ";
         }
     }
 }

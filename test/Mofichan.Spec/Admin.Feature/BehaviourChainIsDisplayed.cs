@@ -1,11 +1,26 @@
-﻿using System.Text.RegularExpressions;
-using Mofichan.Core.Interfaces;
+﻿using Mofichan.Core.Interfaces;
 using Moq;
 using TestStack.BDDfy;
 
 namespace Mofichan.Spec.Admin.Feature
 {
-    public class BehaviourChainIsDisplayed : Scenario
+    public abstract class BehaviourChainIsDisplayedBase : Scenario
+    {
+        protected BehaviourChainIsDisplayedBase(string scenarioTitle) : base(scenarioTitle)
+        {
+        }
+
+        protected static IMofichanBehaviour ConstructMockBehaviourWithId(string id)
+        {
+            var mock = new Mock<IMofichanBehaviour>();
+            mock.SetupGet(it => it.Id).Returns(id);
+            mock.Setup(it => it.ToString()).Returns("[" + id + "]");
+
+            return mock.Object;
+        }
+    }
+
+    public class BehaviourChainIsDisplayed : BehaviourChainIsDisplayedBase
     {
         private const string AddMockBehaviourTemplate = "Given Mofichan is configured with a mock behaviour";
 
@@ -25,17 +40,9 @@ namespace Mofichan.Spec.Admin.Feature
                 .When(s => s.When_Mofichan_receives_a_message(this.DeveloperUser, "Mofichan, show your behaviour chain"))
                 .Then(s => s.Then_Mofichan_should_have_sent_response_containing__substring__(substring));
         }
-
-        private static IMofichanBehaviour ConstructMockBehaviourWithId(string id)
-        {
-            var mock = new Mock<IMofichanBehaviour>();
-            mock.SetupGet(it => it.Id).Returns(id);
-
-            return mock.Object;
-        }
     }
 
-    public class BehaviourChainIsDisplayedWithDisabledBehaviour : Scenario
+    public class BehaviourChainIsDisplayedWithDisabledBehaviour : BehaviourChainIsDisplayedBase
     {
         private const string AddMockBehaviourTemplate = "Given Mofichan is configured with a mock behaviour";
 
@@ -56,14 +63,6 @@ namespace Mofichan.Spec.Admin.Feature
                         "Given that I've requested to disable the 'mockB' behaviour")
                 .When(s => s.When_Mofichan_receives_a_message(this.DeveloperUser, "Mofichan, show your behaviour chain"))
                 .Then(s => s.Then_Mofichan_should_have_sent_response_containing__substring__(substring));
-        }
-
-        private static IMofichanBehaviour ConstructMockBehaviourWithId(string id)
-        {
-            var mock = new Mock<IMofichanBehaviour>();
-            mock.SetupGet(it => it.Id).Returns(id);
-
-            return mock.Object;
         }
     }
 }

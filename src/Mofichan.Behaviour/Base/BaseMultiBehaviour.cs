@@ -191,5 +191,10 @@ namespace Mofichan.Behaviour.Base
         {
             throw new NotImplementedException();
         }
+
+        public override string ToString()
+        {
+            return string.Concat("[", this.Id, "]");
+        }
     }
 }

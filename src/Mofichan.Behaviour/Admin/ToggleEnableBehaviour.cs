@@ -22,6 +22,9 @@ namespace Mofichan.Behaviour.Admin
     {
         internal class EnableableBehaviourDecorator : BaseBehaviourDecorator
         {
+            private const string Tick = "✓";
+            private const string Cross = "⨉";
+
             private ITargetBlock<IncomingMessage> downstreamTarget;
             private ITargetBlock<OutgoingMessage> upstreamTarget;
 
@@ -81,7 +84,8 @@ namespace Mofichan.Behaviour.Admin
 
             public override string ToString()
             {
-                return string.Concat("[Enable wrapped] ", base.ToString());
+                var baseRepr = base.ToString().Trim('[', ']');
+                return string.Format("[{0} {1}]", baseRepr, this.Enabled ? Tick : Cross);
             }
         }
 

@@ -275,7 +275,7 @@ namespace Mofichan.Behaviour.Base
         /// </returns>
         public override string ToString()
         {
-            return string.Concat("Mofichan behaviour: ", this.Id);
+            return string.Concat("[", this.Id, "]");
         }
     }
 }
