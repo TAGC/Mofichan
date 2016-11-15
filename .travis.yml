@@ -1,0 +1,7 @@
+language: csharp
+
+services:
+    - docker
+
+script:
+    - docker build --no-cache -t tagc/mofichan .

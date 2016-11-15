@@ -7,5 +7,6 @@ COPY . .
 COPY src/Mofichan.Runner/mofichan.config .
 
 RUN dotnet restore
+RUN dotnet test "test/Mofichan.Spec"
 RUN dotnet publish "src/Mofichan.Runner" -c Debug
 ENTRYPOINT ["dotnet", "src/Mofichan.Runner/bin/Debug/netcoreapp1.0/Mofichan.Runner.dll"]
