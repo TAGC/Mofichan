@@ -39,8 +39,10 @@ namespace Mofichan.Runner
 
         private static IConfigurationRoot BuildConfigurationRoot(string configPath)
         {
+            var basePath = AppContext.BaseDirectory;
+
             return new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
+                .SetBasePath(basePath)
                 .AddJsonFile(configPath + ".json", true)
                 .AddEnvironmentVariables()
                 .Build();

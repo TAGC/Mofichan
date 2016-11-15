@@ -4,6 +4,7 @@
 # SECRET DATA
 mofichan.config
 mofichan.config.*
+!config-templates/mofichan.config.*.template
 
 # User-specific files
 *.suo
