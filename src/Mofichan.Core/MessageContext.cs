@@ -101,11 +101,11 @@ namespace Mofichan.Core
         public MessageContext? PotentialReply { get; }
 
         /// <summary>
-        /// Creates an instance of <code>IncomingMessage</code> that uses the specified reply
+        /// Creates an instance of <c>IncomingMessage</c> that uses the specified reply
         /// but preserves all other details.
         /// </summary>
         /// <param name="reply">The reply context.</param>
-        /// <returns>A derived <code>IncomingMessage</code> instance.</returns>
+        /// <returns>A derived <c>IncomingMessage</c> instance.</returns>
         public IncomingMessage WithReply(MessageContext reply)
         {
             return new IncomingMessage(this.Context, reply);

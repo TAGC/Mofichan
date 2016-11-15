@@ -39,7 +39,7 @@ namespace Mofichan.Behaviour
         /// <summary>
         /// Handles the incoming message.
         /// <para></para>
-        /// This method will only be invoked if <code>CanHandleIncomingMessage(message)</code> is <code>true</code>.
+        /// This method will only be invoked if <c>CanHandleIncomingMessage(message)</c> is <c>true</c>.
         /// </summary>
         /// <param name="message">The message to process.</param>
         protected override void HandleIncomingMessage(IncomingMessage message)
@@ -50,7 +50,7 @@ namespace Mofichan.Behaviour
         /// <summary>
         /// Handles the outgoing message.
         /// <para></para>
-        /// This method will only be invoked if <code>CanHandleOutgoingMessage(message)</code> is <code>true</code>.
+        /// This method will only be invoked if <c>CanHandleOutgoingMessage(message)</c> is <c>true</c>.
         /// </summary>
         /// <param name="message">The message to process.</param>
         /// <exception cref="System.NotImplementedException"></exception>

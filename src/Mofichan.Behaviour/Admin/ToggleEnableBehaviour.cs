@@ -12,12 +12,13 @@ namespace Mofichan.Behaviour.Admin
     /// <summary>
     /// This <see cref="IMofichanBehaviour"/> extends Mofichan with the administrative ability
     /// to control whether other modules are active.
-    /// <para></para>
+    /// </summary>
+    /// <remarks>
     /// Adding this module to the behaviour chain will allow Mofichan dynamically enable or disable
     /// other behaviour modules, but not add or remove them.
     /// <para></para>
     /// Certain modules (such as the "administrator" module) cannot be enabled or disabled.
-    /// </summary>
+    /// </remarks>
     internal class ToggleEnableBehaviour : BaseBehaviour
     {
         private class EnableableBehaviourDecorator : BaseBehaviourDecorator
@@ -94,6 +95,9 @@ namespace Mofichan.Behaviour.Admin
 
         private readonly IDictionary<string, EnableableBehaviourDecorator> behaviourMap;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ToggleEnableBehaviour"/> class.
+        /// </summary>
         public ToggleEnableBehaviour()
         {
             this.behaviourMap = new Dictionary<string, EnableableBehaviourDecorator>();
@@ -110,6 +114,15 @@ namespace Mofichan.Behaviour.Admin
                 RegexOptions.IgnoreCase);
         }
 
+        /// <summary>
+        /// Allows the behaviour to inspect the stack of behaviours Mofichan
+        /// will be loaded with.
+        /// </summary>
+        /// <param name="stack">The behaviour stack.</param>
+        /// <remarks>
+        /// This method should be invoked before the behaviour <i>chain</i>
+        /// is created.
+        /// </remarks>
         public override void InspectBehaviourStack(IList<IMofichanBehaviour> stack)
         {
             base.InspectBehaviourStack(stack);
@@ -135,22 +148,31 @@ namespace Mofichan.Behaviour.Admin
             }
         }
 
+        /// <summary>
+        /// Determines whether this instance can process the specified incoming message.
+        /// </summary>
+        /// <param name="message">The message to check can be handled.</param>
+        /// <returns>
+        ///   <c>true</c> if this instance can process the incoming message; otherwise, <c>false</c>.
+        /// </returns>
         protected override bool CanHandleIncomingMessage(IncomingMessage message)
         {
-            var fromUser = message.Context.From as IUser;
             var body = message.Context.Body;
 
-            var isRequestValid = this.enableBehaviourPattern.IsMatch(body) ||
-                                 this.disableBehaviourPattern.IsMatch(body);
-
-            var isUserAuthorised = fromUser?.Type == UserType.Adminstrator;
-
-            return isRequestValid && isUserAuthorised;
+            return this.enableBehaviourPattern.IsMatch(body) ||
+                this.disableBehaviourPattern.IsMatch(body);
         }
 
+        /// <summary>
+        /// Handles the incoming message.
+        /// <para></para>
+        /// This method will only be invoked if <c>CanHandleIncomingMessage(message)</c> is <c>true</c>.
+        /// </summary>
+        /// <param name="message">The message to process.</param>
+        /// <exception cref="Core.Exceptions.MofichanAuthorisationException">If user is not an admin.</exception>
         protected override void HandleIncomingMessage(IncomingMessage message)
         {
-            Debug.Assert((message.Context.From as IUser).Type == UserType.Adminstrator);
+            message.Context.CheckSenderAuthorised("Non-admin user attempted to change behaviour enable state");
 
             var body = message.Context.Body;
 
@@ -190,16 +212,36 @@ namespace Mofichan.Behaviour.Admin
             }
         }
 
+        /// <summary>
+        /// Determines whether this instance can process the specified outgoing message.
+        /// </summary>
+        /// <param name="message">The message to check can be handled.</param>
+        /// <returns>
+        ///   <c>true</c> if this instance can process the outgoing messagee; otherwise, <c>false</c>.
+        /// </returns>
         protected override bool CanHandleOutgoingMessage(OutgoingMessage message)
         {
             return false;
         }
 
+        /// <summary>
+        /// Handles the outgoing message.
+        /// <para></para>
+        /// This method will only be invoked if <c>CanHandleOutgoingMessage(message)</c> is <c>true</c>.
+        /// </summary>
+        /// <param name="message">The message to process.</param>
+        /// <exception cref="System.NotImplementedException"></exception>
         protected override void HandleOutgoingMessage(OutgoingMessage message)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Handles the non existent behaviour.
+        /// </summary>
+        /// <param name="behaviour">The behaviour.</param>
+        /// <param name="action">The action.</param>
+        /// <param name="message">The message.</param>
         private void HandleNonExistentBehaviour(string behaviour, string action, IncomingMessage message)
         {
             var from = message.Context.From as IUser;

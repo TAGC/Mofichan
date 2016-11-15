@@ -15,7 +15,8 @@ namespace Mofichan.Spec.Admin.Feature.ToggleBehaviour
                         "When John Smith tries to disable the mock behaviour")
                     .And(s => s.When_Mofichan_receives_a_message(this.JohnSmithUser, "foo"))
                 .Then(s => s.Then_the_mock_behaviour_should_have_received__message__("foo"),
-                    "Then the mock behaviour should have received the message regardless")
+                        "Then the mock behaviour should have received the message regardless")
+                    .And(s => s.Then_Mofichan_should_have_sent_response_containing__substring__("not authorised"))
                 .TearDownWith(s => s.TearDown());
         }
     }

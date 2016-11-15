@@ -10,10 +10,11 @@ namespace Mofichan.Behaviour.Diagnostics
 {
     /// <summary>
     /// This <see cref="IMofichanBehaviour"/> extends Mofichan with diagnostic functions.
-    /// <para></para>
+    /// </summary>
+    /// <remarks>
     /// Adding this module to the behaviour chain will cause Mofichan to intercept messages
     /// passed between other behaviours in the chain and log them using an injected <see cref="ILogger"/>. 
-    /// </summary>
+    /// </remarks>
     public class DiagnosticsBehaviour : BaseBehaviour
     {
         private class LoggingBehaviourDecorator : BaseBehaviourDecorator
@@ -117,7 +118,7 @@ namespace Mofichan.Behaviour.Diagnostics
         /// <summary>
         /// Handles the incoming message.
         /// <para></para>
-        /// This method will only be invoked if <code>CanHandleIncomingMessage(message)</code> is <code>true</code>.
+        /// This method will only be invoked if <c>CanHandleIncomingMessage(message)</c> is <c>true</c>.
         /// </summary>
         /// <param name="message">The message to process.</param>
         /// <exception cref="System.NotImplementedException"></exception>
@@ -129,7 +130,7 @@ namespace Mofichan.Behaviour.Diagnostics
         /// <summary>
         /// Handles the outgoing message.
         /// <para></para>
-        /// This method will only be invoked if <code>CanHandleOutgoingMessage(message)</code> is <code>true</code>.
+        /// This method will only be invoked if <c>CanHandleOutgoingMessage(message)</c> is <c>true</c>.
         /// </summary>
         /// <param name="message">The message to process.</param>
         /// <exception cref="System.NotImplementedException"></exception>

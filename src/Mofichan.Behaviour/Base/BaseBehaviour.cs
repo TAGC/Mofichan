@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Mofichan.Core;
+using Mofichan.Core.Exceptions;
 using Mofichan.Core.Interfaces;
 
 namespace Mofichan.Behaviour.Base
@@ -26,6 +27,21 @@ namespace Mofichan.Behaviour.Base
             var replyContext = new MessageContext(from: to, to: from, body: replyBody);
 
             return new OutgoingMessage { Context = replyContext };
+        }
+
+        /// <summary>
+        /// Checks the sender of a particular message has an administration role and
+        /// throws a <see cref="MofichanAuthorisationException"/> if not.
+        /// </summary>
+        /// <param name="context">The message context.</param>
+        public static void CheckSenderAuthorised(this MessageContext context, string exceptionBody)
+        {
+            var sender = context.From as IUser;
+
+            if (sender != null && sender.Type != UserType.Adminstrator)
+            {
+                throw new MofichanAuthorisationException(exceptionBody, context);
+            }
         }
     }
 
@@ -139,7 +155,7 @@ namespace Mofichan.Behaviour.Base
         /// <summary>
         /// Handles the incoming message.
         /// <para></para>
-        /// This method will only be invoked if <code>CanHandleIncomingMessage(message)</code> is <code>true</code>.
+        /// This method will only be invoked if <c>CanHandleIncomingMessage(message)</c> is <c>true</c>.
         /// </summary>
         /// <param name="message">The message to process.</param>
         protected abstract void HandleIncomingMessage(IncomingMessage message);
@@ -147,7 +163,7 @@ namespace Mofichan.Behaviour.Base
         /// <summary>
         /// Handles the outgoing message.
         /// <para></para>
-        /// This method will only be invoked if <code>CanHandleOutgoingMessage(message)</code> is <code>true</code>.
+        /// This method will only be invoked if <c>CanHandleOutgoingMessage(message)</c> is <c>true</c>.
         /// </summary>
         /// <param name="message">The message to process.</param>
         protected abstract void HandleOutgoingMessage(OutgoingMessage message);

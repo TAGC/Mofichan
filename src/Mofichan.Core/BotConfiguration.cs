@@ -76,7 +76,7 @@ namespace Mofichan.Core
             /// <summary>
             /// Builds the <see cref="BotConfiguration"/> instance.
             /// </summary>
-            /// <returns>A <code>BotConfiguration</code>.</returns>
+            /// <returns>A <c>BotConfiguration</c>.</returns>
             public BotConfiguration Build()
             {
                 this.config.BackendConfiguration = new ReadOnlyDictionary<string, string>(

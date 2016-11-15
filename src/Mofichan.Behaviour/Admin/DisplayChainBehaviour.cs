@@ -13,12 +13,13 @@ namespace Mofichan.Behaviour.Admin
     /// <summary>
     /// This <see cref="IMofichanBehaviour"/> extends Mofichan with the administrative ability
     /// to display her behaviour chain.
-    /// <para></para>
+    /// </summary>
+    /// <remarks>
     /// Adding this module to the behaviour chain will allow Mofichan to respond to admin requests
     /// to show Mofichan's configured behaviour chain.
     /// <para></para>
     /// This chain will also represent the enable state of enableable behaviour modules.
-    /// </summary>
+    /// </remarks>
     public class DisplayChainBehaviour : BaseBehaviour
     {
         private const string BehaviourChainConnector = " ⇄ ";
@@ -26,6 +27,9 @@ namespace Mofichan.Behaviour.Admin
         private readonly Regex displayChainPattern;
         private IList<IMofichanBehaviour> behaviourStack;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DisplayChainBehaviour"/> class.
+        /// </summary>
         public DisplayChainBehaviour()
         {
             // TODO: refactor to inject identity match logic.
@@ -36,40 +40,76 @@ namespace Mofichan.Behaviour.Admin
                 RegexOptions.IgnoreCase);
         }
 
+        /// <summary>
+        /// Allows the behaviour to inspect the stack of behaviours Mofichan
+        /// will be loaded with.
+        /// </summary>
+        /// <param name="stack">The behaviour stack.</param>
+        /// <remarks>
+        /// This method should be invoked before the behaviour <i>chain</i>
+        /// is created.
+        /// </remarks>
         public override void InspectBehaviourStack(IList<IMofichanBehaviour> stack)
         {
             this.behaviourStack = stack;
         }
 
+        /// <summary>
+        /// Determines whether this instance can process the specified incoming message.
+        /// </summary>
+        /// <param name="message">The message to check can be handled.</param>
+        /// <returns>
+        ///   <c>true</c> if this instance can process the incoming message; otherwise, <c>false</c>.
+        /// </returns>
         protected override bool CanHandleIncomingMessage(IncomingMessage message)
         {
-            var fromUser = message.Context.From as IUser;
             var body = message.Context.Body;
-
-            var isRequestValid = this.displayChainPattern.IsMatch(body);
-            var isUserAuthorised = fromUser?.Type == UserType.Adminstrator;
-
-            return isRequestValid && isUserAuthorised && behaviourStack != null;
+            return this.displayChainPattern.IsMatch(body);
         }
 
+        /// <summary>
+        /// Handles the incoming message.
+        /// <para></para>
+        /// This method will only be invoked if <c>CanHandleIncomingMessage(message)</c> is <c>true</c>.
+        /// </summary>
+        /// <param name="message">The message to process.</param>
+        /// <exception cref="Core.Exceptions.MofichanAuthorisationException">If user is not an admin.</exception>
         protected override void HandleIncomingMessage(IncomingMessage message)
         {
-            Debug.Assert((message.Context.From as IUser).Type == UserType.Adminstrator);
+            message.Context.CheckSenderAuthorised("Non-admin user attempted to display behaviour chain");
 
             var reply = message.Reply("My behaviour chain: " + BuildBehaviourChainRepresentation());
             this.SendUpstream(reply);
         }
 
+        /// <summary>
+        /// Determines whether this instance can process the specified outgoing message.
+        /// </summary>
+        /// <param name="message">The message to check can be handled.</param>
+        /// <returns>
+        ///   <c>true</c> if this instance can process the outgoing messagee; otherwise, <c>false</c>.
+        /// </returns>
         protected override bool CanHandleOutgoingMessage(OutgoingMessage message)
         {
             return false;
         }
 
+        /// <summary>
+        /// Handles the outgoing message.
+        /// <para></para>
+        /// This method will only be invoked if <c>CanHandleOutgoingMessage(message)</c> is <c>true</c>.
+        /// </summary>
+        /// <param name="message">The message to process.</param>
+        /// <exception cref="System.NotImplementedException"></exception>
         protected override void HandleOutgoingMessage(OutgoingMessage message)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Builds the behaviour chain representation.
+        /// </summary>
+        /// <returns></returns>
         private string BuildBehaviourChainRepresentation()
         {
             Debug.Assert(this.behaviourStack != null);
