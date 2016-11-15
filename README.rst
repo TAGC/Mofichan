@@ -5,7 +5,10 @@ Mofichan
    :target: https://ci.appveyor.com/project/TAGC/mofichan/branch/develop
    :alt: AppVeyor Build Status
 
+|
+
 .. image:: docs/resources/mofichan_face.png
+   :scale: 50 %
    :alt: Mofichan
 
 Mofichan is a chatbot under recent development.
