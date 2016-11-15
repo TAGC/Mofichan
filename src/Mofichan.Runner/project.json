@@ -3,7 +3,7 @@
   "buildOptions": {
     "emitEntryPoint": true,
     "copyToOutput": {
-      "include": [ "mofichan.config.*" ]
+      "include": [ "../../mofichan.config.*" ]
     }
   },
 

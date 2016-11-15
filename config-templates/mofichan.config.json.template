@@ -1,0 +1,9 @@
+﻿{
+  "core": {
+    "backend": "discord"
+  },
+  "discord": {
+    "token": "<<YOUR BOT TOKEN>>",
+    "admin_id": "<<DISCORD USER ID OF ADMIN USER>>"
+  }
+}
