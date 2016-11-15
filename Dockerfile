@@ -1,11 +1,14 @@
+##########################################################################################
+#
+# NOTE: When running a container, you need to supply required configuration settings
+#       either by mounting a configuration file containing them or by passing them in
+#       as environment variables.
+#
+
 FROM microsoft/dotnet
+MAINTAINER David Fallah <davidfallah1@gmail.com>
 WORKDIR /app
 COPY . .
-
-# When the app runs it will actually try to find the config file
-# at app/mofichan.config for whatever reason
-COPY src/Mofichan.Runner/mofichan.config .
-
 RUN dotnet restore
 RUN dotnet test "test/Mofichan.Spec"
 RUN dotnet publish "src/Mofichan.Runner" -c Debug

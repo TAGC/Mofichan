@@ -45,7 +45,7 @@ namespace Mofichan.Runner
 
             var backendName = botConfiguration.SelectedBackend;
             var backendParams = from item in botConfiguration.BackendConfiguration
-                                let paramName = item.Key
+                                let paramName = item.Key.ToLowerInvariant()
                                 let paramValue = item.Value
                                 select new NamedParameter(paramName, paramValue);
 
@@ -82,7 +82,7 @@ namespace Mofichan.Runner
 
             // Register generic parts.
             containerBuilder
-                .RegisterType<YamlConfigurationLoader>()
+                .RegisterType<ConfigurationLoader>()
                 .As<IConfigurationLoader>();
 
             containerBuilder.RegisterInstance(CreateRootLogger());

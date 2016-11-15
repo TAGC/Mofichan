@@ -24,11 +24,11 @@ namespace Mofichan.Backend
         /// Initializes a new instance of the <see cref="DiscordBackend"/> class.
         /// </summary>
         /// <param name="token">Mofichan's API token.</param>
-        /// <param name="adminId">The Discord identifier of Mofichan's sole administrator.</param>
-        public DiscordBackend(string token, string adminId, ILogger logger) : base(logger.ForContext<DiscordBackend>())
+        /// <param name="admin_id">The Discord identifier of Mofichan's sole administrator.</param>
+        public DiscordBackend(string token, string admin_id, ILogger logger) : base(logger.ForContext<DiscordBackend>())
         {
             this.apiToken = token;
-            this.adminId = adminId;
+            this.adminId = admin_id;
             this.client = new DiscordSocketClient();
         }
 
