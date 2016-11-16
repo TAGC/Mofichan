@@ -12,7 +12,10 @@
       "target": "project"
     },
     "dotnet-test-xunit": "2.2.0-preview2-build1029",
-    "Microsoft.NETCore.App": "1.1.0-preview1-001100-00",
+    "Microsoft.NETCore.App": {
+      "type": "platform",
+      "version": "1.0.1"
+    },
     "xunit": "2.2.0-beta4-build3444",
     "Shouldly": "2.8.2",
     "Serilog": "2.4.0-dev-00746",
