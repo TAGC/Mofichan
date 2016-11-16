@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Mofichan.Tests
 {
-    public class BackendSpec
+    public class BackendTests
     {
         private class MockBackend : BaseBackend
         {

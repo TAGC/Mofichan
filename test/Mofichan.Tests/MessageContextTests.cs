@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Mofichan.Tests
 {
-    public class MessageContextSpec
+    public class MessageContextTests
     {
         [Fact]
         public void Message_Context_Should_Default_To_Zero_Delay()

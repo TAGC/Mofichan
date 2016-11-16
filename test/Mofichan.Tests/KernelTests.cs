@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Mofichan.Tests
 {
-    public class KernelSpec
+    public class KernelTests
     {
         private ILogger MockLogger
         {

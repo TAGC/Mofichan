@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Mofichan.Tests
 {
-    public class BotConfigurationSpec
+    public class BotConfigurationTests
     {
         public static IEnumerable<object> BotConfigurationBuildExamples
         {
