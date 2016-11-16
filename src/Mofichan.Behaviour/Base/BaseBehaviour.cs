@@ -241,7 +241,7 @@ namespace Mofichan.Behaviour.Base
                 this.HandleOutgoingMessage(message);
                 return DataflowMessageStatus.Accepted;
             }
-            else if (this.passThroughMessages)
+            else if (this.passThroughMessages && this.upstreamTarget != null)
             {
                 return this.upstreamTarget.OfferMessage(messageHeader, message, this, consumeToAccept);
             }
