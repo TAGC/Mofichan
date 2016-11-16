@@ -32,7 +32,7 @@ test_script:
 
     $TARGET_ARGS = '-targetargs:test ' + $ENV:APPVEYOR_BUILD_FOLDER + '\test\Mofichan.Spec -f netcoreapp1.0 -c ' + $ENV:CONFIGURATION
 
-    $FILTER = '-filter:+[Mofichan*]* -[Mofichan.Spec]* -[Mofichan.Runner]*'
+    $FILTER = '-filter:+[Mofichan*]* -[Mofichan.Spec]* -[Mofichan.Tests]* -[Mofichan.Runner]*'
 
     & $OPENCOVER $TARGET $TARGET_ARGS '-register:user' $FILTER '-mergeoutput' '-oldStyle'
 
