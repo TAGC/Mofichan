@@ -25,13 +25,13 @@ Setup
 Mofichan can be obtained either by cloning this repository or by pulling a "tagc/mofichan" image from Docker Hub.
 
 In either case, you will need to supply certain configuration values before Mofichan can run. These values can either be specified
-in a JSON file or provided as environment variables. Look at the "/config-templates" folder to see how to do this.
+in a JSON file or provided as environment variables. Look at the ``/config-templates`` folder to see how to do this.
 
 If you're planning to clone the repo and build/run Mofichan directly from source, the recommended approach would be to copy
-"./config-templates/mofichan.config.json.template" to "./mofichan.config.json" and fill in the blanks.
+``./config-templates/mofichan.config.json.template`` to ``./mofichan.config.json`` and fill in the blanks.
 
-If you're planning to pull mofichan straight from Docker, the recommended approach would be to copy "./config-templates/mofichan.config.env.template" 
-to "./mofichan.config.env", fill in the blanks and run::
+If you're planning to pull mofichan straight from Docker, the recommended approach would be to copy ``./config-templates/mofichan.config.env.template`` 
+to ``./mofichan.config.env``, fill in the blanks and run::
 	
    docker run -it --env-file mofichan.config.env tagc/mofichan:dev-latest
 
