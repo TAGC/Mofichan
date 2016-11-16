@@ -21,7 +21,8 @@
     "System.Composition": "1.0.31-preview1-24530-04",
     "Autofac": "4.2.0",
     "Moq": "4.6.38-alpha",
-    "Serilog.Sinks.TextWriter": "2.1.0"
+    "Serilog.Sinks.TextWriter": "2.1.0",
+    "OpenCover": "4.6.519"
   },
 
   "frameworks": {
