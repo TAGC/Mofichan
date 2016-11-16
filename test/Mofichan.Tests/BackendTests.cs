@@ -18,17 +18,13 @@ namespace Mofichan.Tests
         {
             public MockBackend(ILogger logger) : base(logger)
             {
-                this.DelayHandledEvent = new AutoResetEvent(false);
+                this.DelayHandledTcs = new TaskCompletionSource<object>();
             }
 
-            public AutoResetEvent DelayHandledEvent { get; }
-
+            public TaskCompletionSource<object> DelayHandledTcs { get; }
             public bool OnStartCalled { get; private set; }
-            public bool HandleMessageDelayAsyncCalled { get; private set; }
-
             public Mock<IRoom> MockRoom { get; private set; }
             public Mock<IUser> MockUser { get; private set; }
-
 
             public override void Start()
             {
@@ -56,8 +52,7 @@ namespace Mofichan.Tests
 
             protected override Task HandleMessageDelayAsync(MessageContext context)
             {
-                this.HandleMessageDelayAsyncCalled = true;
-                this.DelayHandledEvent.Set();
+                this.DelayHandledTcs.SetResult(null);
                 return Task.CompletedTask;
             }
         }
@@ -138,7 +133,7 @@ namespace Mofichan.Tests
         }
 
         [Fact]
-        public void Backend_Should_Handle_Delayed_Messages_Differently()
+        public async Task Backend_Should_Handle_Delayed_Messages_Differently()
         {
             // GIVEN a mock backend.
             var backend = new MockBackend(Mock.Of<ILogger>());
@@ -158,8 +153,8 @@ namespace Mofichan.Tests
                 Mock.Of<ISourceBlock<OutgoingMessage>>(), false);
 
             // THEN it should try to handle the delay.
-            backend.DelayHandledEvent.WaitOne(100);
-            backend.HandleMessageDelayAsyncCalled.ShouldBeTrue();
+            var task = backend.DelayHandledTcs.Task;
+            (await Task.WhenAny(task, Task.Delay(1000))).ShouldBe(task);
 
             // AND the recipient should then receive the message.
             recipient.Verify(it => it.ReceiveMessage(messageBody), Times.Once);
