@@ -4,6 +4,11 @@ Mofichan
 .. image:: https://ci.appveyor.com/api/projects/status/0lnl92u04uxwtpyp/branch/develop?svg=true
    :target: https://ci.appveyor.com/project/TAGC/mofichan/branch/develop
    :alt: AppVeyor Build Status
+   
+.. image:: https://codecov.io/gh/TAGC/Mofichan/branch/develop/graph/badge.svg
+   :target: https://codecov.io/gh/TAGC/Mofichan
+   :alt: Code Coverage
+
 
 |
    
