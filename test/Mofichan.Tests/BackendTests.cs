@@ -18,10 +18,8 @@ namespace Mofichan.Tests
         {
             public MockBackend(ILogger logger) : base(logger)
             {
-                this.DelayHandledTcs = new TaskCompletionSource<object>();
             }
 
-            public TaskCompletionSource<object> DelayHandledTcs { get; }
             public bool OnStartCalled { get; private set; }
             public Mock<IRoom> MockRoom { get; private set; }
             public Mock<IUser> MockUser { get; private set; }
@@ -52,7 +50,6 @@ namespace Mofichan.Tests
 
             protected override Task HandleMessageDelayAsync(MessageContext context)
             {
-                this.DelayHandledTcs.SetResult(null);
                 return Task.CompletedTask;
             }
         }
@@ -135,12 +132,16 @@ namespace Mofichan.Tests
         [Fact]
         public async Task Backend_Should_Handle_Delayed_Messages_Differently()
         {
+            var tcs = new TaskCompletionSource<string>();
+
             // GIVEN a mock backend.
             var backend = new MockBackend(Mock.Of<ILogger>());
 
             // GIVEN a mock recipient.
             var recipient = new Mock<IMessageTarget>();
-            recipient.Setup(it => it.ReceiveMessage(It.IsAny<string>()));
+            recipient
+                .Setup(it => it.ReceiveMessage(It.IsAny<string>()))
+                .Callback<string>(recv => tcs.SetResult(recv));
 
             // GIVEN an outgoing message with an associated non-zero delay.
             var messageBody = "hello";
@@ -153,11 +154,10 @@ namespace Mofichan.Tests
                 Mock.Of<ISourceBlock<OutgoingMessage>>(), false);
 
             // THEN it should try to handle the delay.
-            var task = backend.DelayHandledTcs.Task;
-            (await Task.WhenAny(task, Task.Delay(1000))).ShouldBe(task);
+            (await Task.WhenAny(tcs.Task, Task.Delay(1000))).ShouldBe(tcs.Task);
 
             // AND the recipient should then receive the message.
-            recipient.Verify(it => it.ReceiveMessage(messageBody), Times.Once);
+            tcs.Task.Result.ShouldBe(messageBody);
         }
 
         [Fact]
