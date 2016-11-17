@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using System.Threading.Tasks.Dataflow;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
@@ -17,29 +15,14 @@ namespace Mofichan.Tests
         #region Mocks
         private class MockSubBehaviour : IMofichanBehaviour
         {
-            public ITargetBlock<OutgoingMessage> UpstreamTarget { get; private set; }
-            public ITargetBlock<IncomingMessage> DownstreamTarget { get; private set; }
+            private readonly Action onNextCallback;
 
-            public IDisposable LinkTo(ITargetBlock<IncomingMessage> target,
-                DataflowLinkOptions linkOptions)
-            {
-                this.DownstreamTarget = target;
-                return null;
-            }
+            public IObserver<OutgoingMessage> UpstreamObserver { get; private set; }
+            public IObserver<IncomingMessage> DownstreamObserver { get; private set; }
 
-            public IDisposable LinkTo(ITargetBlock<OutgoingMessage> target,
-                DataflowLinkOptions linkOptions)
+            public MockSubBehaviour(Action onNextCallback = null)
             {
-                this.UpstreamTarget = target;
-                return null;
-            }
-
-            public Task Completion
-            {
-                get
-                {
-                    throw new NotImplementedException();
-                }
+                this.onNextCallback = onNextCallback ?? new Action(() => { });
             }
 
             public string Id
@@ -50,29 +33,16 @@ namespace Mofichan.Tests
                 }
             }
 
-            public void Complete()
+            public IDisposable Subscribe(IObserver<IncomingMessage> observer)
             {
-                throw new NotImplementedException();
+                this.DownstreamObserver = observer;
+                return null;
             }
 
-            public OutgoingMessage ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<OutgoingMessage> target, out bool messageConsumed)
+            public IDisposable Subscribe(IObserver<OutgoingMessage> observer)
             {
-                throw new NotImplementedException();
-            }
-
-            public IncomingMessage ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target, out bool messageConsumed)
-            {
-                throw new NotImplementedException();
-            }
-
-            public void Dispose()
-            {
-                throw new NotImplementedException();
-            }
-
-            public void Fault(Exception exception)
-            {
-                throw new NotImplementedException();
+                this.UpstreamObserver = observer;
+                return null;
             }
 
             public void InspectBehaviourStack(IList<IMofichanBehaviour> stack)
@@ -80,37 +50,32 @@ namespace Mofichan.Tests
                 throw new NotImplementedException();
             }
 
-            public DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader, OutgoingMessage messageValue, ISourceBlock<OutgoingMessage> source, bool consumeToAccept)
-            {
-                throw new NotImplementedException();
-            }
-
-            public DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader, IncomingMessage messageValue, ISourceBlock<IncomingMessage> source, bool consumeToAccept)
-            {
-                throw new NotImplementedException();
-            }
-
-            public void ReleaseReservation(DataflowMessageHeader messageHeader, ITargetBlock<OutgoingMessage> target)
-            {
-                throw new NotImplementedException();
-            }
-
-            public void ReleaseReservation(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target)
-            {
-                throw new NotImplementedException();
-            }
-
-            public bool ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<OutgoingMessage> target)
-            {
-                throw new NotImplementedException();
-            }
-
-            public bool ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target)
-            {
-                throw new NotImplementedException();
-            }
-
             public void Start()
+            {
+                throw new NotImplementedException();
+            }
+
+            public void OnCompleted()
+            {
+                throw new NotImplementedException();
+            }
+
+            public void OnError(Exception error)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void OnNext(IncomingMessage value)
+            {
+                this.onNextCallback();
+            }
+
+            public void OnNext(OutgoingMessage value)
+            {
+                this.onNextCallback();
+            }
+
+            public void Dispose()
             {
                 throw new NotImplementedException();
             }
@@ -139,7 +104,7 @@ namespace Mofichan.Tests
         #endregion
 
         [Fact]
-        public void Multi_Behaviour_Should_Link_Upstream_Targets_To_Most_Upstream_Sub_Behaviour()
+        public void Multi_Behaviour_Should_Subscribe_Upstream_Observers_To_Most_Upstream_Sub_Behaviour()
         {
             // GIVEN a collection of mock sub-behaviours.
             var subBehaviours = new[]
@@ -152,24 +117,24 @@ namespace Mofichan.Tests
             // GIVEN a multi-behaviour containing these sub-behaviours.
             var multiBehaviour = new MockMultiBehaviour(subBehaviours);
 
-            // GIVEN an upstream target to link to.
-            var upstreamTarget = Mock.Of<ITargetBlock<OutgoingMessage>>();
+            // GIVEN an upstream observer to subscribe.
+            var upstreamObserver = Mock.Of<IObserver<OutgoingMessage>>();
 
-            // WHEN we try to link a target to the multi-behaviour.
-            multiBehaviour.LinkTo(upstreamTarget);
+            // WHEN we try to subscribe the observer to the multi-behaviour.
+            multiBehaviour.Subscribe(upstreamObserver);
 
-            // THEN it should have been linked to the most upstream sub-behaviour (and none others).
+            // THEN it should have been subscribed to the most upstream sub-behaviour (and none others).
             var mostUpstreamSubBehaviour = subBehaviours.First();
 
-            mostUpstreamSubBehaviour.UpstreamTarget.ShouldBe(upstreamTarget);
+            mostUpstreamSubBehaviour.UpstreamObserver.ShouldBe(upstreamObserver);
             subBehaviours
                 .Skip(1)
-                .Select(it => it.UpstreamTarget)
-                .ShouldNotContain(upstreamTarget);
+                .Select(it => it.UpstreamObserver)
+                .ShouldNotContain(upstreamObserver);
         }
 
         [Fact]
-        public void Multi_Behaviour_Should_Link_Downstream_Targets_To_Most_Downstream_Sub_Behaviour()
+        public void Multi_Behaviour_Should_Subscribe_Downstream_Observers_To_Most_Downstream_Sub_Behaviour()
         {
             // GIVEN a collection of mock sub-behaviours.
             var subBehaviours = new[]
@@ -182,39 +147,20 @@ namespace Mofichan.Tests
             // GIVEN a multi-behaviour containing these sub-behaviours.
             var multiBehaviour = new MockMultiBehaviour(subBehaviours);
 
-            // GIVEN a downstream target to link to.
-            var downstreamTarget = Mock.Of<ITargetBlock<IncomingMessage>>();
+            // GIVEN a downstream observer to subscribe.
+            var downstreamObserver = Mock.Of<IObserver<IncomingMessage>>();
 
-            // WHEN we try to link a target to the multi-behaviour.
-            multiBehaviour.LinkTo(downstreamTarget);
+            // WHEN we try to subscribe the observer to the multi-behaviour.
+            multiBehaviour.Subscribe(downstreamObserver);
 
-            // THEN it should have been linked to the most downstream sub-behaviour (and none others).
+            // THEN it should have been subscribed to the most downstream sub-behaviour (and none others).
             var mostDownstreamSubBehaviour = subBehaviours.Last();
 
-            mostDownstreamSubBehaviour.DownstreamTarget.ShouldBe(downstreamTarget);
+            mostDownstreamSubBehaviour.DownstreamObserver.ShouldBe(downstreamObserver);
             subBehaviours
-                .Take(subBehaviours.Length-1)
-                .Select(it => it.DownstreamTarget)
-                .ShouldNotContain(downstreamTarget);
-        }
-
-        [Fact]
-        public void Multi_Behaviour_Should_Internally_Link_Sub_Behaviours()
-        {
-            // GIVEN a collection of mock sub-behaviours.
-            var first = new MockSubBehaviour();
-            var second = new MockSubBehaviour();
-            var third = new MockSubBehaviour();
-
-            // WHEN we construct a multi-behaviour using these sub-behaviours.
-            var multiBehaviour = new MockMultiBehaviour(first, second, third);
-
-            // THEN the sub-behaviours should be linked appropriately.
-            first.DownstreamTarget.ShouldBe(second);
-            second.DownstreamTarget.ShouldBe(third);
-
-            third.UpstreamTarget.ShouldBe(second);
-            second.UpstreamTarget.ShouldBe(first);
+                .Take(subBehaviours.Length - 1)
+                .Select(it => it.DownstreamObserver)
+                .ShouldNotContain(downstreamObserver);
         }
     }
 }

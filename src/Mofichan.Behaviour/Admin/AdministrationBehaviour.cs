@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading.Tasks.Dataflow;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
 using Mofichan.Core.Exceptions;
@@ -23,7 +22,7 @@ namespace Mofichan.Behaviour.Admin
 
         private readonly ILogger logger;
 
-        private ITargetBlock<OutgoingMessage> upstreamTarget;
+        private IObserver<OutgoingMessage> upstreamObserver;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AdministrationBehaviour"/> class.
@@ -49,19 +48,17 @@ namespace Mofichan.Behaviour.Admin
             }
         }
 
-        public override IDisposable LinkTo(ITargetBlock<OutgoingMessage> target,
-            DataflowLinkOptions linkOptions)
+        public override IDisposable Subscribe(IObserver<OutgoingMessage> observer)
         {
-            this.upstreamTarget = target;
-            return base.LinkTo(target, linkOptions);
+            this.upstreamObserver = observer;
+            return base.Subscribe(observer);
         }
 
-        public override DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader,
-            IncomingMessage message, ISourceBlock<IncomingMessage> source, bool consumeToAccept)
+        public override void OnNext(IncomingMessage message)
         {
             try
             {
-                return base.OfferMessage(messageHeader, message, source, consumeToAccept);
+                base.OnNext(message);
             }
             catch (MofichanAuthorisationException e)
             {
@@ -70,15 +67,13 @@ namespace Mofichan.Behaviour.Admin
 
                 var sender = message.Context.From as IUser;
 
-                if (sender != null && this.upstreamTarget != null)
+                if (sender != null && this.upstreamObserver != null)
                 {
                     var reply = message.Reply(string.Format("I'm afraid you're not authorised to do that, {0}",
                         sender.Name));
 
-                    this.upstreamTarget.OfferMessage(messageHeader, reply, this, consumeToAccept);
+                    this.upstreamObserver.OnNext(reply);
                 }
-
-                return DataflowMessageStatus.Declined;
             }
         }
     }

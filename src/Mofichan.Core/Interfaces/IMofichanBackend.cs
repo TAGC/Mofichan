@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading.Tasks.Dataflow;
 
 namespace Mofichan.Core.Interfaces
 {
@@ -7,7 +6,7 @@ namespace Mofichan.Core.Interfaces
     /// Represents an object that provides backend support for Mofichan. This includes connection management
     /// as well as sending and receiving messages using a particular platform.
     /// </summary>
-    public interface IMofichanBackend : IPropagatorBlock<OutgoingMessage, IncomingMessage>, IDisposable
+    public interface IMofichanBackend : IObservable<IncomingMessage>, IObserver<OutgoingMessage>, IDisposable
     {
         /// <summary>
         /// Initialises the backend.

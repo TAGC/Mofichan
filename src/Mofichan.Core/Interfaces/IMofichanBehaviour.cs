@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks.Dataflow;
+using System.Reactive.Subjects;
 
 namespace Mofichan.Core.Interfaces
 {
@@ -11,10 +11,7 @@ namespace Mofichan.Core.Interfaces
     /// messages, but may also allow her to have "passive" behaviours that
     /// cause her to act independently of received messages.
     /// </summary>
-    public interface IMofichanBehaviour :
-        IPropagatorBlock<IncomingMessage, IncomingMessage>,
-        IPropagatorBlock<OutgoingMessage, OutgoingMessage>,
-        IDisposable
+    public interface IMofichanBehaviour : ISubject<IncomingMessage>, ISubject<OutgoingMessage>, IDisposable
     {
         /// <summary>
         /// Allows the behaviour to inspect the stack of behaviours Mofichan

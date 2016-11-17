@@ -102,8 +102,7 @@ namespace Mofichan.Tests
             var message = new OutgoingMessage { Context = messageContext };
 
             // WHEN the backend receives the message
-            backend.OfferMessage(default(DataflowMessageHeader), message,
-                Mock.Of<ISourceBlock<OutgoingMessage>>(), false);
+            backend.OnNext(message);
 
             // THEN the room occupant should receive the message.
             mockOccupant.Verify(it => it.ReceiveMessage(messageBody), Times.Once);
@@ -150,8 +149,7 @@ namespace Mofichan.Tests
             var message = new OutgoingMessage { Context = messageContext };
 
             // WHEN the backend receives the message.
-            backend.OfferMessage(default(DataflowMessageHeader), message,
-                Mock.Of<ISourceBlock<OutgoingMessage>>(), false);
+            backend.OnNext(message);
 
             // THEN it should try to handle the delay.
             (await Task.WhenAny(tcs.Task, Task.Delay(1000))).ShouldBe(tcs.Task);
@@ -161,18 +159,14 @@ namespace Mofichan.Tests
         }
 
         [Fact]
-        public void Backend_Should_Send_Received_Messages_To_Linked_Target()
+        public void Backend_Should_Send_Received_Messages_To_Subscribed_Observer()
         {
             // GIVEN a mock backend.
             var backend = new MockBackend(Mock.Of<ILogger>());
 
-            // GIVEN an incoming message target.
-            var target = new Mock<ITargetBlock<IncomingMessage>>();
-            target.Setup(it => it.OfferMessage(
-                It.IsAny<DataflowMessageHeader>(),
-                It.IsAny<IncomingMessage>(),
-                It.IsAny<ISourceBlock<IncomingMessage>>(),
-                It.IsAny<bool>()));
+            // GIVEN an incoming message observer.
+            var observer = new Mock<IObserver<IncomingMessage>>();
+            observer.Setup(it => it.OnNext(It.IsAny<IncomingMessage>()));
 
             // GIVEN an incoming message.
             var messageBody = "what's up?";
@@ -182,25 +176,17 @@ namespace Mofichan.Tests
             // WHEN the mock backend receives the message.
             backend.SimulateReceivingMessage(message);
 
-            // THEN the target should not have received the message.
-            target.Verify(it => it.OfferMessage(
-                It.IsAny<DataflowMessageHeader>(),
-                message,
-                It.IsAny<ISourceBlock<IncomingMessage>>(),
-                It.IsAny<bool>()), Times.Never);
+            // THEN the observer should not have received the message.
+            observer.Verify(it => it.OnNext(message), Times.Never);
 
-            // WHEN we link the backend to the target.
-            backend.LinkTo(target.Object);
+            // WHEN we subscribe the observer to the behaviour.
+            backend.Subscribe(observer.Object);
 
             // AND we simulate receiving the message again.
             backend.SimulateReceivingMessage(message);
 
-            // THEN the target should have received the message.
-            target.Verify(it => it.OfferMessage(
-                It.IsAny<DataflowMessageHeader>(),
-                message,
-                It.IsAny<ISourceBlock<IncomingMessage>>(),
-                It.IsAny<bool>()), Times.Once);
+            // THEN the observer should have received the message.
+            observer.Verify(it => it.OnNext(message), Times.Once);
         }
     }
 }

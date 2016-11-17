@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks.Dataflow;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
@@ -28,8 +27,7 @@ namespace Mofichan.Behaviour.Diagnostics
                 this.logger = logger;
             }
 
-            public override DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader,
-                IncomingMessage message, ISourceBlock<IncomingMessage> source, bool consumeToAccept)
+            public override void OnNext(IncomingMessage message)
             {
                 var body = message.Context.Body;
                 var sender = message.Context.From;
@@ -37,11 +35,10 @@ namespace Mofichan.Behaviour.Diagnostics
                 this.logger.Verbose("Behaviour {BehaviourId} offered incoming message {MessageBody} from {Sender}",
                     this.DelegateBehaviour.Id, body, sender);
 
-                return base.OfferMessage(messageHeader, message, source, consumeToAccept);
+                base.OnNext(message);
             }
 
-            public override DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader,
-                OutgoingMessage message, ISourceBlock<OutgoingMessage> source, bool consumeToAccept)
+            public override void OnNext(OutgoingMessage message)
             {
                 var body = message.Context.Body;
                 var sender = message.Context.From;
@@ -49,7 +46,7 @@ namespace Mofichan.Behaviour.Diagnostics
                 this.logger.Verbose("Behaviour {BehaviourId} offered outgoing message {MessageBody} from {Sender}",
                     this.DelegateBehaviour.Id, body, sender);
 
-                return base.OfferMessage(messageHeader, message, source, consumeToAccept);
+                base.OnNext(message);
             }
 
             public override string ToString()

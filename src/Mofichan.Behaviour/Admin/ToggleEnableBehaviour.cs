@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks.Dataflow;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
@@ -26,8 +25,8 @@ namespace Mofichan.Behaviour.Admin
             private const string Tick = "✓";
             private const string Cross = "⨉";
 
-            private ITargetBlock<IncomingMessage> downstreamTarget;
-            private ITargetBlock<OutgoingMessage> upstreamTarget;
+            private IObserver<IncomingMessage> downstreamObserver;
+            private IObserver<OutgoingMessage> upstreamObserver;
 
             public EnableableBehaviourDecorator(IMofichanBehaviour delegateBehaviour)
                 : base(delegateBehaviour)
@@ -37,49 +36,39 @@ namespace Mofichan.Behaviour.Admin
 
             public bool Enabled { get; set; }
 
-            public override IDisposable LinkTo(ITargetBlock<IncomingMessage> target, DataflowLinkOptions linkOptions)
+            public override IDisposable Subscribe(IObserver<IncomingMessage> observer)
             {
-                this.downstreamTarget = target;
-                return base.LinkTo(target, linkOptions);
+                this.downstreamObserver = observer;
+                return base.Subscribe(observer);
             }
 
-            public override IDisposable LinkTo(ITargetBlock<OutgoingMessage> target, DataflowLinkOptions linkOptions)
+            public override IDisposable Subscribe(IObserver<OutgoingMessage> observer)
             {
-                this.upstreamTarget = target;
-                return base.LinkTo(target, linkOptions);
+                this.upstreamObserver = observer;
+                return base.Subscribe(observer);
             }
 
-            public override DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader,
-                IncomingMessage message, ISourceBlock<IncomingMessage> source, bool consumeToAccept)
+            public override void OnNext(IncomingMessage message)
             {
                 if (this.Enabled)
                 {
-                    return base.OfferMessage(messageHeader, message, source, consumeToAccept);
+                    base.OnNext(message);
                 }
-                else if (this.downstreamTarget != null)
+                else if (this.downstreamObserver != null)
                 {
-                    return this.downstreamTarget.OfferMessage(messageHeader, message, source, consumeToAccept);
-                }
-                else
-                {
-                    return DataflowMessageStatus.Declined;
+                    this.downstreamObserver.OnNext(message);
                 }
             }
 
-            public override DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader,
-                OutgoingMessage message, ISourceBlock<OutgoingMessage> source, bool consumeToAccept)
+            public override void OnNext(OutgoingMessage message)
             {
                 if (this.Enabled)
                 {
-                    return base.OfferMessage(messageHeader, message, source, consumeToAccept);
+                    base.OnNext(message);
                 }
-                else if (this.upstreamTarget != null)
+                else if (this.downstreamObserver != null)
                 {
-                    return this.upstreamTarget.OfferMessage(messageHeader, message, source, consumeToAccept);
-                }
-                else
-                {
-                    return DataflowMessageStatus.Declined;
+                    this.upstreamObserver.OnNext(message);
                 }
             }
 

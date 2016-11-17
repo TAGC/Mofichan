@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using System.Threading.Tasks.Dataflow;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
 using Serilog;
@@ -9,92 +8,48 @@ using Serilog;
 namespace Mofichan.Backend
 {
     /// <summary>
-    /// A base implementation of <see cref="IMofichanBackend" /></summary>
-    /// <seealso cref="Mofichan.Core.Interfaces.IMofichanBackend" />
+    /// A base implementation of <see cref="IMofichanBackend"/>
+    /// </summary>
     public abstract class BaseBackend : IMofichanBackend
     {
-        private ITargetBlock<IncomingMessage> target;
+        private IObserver<IncomingMessage> observer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BaseBackend"/> class.
         /// </summary>
-        /// <param name="logger">The logger to use for logging.</param>
+        /// <param name="logger">The logger to use.</param>
         protected BaseBackend(ILogger logger)
         {
             this.Logger = logger;
         }
 
+        /// <summary>
+        /// Gets the logger used by this backend.
+        /// </summary>
+        /// <value>
+        /// The logger.
+        /// </value>
         protected ILogger Logger { get; }
 
-        #region Dataflow Members
-        Task IDataflowBlock.Completion
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        public IDisposable LinkTo(ITargetBlock<IncomingMessage> target, DataflowLinkOptions linkOptions)
-        {
-            this.target = target;
-            return null;
-        }
-
-        public DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader, OutgoingMessage message,
-            ISourceBlock<OutgoingMessage> source, bool consumeToAccept)
-        {
-            if (consumeToAccept)
-            {
-                bool consumeSuccessful;
-                source.ConsumeMessage(messageHeader, this, out consumeSuccessful);
-
-                Debug.Assert(consumeSuccessful);
-            }
-
-            this.SendMessage(message.Context);
-
-            return DataflowMessageStatus.Accepted;
-        }
-
-        public virtual IncomingMessage ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target,
-            out bool messageConsumed)
-        {
-            throw new NotImplementedException();
-        }
-
+        /// <summary>
+        /// Attempts to connect Mofichan to a room.
+        /// </summary>
+        /// <param name="roomId">The identifier of the room to try to join.</param>
         public virtual void Join(string roomId)
         {
             var room = this.GetRoomById(roomId);
             room.Join();
         }
 
+        /// <summary>
+        /// Attempts to disconnect Mofichan from a room.
+        /// </summary>
+        /// <param name="roomId">The identifier of the room to try to leave.</param>
         public virtual void Leave(string roomId)
         {
             var room = this.GetRoomById(roomId);
             room.Leave();
         }
-
-        bool ISourceBlock<IncomingMessage>.ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target)
-        {
-            throw new NotImplementedException();
-        }
-
-        void ISourceBlock<IncomingMessage>.ReleaseReservation(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target)
-        {
-            throw new NotImplementedException();
-        }
-
-        void IDataflowBlock.Complete()
-        {
-            throw new NotImplementedException();
-        }
-
-        void IDataflowBlock.Fault(Exception exception)
-        {
-            throw new NotImplementedException();
-        }
-        #endregion
 
         /// <summary>
         /// Initialises the backend.
@@ -107,6 +62,47 @@ namespace Mofichan.Backend
         public virtual void Dispose()
         {
             // Override if necessary.
+        }
+
+        /// <summary>
+        /// Notifies the provider that an observer is to receive notifications.
+        /// </summary>
+        /// <param name="observer">The object that is to receive notifications.</param>
+        /// <returns>
+        /// A reference to an interface that allows observers to stop receiving notifications before the provider has finished sending them.
+        /// </returns>
+        public IDisposable Subscribe(IObserver<IncomingMessage> observer)
+        {
+            this.observer = observer;
+            return null;
+        }
+
+        /// <summary>
+        /// Notifies the observer that the provider has finished sending push-based notifications.
+        /// </summary>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public void OnCompleted()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Notifies the observer that the provider has experienced an error condition.
+        /// </summary>
+        /// <param name="error">An object that provides additional information about the error.</param>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public void OnError(Exception error)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Called to notify this backend of an outgoing message that should be sent.
+        /// </summary>
+        /// <param name="message">The message to send.</param>
+        public void OnNext(OutgoingMessage message)
+        {
+            this.SendMessage(message.Context);
         }
 
         /// <summary>
@@ -165,7 +161,7 @@ namespace Mofichan.Backend
                     message.Context.Body, message.Context.From);
             }
 
-            this.target?.OfferMessage(default(DataflowMessageHeader), message, this, false);
+            this.observer?.OnNext(message);
         }
 
         /// <summary>
@@ -180,6 +176,9 @@ namespace Mofichan.Backend
         }
     }
 
+    /// <summary>
+    /// A base implementation of <see cref="IUser"/>. 
+    /// </summary>
     public abstract class User : IUser
     {
         /// <summary>
@@ -227,7 +226,6 @@ namespace Mofichan.Backend
     /// <summary>
     /// A base implementation of <see cref="IRoomOccupant"/>. 
     /// </summary>
-    /// <seealso cref="Mofichan.Core.Interfaces.IRoomOccupant" />
     public class RoomOccupant : IRoomOccupant
     {
         private readonly IUser user;

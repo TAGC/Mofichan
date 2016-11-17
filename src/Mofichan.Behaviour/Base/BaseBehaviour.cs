@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Reflection;
-using System.Threading.Tasks;
-using System.Threading.Tasks.Dataflow;
 using Mofichan.Core;
 using Mofichan.Core.Exceptions;
 using Mofichan.Core.Interfaces;
@@ -50,8 +47,8 @@ namespace Mofichan.Behaviour.Base
     /// </summary>
     public abstract class BaseBehaviour : IMofichanBehaviour
     {
-        private ITargetBlock<IncomingMessage> downstreamTarget;
-        private ITargetBlock<OutgoingMessage> upstreamTarget;
+        private IObserver<IncomingMessage> downstreamObserver;
+        private IObserver<OutgoingMessage> upstreamObserver;
         private bool passThroughMessages;
 
         /// <summary>
@@ -66,14 +63,6 @@ namespace Mofichan.Behaviour.Base
             this.passThroughMessages = passThroughMessages;
         }
 
-        Task IDataflowBlock.Completion
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
-
         /// <summary>
         /// Gets the behaviour module identifier.
         /// </summary>
@@ -84,11 +73,7 @@ namespace Mofichan.Behaviour.Base
         {
             get
             {
-                return this
-                    .GetType()
-                    .GetTypeInfo()
-                    .Name
-                    .Replace("Behaviour", string.Empty)
+                return this.GetType().GetTypeInfo().Name.Replace("Behaviour", string.Empty)
                     .ToLowerInvariant();
             }
         }
@@ -115,23 +100,98 @@ namespace Mofichan.Behaviour.Base
             // Override if necessary.
         }
 
-        public virtual void Complete()
-        {
-            // Override if necessary.
-        }
-
-        public virtual void Fault(Exception exception)
-        {
-            // Override if necessary.
-            throw exception;
-        }
-
         /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         public virtual void Dispose()
         {
             // Override if necessary.
+        }
+
+        /// <summary>
+        /// Notifies the observer that the provider has finished sending push-based notifications.
+        /// </summary>
+        public virtual void OnCompleted()
+        {
+            // Override if necessary.
+        }
+
+        /// <summary>
+        /// Notifies the observer that the provider has experienced an error condition.
+        /// </summary>
+        /// <param name="error">An object that provides additional information about the error.</param>
+        public void OnError(Exception error)
+        {
+            // Override if necssary.
+        }
+
+        /// <summary>
+        /// Notifies the provider that an observer is to receive notifications.
+        /// </summary>
+        /// <param name="observer">The object that is to receive notifications.</param>
+        /// <returns>
+        /// A reference to an interface that allows observers to stop receiving notifications before the provider has finished sending them.
+        /// </returns>
+        public IDisposable Subscribe(IObserver<IncomingMessage> observer)
+        {
+            this.downstreamObserver = observer;
+            return null;
+        }
+
+        /// <summary>
+        /// Notifies the provider that an observer is to receive notifications.
+        /// </summary>
+        /// <param name="observer">The object that is to receive notifications.</param>
+        /// <returns>
+        /// A reference to an interface that allows observers to stop receiving notifications before the provider has finished sending them.
+        /// </returns>
+        public IDisposable Subscribe(IObserver<OutgoingMessage> observer)
+        {
+            this.upstreamObserver = observer;
+            return null;
+        }
+
+        /// <summary>
+        /// Called to notify this observer of an incoming message.
+        /// </summary>
+        /// <param name="message">The incoming message.</param>
+        public void OnNext(IncomingMessage message)
+        {
+            if (this.CanHandleIncomingMessage(message))
+            {
+                this.HandleIncomingMessage(message);
+            }
+            else if (this.passThroughMessages && this.downstreamObserver != null)
+            {
+                this.downstreamObserver.OnNext(message);
+            }
+        }
+
+        /// <summary>
+        /// Called to notify this observer of an outgoing message.
+        /// </summary>
+        /// <param name="message">The outgoing message.</param>
+        public void OnNext(OutgoingMessage message)
+        {
+            if (this.CanHandleOutgoingMessage(message))
+            {
+                this.HandleOutgoingMessage(message);
+            }
+            else if (this.passThroughMessages && this.upstreamObserver != null)
+            {
+                this.upstreamObserver.OnNext(message);
+            }
+        }
+
+        /// <summary>
+        /// Returns a <see cref="System.String" /> that represents this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance.
+        /// </returns>
+        public override string ToString()
+        {
+            return string.Concat("[", this.Id, "]");
         }
 
         /// <summary>
@@ -168,125 +228,22 @@ namespace Mofichan.Behaviour.Base
         /// <param name="message">The message to process.</param>
         protected abstract void HandleOutgoingMessage(OutgoingMessage message);
 
-        #region Incoming Message Handling
-        public DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader, IncomingMessage message,
-            ISourceBlock<IncomingMessage> source, bool consumeToAccept)
-        {
-            if (consumeToAccept)
-            {
-                bool consumeSuccessful;
-                source.ConsumeMessage(messageHeader, this, out consumeSuccessful);
-
-                Debug.Assert(consumeSuccessful);
-            }
-
-            if (this.CanHandleIncomingMessage(message))
-            {
-                this.HandleIncomingMessage(message);
-                return DataflowMessageStatus.Accepted;
-            }
-            else if (this.passThroughMessages && this.downstreamTarget != null)
-            {
-                return this.downstreamTarget.OfferMessage(messageHeader, message, this, consumeToAccept);
-            }
-            else
-            {
-                return DataflowMessageStatus.Declined;
-            }
-        }
-
-        public IDisposable LinkTo(ITargetBlock<IncomingMessage> target, DataflowLinkOptions linkOptions)
-        {
-            this.downstreamTarget = target;
-            return null;
-        }
-
-        public IncomingMessage ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target,
-            out bool messageConsumed)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void ReleaseReservation(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target)
-        {
-            throw new NotImplementedException();
-        }
-
+        /// <summary>
+        /// Sends an incoming message to the downstream observer, if it exists.
+        /// </summary>
+        /// <param name="message">The message to send.</param>
         protected void SendDownstream(IncomingMessage message)
         {
-            this.downstreamTarget.OfferMessage(default(DataflowMessageHeader), message, this, false);
+            this.downstreamObserver?.OnNext(message);
         }
-        #endregion
-
-        #region Outgoing Message Handling
-
-        public DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader, OutgoingMessage message,
-            ISourceBlock<OutgoingMessage> source, bool consumeToAccept)
-        {
-            if (consumeToAccept)
-            {
-                bool consumeSuccessful;
-                source.ConsumeMessage(messageHeader, this, out consumeSuccessful);
-
-                Debug.Assert(consumeSuccessful);
-            }
-
-            if (this.CanHandleOutgoingMessage(message))
-            {
-                this.HandleOutgoingMessage(message);
-                return DataflowMessageStatus.Accepted;
-            }
-            else if (this.passThroughMessages && this.upstreamTarget != null)
-            {
-                return this.upstreamTarget.OfferMessage(messageHeader, message, this, consumeToAccept);
-            }
-            else
-            {
-                return DataflowMessageStatus.Declined;
-            }
-        }
-
-        public IDisposable LinkTo(ITargetBlock<OutgoingMessage> target, DataflowLinkOptions linkOptions)
-        {
-            this.upstreamTarget = target;
-            return null;
-        }
-
-        public OutgoingMessage ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<OutgoingMessage> target, out bool messageConsumed)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<OutgoingMessage> target)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void ReleaseReservation(DataflowMessageHeader messageHeader, ITargetBlock<OutgoingMessage> target)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected void SendUpstream(OutgoingMessage message)
-        {
-            this.upstreamTarget.OfferMessage(default(DataflowMessageHeader), message, this, false);
-        }
-        #endregion
 
         /// <summary>
-        /// Returns a <see cref="System.String" /> that represents this instance.
+        /// Sends an outgoing message to the upstream observer, if it exists.
         /// </summary>
-        /// <returns>
-        /// A <see cref="System.String" /> that represents this instance.
-        /// </returns>
-        public override string ToString()
+        /// <param name="message">The message to send.</param>
+        protected void SendUpstream(OutgoingMessage message)
         {
-            return string.Concat("[", this.Id, "]");
+            this.upstreamObserver?.OnNext(message);
         }
     }
 }

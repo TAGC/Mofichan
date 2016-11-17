@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks.Dataflow;
 using Autofac;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
@@ -21,7 +20,7 @@ namespace Mofichan.Spec
 
         private readonly string scenarioTitle;
 
-        private ITargetBlock<IncomingMessage> backendTarget;
+        private IObserver<IncomingMessage> backendObserver;
 
         #region Setup
         protected Scenario(string scenarioTitle = null)
@@ -66,19 +65,12 @@ namespace Mofichan.Spec
         private IMofichanBackend ConstructMockBackend()
         {
             var mock = new Mock<IMofichanBackend>();
-            mock.Setup(backend => backend.LinkTo(
-                    It.IsAny<ITargetBlock<IncomingMessage>>(),
-                    It.IsAny<DataflowLinkOptions>()))
-                .Callback<ITargetBlock<IncomingMessage>, DataflowLinkOptions>(
-                    (target, _) => this.backendTarget = target);
+            mock.Setup(it => it.Subscribe(It.IsAny<IObserver<IncomingMessage>>()))
+                .Callback<IObserver<IncomingMessage>>(observer => this.backendObserver = observer);
 
-            mock.Setup(backend => backend.OfferMessage(
-                    It.IsAny<DataflowMessageHeader>(),
-                    It.IsAny<OutgoingMessage>(),
-                    It.IsAny<ISourceBlock<OutgoingMessage>>(),
-                    It.IsAny<bool>()))
-                .Callback<DataflowMessageHeader, OutgoingMessage, ISourceBlock<OutgoingMessage>, bool>(
-                    (_, message, __, ___) => this.OnMessageSent(message));
+            mock.Setup(backend => backend.OnNext(It.IsAny<OutgoingMessage>()))
+                .Callback<OutgoingMessage>(message => this.OnMessageSent(message));
+
             return mock.Object;
         }
         #endregion
@@ -151,7 +143,7 @@ namespace Mofichan.Spec
             var incomingMessage = new IncomingMessage(
                 new MessageContext(from: sender, to: this.MofichanUser, body: message));
 
-            this.backendTarget.Post(incomingMessage);
+            this.backendObserver.OnNext(incomingMessage);
         }
         #endregion
 

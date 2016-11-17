@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Threading.Tasks.Dataflow;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
 using Moq;
@@ -11,7 +10,7 @@ namespace Mofichan.Spec.Core.Feature
 {
     public class MofichanDelaysResponse : BaseScenario
     {
-        private ITargetBlock<OutgoingMessage> target;
+        private IObserver<OutgoingMessage> observer;
 
         public MofichanDelaysResponse() : base("Mofichan delays her response to appear more human")
         {
@@ -29,18 +28,11 @@ namespace Mofichan.Spec.Core.Feature
 
             var mockBehaviour = new Mock<IMofichanBehaviour>();
             mockBehaviour
-                .Setup(it => it.LinkTo(
-                    It.IsAny<ITargetBlock<OutgoingMessage>>(),
-                    It.IsAny<DataflowLinkOptions>()))
-                .Callback<ITargetBlock<OutgoingMessage>, DataflowLinkOptions>(
-                    (linkedTarget, _) => target = linkedTarget);
+                .Setup(it => it.Subscribe(It.IsAny<IObserver<OutgoingMessage>>()))
+                .Callback<IObserver<OutgoingMessage>>(linkedObserver => observer = linkedObserver);
 
             mockBehaviour
-                .Setup(it => it.OfferMessage(
-                    It.IsAny<DataflowMessageHeader>(),
-                    It.IsAny<IncomingMessage>(),
-                    It.IsAny<ISourceBlock<IncomingMessage>>(),
-                    It.IsAny<bool>()))
+                .Setup(it => it.OnNext(It.IsAny<IncomingMessage>()))
                 .Callback(SendMockResponse);
 
             return mockBehaviour;
@@ -56,7 +48,7 @@ namespace Mofichan.Spec.Core.Feature
             // We confirm that there's no delay set on the generated responses by default.
             Debug.Assert(mockResponse.Context.Delay == TimeSpan.Zero);
 
-            target.OfferMessage(default(DataflowMessageHeader), mockResponse, null, false);
+            observer.OnNext(mockResponse);
         }
 
         private void Then_Mofichan_should_produce_a_delayed_response()

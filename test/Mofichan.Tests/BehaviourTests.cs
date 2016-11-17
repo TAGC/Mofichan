@@ -46,97 +46,17 @@ namespace Mofichan.Tests
         }
 
         [Fact]
-        public void Behaviour_Should_Decline_Incoming_Message_Offer_If_Downstream_Target_Is_Null()
-        {
-            // GIVEN a mock behaviour that not been linked to a downstream target.
-            var behaviour = new MockBehaviour();
-
-            // GIVEN an incoming message.
-            var message = default(IncomingMessage);
-
-            // WHEN we offer the message to the behaviour.
-            var status = behaviour.OfferMessage(default(DataflowMessageHeader), message,
-                Mock.Of<ISourceBlock<IncomingMessage>>(), false);
-
-            // THEN the behaviour should have declined the offer.
-            status.ShouldBe(DataflowMessageStatus.Declined);
-        }
-
-        [Fact]
-        public void Behaviour_Should_Decline_Incoming_Message_Offer_If_Not_Passing_Through_Unhandled_Messages()
-        {
-            // GIVEN a mock behaviour that will not automatically pass through unhandled message.
-            var behaviour = new MockBehaviour(false);
-            behaviour.SimulateCanHandleIncomingMessage = false;
-
-            // GIVEN the behaviour is linked to a mock target.
-            behaviour.LinkTo(Mock.Of<ITargetBlock<IncomingMessage>>());
-
-            // GIVEN an incoming message.
-            var message = default(IncomingMessage);
-
-            // WHEN we offer the message to the behaviour.
-            var status = behaviour.OfferMessage(default(DataflowMessageHeader), message,
-                Mock.Of<ISourceBlock<IncomingMessage>>(), false);
-
-            // THEN the behaviour should have declined the offer.
-            status.ShouldBe(DataflowMessageStatus.Declined);
-        }
-
-        [Fact]
-        public void Behaviour_Should_Decline_Outgoing_Message_Offer_If_Upstream_Target_Is_Null()
-        {
-            // GIVEN a mock behaviour that not been linked to an upstream target.
-            var behaviour = new MockBehaviour();
-
-            // GIVEN an outgoing message.
-            var message = default(OutgoingMessage);
-
-            // WHEN we offer the message to the behaviour.
-            var status = behaviour.OfferMessage(default(DataflowMessageHeader), message,
-                Mock.Of<ISourceBlock<OutgoingMessage>>(), false);
-
-            // THEN the behaviour should have declined the offer.
-            status.ShouldBe(DataflowMessageStatus.Declined);
-        }
-
-        [Fact]
-        public void Behaviour_Should_Decline_Outgoing_Message_Offer_If_Not_Passing_Through_Unhandled_Messages()
-        {
-            // GIVEN a mock behaviour that will not automatically pass through unhandled message.
-            var behaviour = new MockBehaviour(false);
-            behaviour.SimulateCanHandleIncomingMessage = false;
-
-            // GIVEN the behaviour is linked to a mock target.
-            behaviour.LinkTo(Mock.Of<ITargetBlock<OutgoingMessage>>());
-
-            // GIVEN an outgoing message.
-            var message = default(OutgoingMessage);
-
-            // WHEN we offer the message to the behaviour.
-            var status = behaviour.OfferMessage(default(DataflowMessageHeader), message,
-                Mock.Of<ISourceBlock<OutgoingMessage>>(), false);
-
-            // THEN the behaviour should have declined the offer.
-            status.ShouldBe(DataflowMessageStatus.Declined);
-        }
-
-        [Fact]
-        public void Behaviour_Should_Pass_Unhandled_Incoming_Message_To_Downstream_Target()
+        public void Behaviour_Should_Pass_Unhandled_Incoming_Message_To_Downstream_Observer()
         {
             // GIVEN a mock behaviour.
             var behaviour = new MockBehaviour(true);
 
-            // GIVEN a downstream target for incoming messages.
-            var downstreamTarget = new Mock<ITargetBlock<IncomingMessage>>();
-            downstreamTarget.Setup(it => it.OfferMessage(
-                It.IsAny<DataflowMessageHeader>(),
-                It.IsAny<IncomingMessage>(),
-                It.IsAny<ISourceBlock<IncomingMessage>>(),
-                It.IsAny<bool>()));
+            // GIVEN a downstream observer for incoming messages.
+            var downstreamObserver = new Mock<IObserver<IncomingMessage>>();
+            downstreamObserver.Setup(it => it.OnNext(It.IsAny<IncomingMessage>()));
 
-            // GIVEN the behaviour is linked to the target.
-            behaviour.LinkTo(downstreamTarget.Object);
+            // GIVEN the observer is subscribed to the behaviour.
+            behaviour.Subscribe(downstreamObserver.Object);
 
             // GIVEN an incoming message to pass.
             var message = default(IncomingMessage);
@@ -145,33 +65,24 @@ namespace Mofichan.Tests
             behaviour.SimulateCanHandleIncomingMessage = false;
 
             // WHEN the behaviour is offered the message.
-            behaviour.OfferMessage(default(DataflowMessageHeader), message,
-                Mock.Of<ISourceBlock<IncomingMessage>>(), false);
+            behaviour.OnNext(message);
 
-            // THEN the downstream target should have been offered the message.
-            downstreamTarget.Verify(it => it.OfferMessage(
-                It.IsAny<DataflowMessageHeader>(),
-                message,
-                It.IsAny<ISourceBlock<IncomingMessage>>(),
-                It.IsAny<bool>()), Times.Once);
+            // THEN the downstream observer should have been offered the message.
+            downstreamObserver.Verify(it => it.OnNext(message), Times.Once);
         }
 
         [Fact]
-        public void Behaviour_Should_Pass_Unhandled_Outgoing_Message_To_Upstream_Target()
+        public void Behaviour_Should_Pass_Unhandled_Outgoing_Message_To_Upstream_Observer()
         {
             // GIVEN a mock behaviour.
             var behaviour = new MockBehaviour();
 
-            // GIVEN an upstream target for outgoing messages.
-            var upstreamTarget = new Mock<ITargetBlock<OutgoingMessage>>();
-            upstreamTarget.Setup(it => it.OfferMessage(
-                It.IsAny<DataflowMessageHeader>(),
-                It.IsAny<OutgoingMessage>(),
-                It.IsAny<ISourceBlock<OutgoingMessage>>(),
-                It.IsAny<bool>()));
+            // GIVEN an upstream observer for outgoing messages.
+            var upstreamObserver = new Mock<IObserver<OutgoingMessage>>();
+            upstreamObserver.Setup(it => it.OnNext(It.IsAny<OutgoingMessage>()));
 
-            // GIVEN the behaviour is linked to the target.
-            behaviour.LinkTo(upstreamTarget.Object);
+            // GIVEN the observer is subscribed to the behaviour.
+            behaviour.Subscribe(upstreamObserver.Object);
 
             // GIVEN an outgoing message to pass.
             var message = default(OutgoingMessage);
@@ -180,15 +91,10 @@ namespace Mofichan.Tests
             behaviour.SimulateCanHandleOutgoingMessage = false;
 
             // WHEN the behaviour is offered the message.
-            behaviour.OfferMessage(default(DataflowMessageHeader), message,
-                Mock.Of<ISourceBlock<OutgoingMessage>>(), false);
+            behaviour.OnNext(message);
 
-            // THEN the upstream target should have been offered the message.
-            upstreamTarget.Verify(it => it.OfferMessage(
-                It.IsAny<DataflowMessageHeader>(),
-                message,
-                It.IsAny<ISourceBlock<OutgoingMessage>>(),
-                It.IsAny<bool>()), Times.Once);
+            // THEN the upstream observer should have been offered the message.
+            upstreamObserver.Verify(it => it.OnNext(message), Times.Once);
         }
 
         [Fact]
@@ -206,8 +112,7 @@ namespace Mofichan.Tests
             behaviour.SimulateCanHandleIncomingMessage = false;
 
             // AND the behaviour is offered the message.
-            behaviour.OfferMessage(default(DataflowMessageHeader), message,
-                Mock.Of<ISourceBlock<IncomingMessage>>(), false);
+            behaviour.OnNext(message);
 
             // THEN the behaviour should not have tried to handle the message.
             behaviour.HandledIncomingMessage.ShouldBeNull();
@@ -216,8 +121,7 @@ namespace Mofichan.Tests
             behaviour.SimulateCanHandleIncomingMessage = true;
 
             // AND the behaviour is offered the message.
-            behaviour.OfferMessage(default(DataflowMessageHeader), message,
-                Mock.Of<ISourceBlock<IncomingMessage>>(), false);
+            behaviour.OnNext(message);
 
             // THEN the behaviour should have tried to handle the message.
             behaviour.HandledIncomingMessage.ShouldBe(message);
@@ -238,8 +142,7 @@ namespace Mofichan.Tests
             behaviour.SimulateCanHandleOutgoingMessage = false;
 
             // AND the behaviour is offered the message.
-            behaviour.OfferMessage(default(DataflowMessageHeader), message,
-                Mock.Of<ISourceBlock<OutgoingMessage>>(), false);
+            behaviour.OnNext(message);
 
             // THEN the behaviour should not have tried to handle the message.
             behaviour.HandledOutgoingMessage.ShouldBeNull();
@@ -248,8 +151,7 @@ namespace Mofichan.Tests
             behaviour.SimulateCanHandleOutgoingMessage = true;
 
             // AND the behaviour is offered the message.
-            behaviour.OfferMessage(default(DataflowMessageHeader), message,
-                Mock.Of<ISourceBlock<OutgoingMessage>>(), false);
+            behaviour.OnNext(message);
 
             // THEN the behaviour should have tried to handle the message.
             behaviour.HandledOutgoingMessage.ShouldBe(message);

@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Threading.Tasks.Dataflow;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
 
@@ -23,14 +21,6 @@ namespace Mofichan.Behaviour.Base
 
         protected IMofichanBehaviour DelegateBehaviour { get; }
 
-        public virtual Task Completion
-        {
-            get
-            {
-                return DelegateBehaviour.Completion;
-            }
-        }
-
         public virtual string Id
         {
             get
@@ -39,29 +29,9 @@ namespace Mofichan.Behaviour.Base
             }
         }
 
-        public virtual void Complete()
-        {
-            DelegateBehaviour.Complete();
-        }
-
-        public virtual OutgoingMessage ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<OutgoingMessage> target, out bool messageConsumed)
-        {
-            return DelegateBehaviour.ConsumeMessage(messageHeader, target, out messageConsumed);
-        }
-
-        public virtual IncomingMessage ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target, out bool messageConsumed)
-        {
-            return DelegateBehaviour.ConsumeMessage(messageHeader, target, out messageConsumed);
-        }
-
         public virtual void Dispose()
         {
             DelegateBehaviour.Dispose();
-        }
-
-        public virtual void Fault(Exception exception)
-        {
-            DelegateBehaviour.Fault(exception);
         }
 
         public virtual void InspectBehaviourStack(IList<IMofichanBehaviour> stack)
@@ -69,49 +39,39 @@ namespace Mofichan.Behaviour.Base
             DelegateBehaviour.InspectBehaviourStack(stack);
         }
 
-        public virtual IDisposable LinkTo(ITargetBlock<OutgoingMessage> target, DataflowLinkOptions linkOptions)
+        public virtual void OnCompleted()
         {
-            return DelegateBehaviour.LinkTo(target, linkOptions);
+            ((IObserver<IncomingMessage>)DelegateBehaviour).OnCompleted();
         }
 
-        public virtual IDisposable LinkTo(ITargetBlock<IncomingMessage> target, DataflowLinkOptions linkOptions)
+        public virtual void OnError(Exception error)
         {
-            return DelegateBehaviour.LinkTo(target, linkOptions);
+            ((IObserver<IncomingMessage>)DelegateBehaviour).OnError(error);
         }
 
-        public virtual DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader, OutgoingMessage messageValue, ISourceBlock<OutgoingMessage> source, bool consumeToAccept)
+        public virtual void OnNext(OutgoingMessage value)
         {
-            return DelegateBehaviour.OfferMessage(messageHeader, messageValue, source, consumeToAccept);
+            DelegateBehaviour.OnNext(value);
         }
 
-        public virtual DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader, IncomingMessage messageValue, ISourceBlock<IncomingMessage> source, bool consumeToAccept)
+        public virtual void OnNext(IncomingMessage value)
         {
-            return DelegateBehaviour.OfferMessage(messageHeader, messageValue, source, consumeToAccept);
-        }
-
-        public virtual void ReleaseReservation(DataflowMessageHeader messageHeader, ITargetBlock<OutgoingMessage> target)
-        {
-            DelegateBehaviour.ReleaseReservation(messageHeader, target);
-        }
-
-        public virtual void ReleaseReservation(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target)
-        {
-            DelegateBehaviour.ReleaseReservation(messageHeader, target);
-        }
-
-        public virtual bool ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<OutgoingMessage> target)
-        {
-            return DelegateBehaviour.ReserveMessage(messageHeader, target);
-        }
-
-        public virtual bool ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target)
-        {
-            return DelegateBehaviour.ReserveMessage(messageHeader, target);
+            DelegateBehaviour.OnNext(value);
         }
 
         public virtual void Start()
         {
             DelegateBehaviour.Start();
+        }
+
+        public virtual IDisposable Subscribe(IObserver<OutgoingMessage> observer)
+        {
+            return DelegateBehaviour.Subscribe(observer);
+        }
+
+        public virtual IDisposable Subscribe(IObserver<IncomingMessage> observer)
+        {
+            return DelegateBehaviour.Subscribe(observer);
         }
 
         public override string ToString()

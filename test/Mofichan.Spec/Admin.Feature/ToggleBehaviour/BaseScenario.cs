@@ -17,11 +17,7 @@ namespace Mofichan.Spec.Admin.Feature.ToggleBehaviour
         {
             this.mockBehaviour = new Mock<IMofichanBehaviour>();
             this.mockBehaviour.SetupGet(it => it.Id).Returns("mock");
-            this.mockBehaviour.Setup(it => it.OfferMessage(
-                It.IsAny<DataflowMessageHeader>(),
-                It.IsAny<IncomingMessage>(),
-                It.IsAny<ISourceBlock<IncomingMessage>>(),
-                It.IsAny<bool>()));
+            this.mockBehaviour.Setup(it => it.OnNext(It.IsAny<IncomingMessage>()));
         }
 
         protected Mock<IMofichanBehaviour> MockBehaviour
@@ -66,20 +62,13 @@ namespace Mofichan.Spec.Admin.Feature.ToggleBehaviour
         #region Then
         protected void Then_the_mock_behaviour_should_have_received__message__(string message)
         {
-            this.mockBehaviour.Verify(it => it.OfferMessage(
-                It.IsAny<DataflowMessageHeader>(),
-                It.Is<IncomingMessage>(msg => msg.Context.Body == message),
-                It.IsAny<ISourceBlock<IncomingMessage>>(),
-                It.IsAny<bool>()), Times.Once());
+            this.mockBehaviour.Verify(it => it.OnNext(
+                It.Is<IncomingMessage>(msg => msg.Context.Body == message)));
         }
 
         protected void Then_the_mock_behaviour_should_not_have_received_any_messages()
         {
-            this.mockBehaviour.Verify(it => it.OfferMessage(
-                It.IsAny<DataflowMessageHeader>(),
-                It.IsAny<IncomingMessage>(),
-                It.IsAny<ISourceBlock<IncomingMessage>>(),
-                It.IsAny<bool>()), Times.Never());
+            this.mockBehaviour.Verify(it => it.OnNext(It.IsAny<IncomingMessage>()), Times.Never);
         }
         #endregion
     }

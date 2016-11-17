@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using System.Threading.Tasks.Dataflow;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
 
@@ -34,8 +32,8 @@ namespace Mofichan.Behaviour.Base
                 var upstreamBehaviour = this.subBehaviours[i];
                 var downstreamBehaviour = this.subBehaviours[i + 1];
 
-                upstreamBehaviour.LinkTo<IncomingMessage>(downstreamBehaviour);
-                downstreamBehaviour.LinkTo<OutgoingMessage>(upstreamBehaviour);
+                upstreamBehaviour.Subscribe<IncomingMessage>(downstreamBehaviour.OnNext);
+                downstreamBehaviour.Subscribe<OutgoingMessage>(upstreamBehaviour.OnNext);
             }
         }
 
@@ -89,14 +87,6 @@ namespace Mofichan.Behaviour.Base
             }
         }
 
-        public Task Completion
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
-
         /// <summary>
         /// Allows the behaviour to inspect the stack of behaviours Mofichan
         /// will be loaded with.
@@ -128,73 +118,41 @@ namespace Mofichan.Behaviour.Base
             this.subBehaviours.ForEach(it => it.Dispose());
         }
 
-        public virtual IDisposable LinkTo(ITargetBlock<OutgoingMessage> target, DataflowLinkOptions linkOptions)
-        {
-            return this.MostUpstreamSubBehaviour.LinkTo(target);
-        }
-
-        public virtual IDisposable LinkTo(ITargetBlock<IncomingMessage> target, DataflowLinkOptions linkOptions)
-        {
-            return this.MostDownstreamSubBehaviour.LinkTo(target);
-        }
-
-        public virtual DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader,
-            OutgoingMessage messageValue, ISourceBlock<OutgoingMessage> source, bool consumeToAccept)
-        {
-            var behaviour = this.MostDownstreamSubBehaviour;
-            return behaviour.OfferMessage(messageHeader, messageValue, source, consumeToAccept);
-        }
-
-        public virtual DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader,
-            IncomingMessage messageValue, ISourceBlock<IncomingMessage> source, bool consumeToAccept)
+        public virtual void OnNext(IncomingMessage message)
         {
             var behaviour = this.MostUpstreamSubBehaviour;
-            return behaviour.OfferMessage(messageHeader, messageValue, source, consumeToAccept);
+            behaviour.OnNext(message);
         }
 
-        public virtual IncomingMessage ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target, out bool messageConsumed)
+        public virtual void OnNext(OutgoingMessage message)
         {
-            throw new NotImplementedException();
+            var behaviour = this.MostDownstreamSubBehaviour;
+            behaviour.OnNext(message);
         }
 
-        public virtual bool ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target)
+        public virtual IDisposable Subscribe(IObserver<IncomingMessage> observer)
         {
-            throw new NotImplementedException();
+            return this.MostDownstreamSubBehaviour.Subscribe(observer);
         }
 
-        public virtual void ReleaseReservation(DataflowMessageHeader messageHeader, ITargetBlock<IncomingMessage> target)
+        public virtual IDisposable Subscribe(IObserver<OutgoingMessage> observer)
         {
-            throw new NotImplementedException();
-        }
-
-        public virtual OutgoingMessage ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<OutgoingMessage> target, out bool messageConsumed)
-        {
-            throw new NotImplementedException();
-        }
-
-        public virtual bool ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<OutgoingMessage> target)
-        {
-            throw new NotImplementedException();
-        }
-
-        public virtual void ReleaseReservation(DataflowMessageHeader messageHeader, ITargetBlock<OutgoingMessage> target)
-        {
-            throw new NotImplementedException();
-        }
-
-        public virtual void Complete()
-        {
-            throw new NotImplementedException();
-        }
-
-        public virtual void Fault(Exception exception)
-        {
-            throw new NotImplementedException();
+            return this.MostUpstreamSubBehaviour.Subscribe(observer);
         }
 
         public override string ToString()
         {
             return string.Concat("[", this.Id, "]");
+        }
+
+        public virtual void OnCompleted()
+        {
+            throw new NotImplementedException();
+        }
+
+        public virtual void OnError(Exception error)
+        {
+            throw new NotImplementedException();
         }
     }
 }

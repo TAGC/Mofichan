@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
-using System.Threading.Tasks.Dataflow;
 using Mofichan.Core.Interfaces;
 using PommaLabs.Thrower;
 using Serilog;
@@ -41,8 +40,8 @@ namespace Mofichan.Core
             this.backend = backend;
             this.rootBehaviour = BuildBehaviourChain(behaviours);
 
-            this.backend.LinkTo(this.rootBehaviour);
-            this.rootBehaviour.LinkTo(this.backend);
+            this.backend.Subscribe(this.rootBehaviour);
+            this.rootBehaviour.Subscribe(this.backend);
         }
 
         /// <summary>
@@ -84,8 +83,8 @@ namespace Mofichan.Core
                 var upstreamBehaviour = behaviourList[i];
                 var downstreamBehaviour = behaviourList[i + 1];
 
-                upstreamBehaviour.LinkTo<IncomingMessage>(downstreamBehaviour);
-                downstreamBehaviour.LinkTo<OutgoingMessage>(upstreamBehaviour);
+                upstreamBehaviour.Subscribe<IncomingMessage>(downstreamBehaviour.OnNext);
+                downstreamBehaviour.Subscribe<OutgoingMessage>(upstreamBehaviour.OnNext);
             }
 
             return behaviourList[0];
