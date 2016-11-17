@@ -78,7 +78,7 @@ namespace Mofichan.Behaviour.Admin
         {
             message.Context.CheckSenderAuthorised("Non-admin user attempted to display behaviour chain");
 
-            var reply = message.Reply("My behaviour chain: " + BuildBehaviourChainRepresentation());
+            var reply = message.Reply("My behaviour chain: " + this.BuildBehaviourChainRepresentation());
             this.SendUpstream(reply);
         }
 
@@ -100,7 +100,6 @@ namespace Mofichan.Behaviour.Admin
         /// This method will only be invoked if <c>CanHandleOutgoingMessage(message)</c> is <c>true</c>.
         /// </summary>
         /// <param name="message">The message to process.</param>
-        /// <exception cref="System.NotImplementedException"></exception>
         protected override void HandleOutgoingMessage(OutgoingMessage message)
         {
             throw new NotImplementedException();
@@ -109,20 +108,20 @@ namespace Mofichan.Behaviour.Admin
         /// <summary>
         /// Builds the behaviour chain representation.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A string representation of the current behaviour chain.</returns>
         private string BuildBehaviourChainRepresentation()
         {
-            Debug.Assert(this.behaviourStack != null);
-            Debug.Assert(this.behaviourStack.Any());
+            Debug.Assert(this.behaviourStack != null, "The behaviour stack should not be null");
+            Debug.Assert(this.behaviourStack.Any(), "The behaviour stack should not be empty");
 
             var reprBuilder = new StringBuilder();
 
-            for (var i = 0; i < behaviourStack.Count - 1; i++)
+            for (var i = 0; i < this.behaviourStack.Count - 1; i++)
             {
-                reprBuilder.AppendFormat("{0}{1}", behaviourStack[i], BehaviourChainConnector);
+                reprBuilder.AppendFormat("{0}{1}", this.behaviourStack[i], BehaviourChainConnector);
             }
 
-            reprBuilder.Append(behaviourStack.Last());
+            reprBuilder.Append(this.behaviourStack.Last());
             return reprBuilder.ToString();
         }
     }

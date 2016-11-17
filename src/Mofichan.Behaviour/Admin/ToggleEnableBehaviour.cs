@@ -20,65 +20,6 @@ namespace Mofichan.Behaviour.Admin
     /// </remarks>
     internal class ToggleEnableBehaviour : BaseBehaviour
     {
-        private class EnableableBehaviourDecorator : BaseBehaviourDecorator
-        {
-            private const string Tick = "✓";
-            private const string Cross = "⨉";
-
-            private IObserver<IncomingMessage> downstreamObserver;
-            private IObserver<OutgoingMessage> upstreamObserver;
-
-            public EnableableBehaviourDecorator(IMofichanBehaviour delegateBehaviour)
-                : base(delegateBehaviour)
-            {
-                this.Enabled = true;
-            }
-
-            public bool Enabled { get; set; }
-
-            public override IDisposable Subscribe(IObserver<IncomingMessage> observer)
-            {
-                this.downstreamObserver = observer;
-                return base.Subscribe(observer);
-            }
-
-            public override IDisposable Subscribe(IObserver<OutgoingMessage> observer)
-            {
-                this.upstreamObserver = observer;
-                return base.Subscribe(observer);
-            }
-
-            public override void OnNext(IncomingMessage message)
-            {
-                if (this.Enabled)
-                {
-                    base.OnNext(message);
-                }
-                else if (this.downstreamObserver != null)
-                {
-                    this.downstreamObserver.OnNext(message);
-                }
-            }
-
-            public override void OnNext(OutgoingMessage message)
-            {
-                if (this.Enabled)
-                {
-                    base.OnNext(message);
-                }
-                else if (this.downstreamObserver != null)
-                {
-                    this.upstreamObserver.OnNext(message);
-                }
-            }
-
-            public override string ToString()
-            {
-                var baseRepr = base.ToString().Trim('[', ']');
-                return string.Format("[{0} {1}]", baseRepr, this.Enabled ? Tick : Cross);
-            }
-        }
-
         private readonly Regex enableBehaviourPattern;
         private readonly Regex disableBehaviourPattern;
 
@@ -219,7 +160,6 @@ namespace Mofichan.Behaviour.Admin
         /// This method will only be invoked if <c>CanHandleOutgoingMessage(message)</c> is <c>true</c>.
         /// </summary>
         /// <param name="message">The message to process.</param>
-        /// <exception cref="System.NotImplementedException"></exception>
         protected override void HandleOutgoingMessage(OutgoingMessage message)
         {
             throw new NotImplementedException();
@@ -234,12 +174,71 @@ namespace Mofichan.Behaviour.Admin
         private void HandleNonExistentBehaviour(string behaviour, string action, IncomingMessage message)
         {
             var from = message.Context.From as IUser;
-            Debug.Assert(from != null);
+            Debug.Assert(from != null, "The message sender should be a user");
 
             var reply = string.Format("I'm afraid behaviour '{0}' doesn't exist or can't be {1}, {2}",
                 behaviour, action, from.Name);
 
             this.SendUpstream(message.Reply(reply));
+        }
+
+        private class EnableableBehaviourDecorator : BaseBehaviourDecorator
+        {
+            private const string Tick = "✓";
+            private const string Cross = "⨉";
+
+            private IObserver<IncomingMessage> downstreamObserver;
+            private IObserver<OutgoingMessage> upstreamObserver;
+
+            public EnableableBehaviourDecorator(IMofichanBehaviour delegateBehaviour)
+                : base(delegateBehaviour)
+            {
+                this.Enabled = true;
+            }
+
+            public bool Enabled { get; set; }
+
+            public override IDisposable Subscribe(IObserver<IncomingMessage> observer)
+            {
+                this.downstreamObserver = observer;
+                return base.Subscribe(observer);
+            }
+
+            public override IDisposable Subscribe(IObserver<OutgoingMessage> observer)
+            {
+                this.upstreamObserver = observer;
+                return base.Subscribe(observer);
+            }
+
+            public override void OnNext(IncomingMessage message)
+            {
+                if (this.Enabled)
+                {
+                    base.OnNext(message);
+                }
+                else if (this.downstreamObserver != null)
+                {
+                    this.downstreamObserver.OnNext(message);
+                }
+            }
+
+            public override void OnNext(OutgoingMessage message)
+            {
+                if (this.Enabled)
+                {
+                    base.OnNext(message);
+                }
+                else if (this.downstreamObserver != null)
+                {
+                    this.upstreamObserver.OnNext(message);
+                }
+            }
+
+            public override string ToString()
+            {
+                var baseRepr = base.ToString().Trim('[', ']');
+                return string.Format("[{0} {1}]", baseRepr, this.Enabled ? Tick : Cross);
+            }
         }
     }
 }

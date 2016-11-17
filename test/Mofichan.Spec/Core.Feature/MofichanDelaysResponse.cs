@@ -25,15 +25,14 @@ namespace Mofichan.Spec.Core.Feature
 
         private Mock<IMofichanBehaviour> ConstructMockBehaviour()
         {
-
             var mockBehaviour = new Mock<IMofichanBehaviour>();
             mockBehaviour
                 .Setup(it => it.Subscribe(It.IsAny<IObserver<OutgoingMessage>>()))
-                .Callback<IObserver<OutgoingMessage>>(linkedObserver => observer = linkedObserver);
+                .Callback<IObserver<OutgoingMessage>>(linkedObserver => this.observer = linkedObserver);
 
             mockBehaviour
                 .Setup(it => it.OnNext(It.IsAny<IncomingMessage>()))
-                .Callback(SendMockResponse);
+                .Callback(this.SendMockResponse);
 
             return mockBehaviour;
         }
@@ -45,10 +44,10 @@ namespace Mofichan.Spec.Core.Feature
 
             OutgoingMessage mockResponse = new OutgoingMessage { Context = mockResponseContext };
 
-            // We confirm that there's no delay set on the generated responses by default.
-            Debug.Assert(mockResponse.Context.Delay == TimeSpan.Zero);
+            Debug.Assert(mockResponse.Context.Delay == TimeSpan.Zero,
+                "There should be no delay by default");
 
-            observer.OnNext(mockResponse);
+            this.observer.OnNext(mockResponse);
         }
 
         private void Then_Mofichan_should_produce_a_delayed_response()

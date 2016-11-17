@@ -16,48 +16,12 @@ namespace Mofichan.Behaviour.Diagnostics
     /// </remarks>
     public class DiagnosticsBehaviour : BaseBehaviour
     {
-        private class LoggingBehaviourDecorator : BaseBehaviourDecorator
-        {
-            private const string Pencil = "🖉";
-
-            private readonly ILogger logger;
-
-            public LoggingBehaviourDecorator(IMofichanBehaviour delegateBehaviour, ILogger logger) : base(delegateBehaviour)
-            {
-                this.logger = logger;
-            }
-
-            public override void OnNext(IncomingMessage message)
-            {
-                var body = message.Context.Body;
-                var sender = message.Context.From;
-
-                this.logger.Verbose("Behaviour {BehaviourId} offered incoming message {MessageBody} from {Sender}",
-                    this.DelegateBehaviour.Id, body, sender);
-
-                base.OnNext(message);
-            }
-
-            public override void OnNext(OutgoingMessage message)
-            {
-                var body = message.Context.Body;
-                var sender = message.Context.From;
-
-                this.logger.Verbose("Behaviour {BehaviourId} offered outgoing message {MessageBody} from {Sender}",
-                    this.DelegateBehaviour.Id, body, sender);
-
-                base.OnNext(message);
-            }
-
-            public override string ToString()
-            {
-                var baseRepr = base.ToString().Trim('[', ']');
-                return string.Format("[{0} {1}]", baseRepr, Pencil);
-            }
-        }
-
         private readonly ILogger logger;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DiagnosticsBehaviour"/> class.
+        /// </summary>
+        /// <param name="logger">The logger to use.</param>
         public DiagnosticsBehaviour(ILogger logger)
         {
             this.logger = logger;
@@ -118,7 +82,6 @@ namespace Mofichan.Behaviour.Diagnostics
         /// This method will only be invoked if <c>CanHandleIncomingMessage(message)</c> is <c>true</c>.
         /// </summary>
         /// <param name="message">The message to process.</param>
-        /// <exception cref="System.NotImplementedException"></exception>
         protected override void HandleIncomingMessage(IncomingMessage message)
         {
             throw new NotImplementedException();
@@ -130,10 +93,49 @@ namespace Mofichan.Behaviour.Diagnostics
         /// This method will only be invoked if <c>CanHandleOutgoingMessage(message)</c> is <c>true</c>.
         /// </summary>
         /// <param name="message">The message to process.</param>
-        /// <exception cref="System.NotImplementedException"></exception>
         protected override void HandleOutgoingMessage(OutgoingMessage message)
         {
             throw new NotImplementedException();
+        }
+
+        private class LoggingBehaviourDecorator : BaseBehaviourDecorator
+        {
+            private const string Pencil = "🖉";
+
+            private readonly ILogger logger;
+
+            public LoggingBehaviourDecorator(IMofichanBehaviour delegateBehaviour, ILogger logger) : base(delegateBehaviour)
+            {
+                this.logger = logger;
+            }
+
+            public override void OnNext(IncomingMessage message)
+            {
+                var body = message.Context.Body;
+                var sender = message.Context.From;
+
+                this.logger.Verbose("Behaviour {BehaviourId} offered incoming message {MessageBody} from {Sender}",
+                    this.DelegateBehaviour.Id, body, sender);
+
+                base.OnNext(message);
+            }
+
+            public override void OnNext(OutgoingMessage message)
+            {
+                var body = message.Context.Body;
+                var sender = message.Context.From;
+
+                this.logger.Verbose("Behaviour {BehaviourId} offered outgoing message {MessageBody} from {Sender}",
+                    this.DelegateBehaviour.Id, body, sender);
+
+                base.OnNext(message);
+            }
+
+            public override string ToString()
+            {
+                var baseRepr = base.ToString().Trim('[', ']');
+                return string.Format("[{0} {1}]", baseRepr, Pencil);
+            }
         }
     }
 }

@@ -25,6 +25,9 @@ namespace Mofichan.Behaviour
         private readonly Regex greetingPattern;
         private readonly Random random;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GreetingBehaviour"/> class.
+        /// </summary>
         public GreetingBehaviour()
         {
             // TODO: refactor to inject identity match logic.
@@ -38,19 +41,40 @@ namespace Mofichan.Behaviour
             this.random = new Random();
         }
 
+        /// <summary>
+        /// Determines whether this instance can process the specified incoming message.
+        /// </summary>
+        /// <param name="message">The message to check can be handled.</param>
+        /// <returns>
+        ///   <c>true</c> if this instance can process the incoming message; otherwise, <c>false</c>.
+        /// </returns>
         protected override bool CanHandleIncomingMessage(IncomingMessage message)
         {
             return this.IsGreetingForMofichan(message);
         }
 
+        /// <summary>
+        /// Determines whether this instance can process the specified outgoing message.
+        /// </summary>
+        /// <param name="message">The message to check can be handled.</param>
+        /// <returns>
+        ///   <c>true</c> if this instance can process the outgoing messagee; otherwise, <c>false</c>.
+        /// </returns>
         protected override bool CanHandleOutgoingMessage(OutgoingMessage message)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Handles the incoming message.
+        /// <para></para>
+        /// This method will only be invoked if <c>CanHandleIncomingMessage(message)</c> is <c>true</c>.
+        /// </summary>
+        /// <param name="message">The message to process.</param>
         protected override void HandleIncomingMessage(IncomingMessage message)
         {
-            Debug.Assert(this.IsGreetingForMofichan(message));
+            Debug.Assert(this.IsGreetingForMofichan(message),
+                "The message should definitely be a greeting for Mofichan");
 
             var sender = message.Context.From as IUser;
             var recipient = message.Context.To as IUser;
@@ -61,6 +85,12 @@ namespace Mofichan.Behaviour
             this.SendUpstream(outgoingMessage);
         }
 
+        /// <summary>
+        /// Handles the outgoing message.
+        /// <para></para>
+        /// This method will only be invoked if <c>CanHandleOutgoingMessage(message)</c> is <c>true</c>.
+        /// </summary>
+        /// <param name="message">The message to process.</param>
         protected override void HandleOutgoingMessage(OutgoingMessage message)
         {
             throw new NotImplementedException();

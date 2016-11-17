@@ -18,15 +18,16 @@ namespace Mofichan.Behaviour.Admin
     /// </remarks>
     public class AdministrationBehaviour : BaseMultiBehaviour
     {
-        internal static string AdministrationBehaviourId = "administration";
+        internal const string AdministrationBehaviourId = "administration";
 
         private readonly ILogger logger;
 
         private IObserver<OutgoingMessage> upstreamObserver;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="AdministrationBehaviour"/> class.
+        /// Initializes a new instance of the <see cref="AdministrationBehaviour" /> class.
         /// </summary>
+        /// <param name="logger">The logger to use.</param>
         public AdministrationBehaviour(ILogger logger) : base(
             new ToggleEnableBehaviour(),
             new DisplayChainBehaviour())
@@ -48,12 +49,23 @@ namespace Mofichan.Behaviour.Admin
             }
         }
 
+        /// <summary>
+        /// Notifies the provider that an observer is to receive notifications.
+        /// </summary>
+        /// <param name="observer">The object that is to receive notifications.</param>
+        /// <returns>
+        /// A reference to an interface that allows observers to stop receiving notifications before the provider has finished sending them.
+        /// </returns>
         public override IDisposable Subscribe(IObserver<OutgoingMessage> observer)
         {
             this.upstreamObserver = observer;
             return base.Subscribe(observer);
         }
 
+        /// <summary>
+        /// Called to notify this observer of an incoming message.
+        /// </summary>
+        /// <param name="message">The incoming message.</param>
         public override void OnNext(IncomingMessage message)
         {
             try

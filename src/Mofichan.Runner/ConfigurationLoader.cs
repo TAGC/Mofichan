@@ -6,16 +6,27 @@ using Mofichan.Core;
 
 namespace Mofichan.Runner
 {
+    /// <summary>
+    /// The default implementation of <see cref="IConfigurationLoader"/>
+    /// to use for loading Mofichan's settings.
+    /// </summary>
     public class ConfigurationLoader : IConfigurationLoader
     {
         private static readonly string DefaultBotName = "Mofichan";
         private static readonly string DefaultDeveloperName = "ThymineC";
 
+        /// <summary>
+        /// Loads Mofichan's configuration from a configuration file.
+        /// </summary>
+        /// <param name="configPath">The path of the configuration file.</param>
+        /// <returns>
+        /// The configuration specified in the file.
+        /// </returns>
         public BotConfiguration LoadConfiguration(string configPath)
         {
             IConfigurationRoot configuration = BuildConfigurationRoot(configPath);
 
-            var backendName = GetRequiredConfigValue("core:backend", configuration);
+            var backendName = this.GetRequiredConfigValue("core:backend", configuration);
             var backendProperties = configuration
                 .GetSection(backendName)
                 .GetChildren()

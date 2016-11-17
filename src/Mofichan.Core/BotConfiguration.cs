@@ -9,6 +9,38 @@ namespace Mofichan.Core
     public struct BotConfiguration
     {
         /// <summary>
+        /// Gets the name of the bot.
+        /// </summary>
+        /// <value>
+        /// The name of the bot.
+        /// </value>
+        public string BotName { private set; get; }
+
+        /// <summary>
+        /// Gets the name of the developer.
+        /// </summary>
+        /// <value>
+        /// The name of the developer.
+        /// </value>
+        public string DeveloperName { private set; get; }
+
+        /// <summary>
+        /// Gets the selected backend.
+        /// </summary>
+        /// <value>
+        /// The selected backend.
+        /// </value>
+        public string SelectedBackend { private set; get; }
+
+        /// <summary>
+        /// Gets the backend configuration.
+        /// </summary>
+        /// <value>
+        /// The backend configuration.
+        /// </value>
+        public IReadOnlyDictionary<string, string> BackendConfiguration { private set; get; }
+
+        /// <summary>
         /// Builds instances of <see cref="BotConfiguration"/>. 
         /// </summary>
         public class Builder
@@ -85,37 +117,5 @@ namespace Mofichan.Core
                 return this.config;
             }
         }
-
-        /// <summary>
-        /// Gets the name of the bot.
-        /// </summary>
-        /// <value>
-        /// The name of the bot.
-        /// </value>
-        public string BotName { private set; get; }
-
-        /// <summary>
-        /// Gets the name of the developer.
-        /// </summary>
-        /// <value>
-        /// The name of the developer.
-        /// </value>
-        public string DeveloperName { private set; get; }
-
-        /// <summary>
-        /// Gets the selected backend.
-        /// </summary>
-        /// <value>
-        /// The selected backend.
-        /// </value>
-        public string SelectedBackend { private set; get; }
-
-        /// <summary>
-        /// Gets the backend configuration.
-        /// </summary>
-        /// <value>
-        /// The backend configuration.
-        /// </value>
-        public IReadOnlyDictionary<string, string> BackendConfiguration { private set; get; }
     }
 }

@@ -14,6 +14,14 @@ namespace Mofichan.Core.Interfaces
     public interface IMofichanBehaviour : ISubject<IncomingMessage>, ISubject<OutgoingMessage>, IDisposable
     {
         /// <summary>
+        /// Gets the behaviour module identifier.
+        /// </summary>
+        /// <value>
+        /// The identifier.
+        /// </value>
+        string Id { get; }
+
+        /// <summary>
         /// Allows the behaviour to inspect the stack of behaviours Mofichan
         /// will be loaded with.
         /// </summary>
@@ -23,14 +31,6 @@ namespace Mofichan.Core.Interfaces
         /// </remarks>
         /// <param name="stack">The behaviour stack.</param>
         void InspectBehaviourStack(IList<IMofichanBehaviour> stack);
-
-        /// <summary>
-        /// Gets the behaviour module identifier.
-        /// </summary>
-        /// <value>
-        /// The identifier.
-        /// </value>
-        string Id { get; }
 
         /// <summary>
         /// Initialises the behaviour module.

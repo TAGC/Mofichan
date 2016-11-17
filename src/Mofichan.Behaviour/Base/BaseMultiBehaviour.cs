@@ -112,44 +112,78 @@ namespace Mofichan.Behaviour.Base
         /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
-        /// <exception cref="System.NotImplementedException"></exception>
         public virtual void Dispose()
         {
             this.subBehaviours.ForEach(it => it.Dispose());
         }
 
+        /// <summary>
+        /// Called to notify this observer of an incoming message.
+        /// </summary>
+        /// <param name="message">The incoming message.</param>
         public virtual void OnNext(IncomingMessage message)
         {
             var behaviour = this.MostUpstreamSubBehaviour;
             behaviour.OnNext(message);
         }
 
+        /// <summary>
+        /// Called to notify this observer of an outgoing message.
+        /// </summary>
+        /// <param name="message">The outgoing message.</param>
         public virtual void OnNext(OutgoingMessage message)
         {
             var behaviour = this.MostDownstreamSubBehaviour;
             behaviour.OnNext(message);
         }
 
+        /// <summary>
+        /// Notifies the provider that an observer is to receive notifications.
+        /// </summary>
+        /// <param name="observer">The object that is to receive notifications.</param>
+        /// <returns>
+        /// A reference to an interface that allows observers to stop receiving notifications before the provider has finished sending them.
+        /// </returns>
         public virtual IDisposable Subscribe(IObserver<IncomingMessage> observer)
         {
             return this.MostDownstreamSubBehaviour.Subscribe(observer);
         }
 
+        /// <summary>
+        /// Notifies the provider that an observer is to receive notifications.
+        /// </summary>
+        /// <param name="observer">The object that is to receive notifications.</param>
+        /// <returns>
+        /// A reference to an interface that allows observers to stop receiving notifications before the provider has finished sending them.
+        /// </returns>
         public virtual IDisposable Subscribe(IObserver<OutgoingMessage> observer)
         {
             return this.MostUpstreamSubBehaviour.Subscribe(observer);
         }
 
+        /// <summary>
+        /// Returns a <see cref="System.String" /> that represents this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance.
+        /// </returns>
         public override string ToString()
         {
             return string.Concat("[", this.Id, "]");
         }
 
+        /// <summary>
+        /// Notifies the observer that the provider has finished sending push-based notifications.
+        /// </summary>
         public virtual void OnCompleted()
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Notifies the observer that the provider has experienced an error condition.
+        /// </summary>
+        /// <param name="error">An object that provides additional information about the error.</param>
         public virtual void OnError(Exception error)
         {
             throw new NotImplementedException();

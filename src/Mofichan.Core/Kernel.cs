@@ -22,16 +22,21 @@ namespace Mofichan.Core
         private IMofichanBackend backend;
         private IMofichanBehaviour rootBehaviour;
 
+        private bool disposedValue = false; // To detect redundant calls
+
         /// <summary>
-        /// Initializes a new instance of the <see cref="Kernel"/> class.
+        /// Initializes a new instance of the <see cref="Kernel" /> class.
         /// </summary>
         /// <param name="name">Mofichan's name (which should of course just be Mofichan).</param>
         /// <param name="backend">The selected backend.</param>
         /// <param name="behaviours">The collection of behaviours to determine Mofichan's personality.</param>
+        /// <param name="logger">The logger to use.</param>
         public Kernel(string name, IMofichanBackend backend, IEnumerable<IMofichanBehaviour> behaviours, ILogger logger)
         {
             Raise.ArgumentNullException.IfIsNull(behaviours, nameof(behaviours));
-            Raise.ArgumentException.IfNot(behaviours.Any(), nameof(behaviours),
+            Raise.ArgumentException.IfNot(
+                behaviours.Any(),
+                nameof(behaviours),
                 string.Format("At least one behaviour must be specified for {0}", name));
 
             this.logger = logger.ForContext<Kernel>();
@@ -57,6 +62,40 @@ namespace Mofichan.Core
             this.logger.Information("Initialised Mofichan");
         }
 
+        #region IDisposable Support
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public void Dispose()
+        {
+            this.Dispose(true);
+        }
+
+        /// <summary>
+        /// Releases unmanaged and - optionally - managed resources.
+        /// </summary>
+        /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!this.disposedValue)
+            {
+                this.logger.Information("Disposing Mofichan");
+                if (disposing)
+                {
+                    this.backend.Dispose();
+
+                    /*
+                     * Disposing the root behaviour should
+                     * propagate disposal down the chain.
+                     */
+                    this.rootBehaviour.Dispose();
+                }
+
+                this.disposedValue = true;
+            }
+        }
+        #endregion
+
         /// <summary>
         /// Links behaviours within a collection together to form a chain.
         /// </summary>
@@ -64,7 +103,7 @@ namespace Mofichan.Core
         /// <returns>The root behaviour in the chain.</returns>
         private static IMofichanBehaviour BuildBehaviourChain(IEnumerable<IMofichanBehaviour> behaviours)
         {
-            Debug.Assert(behaviours.Any());
+            Debug.Assert(behaviours.Any(), "There should be at least one behaviour to build");
 
             var behaviourList = behaviours.ToList();
 
@@ -89,41 +128,5 @@ namespace Mofichan.Core
 
             return behaviourList[0];
         }
-
-        #region IDisposable Support
-        private bool disposedValue = false; // To detect redundant calls
-
-        /// <summary>
-        /// Releases unmanaged and - optionally - managed resources.
-        /// </summary>
-        /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                this.logger.Information("Disposing Mofichan");
-                if (disposing)
-                {
-                    this.backend.Dispose();
-
-                    /*
-                     * Disposing the root behaviour should
-                     * propagate disposal down the chain.
-                     */
-                    this.rootBehaviour.Dispose();
-                }
-
-                disposedValue = true;
-            }
-        }
-
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        public void Dispose()
-        {
-            Dispose(true);
-        }
-        #endregion
     }
 }

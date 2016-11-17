@@ -22,20 +22,26 @@ namespace Mofichan.Spec
 
         private IObserver<IncomingMessage> backendObserver;
 
-        #region Setup
         protected Scenario(string scenarioTitle = null)
         {
             this.scenarioTitle = scenarioTitle;
             this.MofichanUser = ConstructMockUser("Mofichan", "Mofichan", UserType.Self);
             this.DeveloperUser = ConstructMockUser("ThymineC", "ThymineC", UserType.Adminstrator);
             this.JohnSmithUser = ConstructMockUser("John Smith", "JohnSmith", UserType.NormalUser);
-            this.Backend = ConstructMockBackend();
+            this.Backend = this.ConstructMockBackend();
             this.Behaviours = new List<IMofichanBehaviour>();
             this.SentMessages = new List<OutgoingMessage>();
-            this.Container = CreateContainerBuilder().Build();
+            this.Container = this.CreateContainerBuilder().Build();
             this.MessageSent += (s, e) => this.SentMessages.Add(e.Message);
         }
 
+        [Fact]
+        public void Execute()
+        {
+            this.BDDfy(scenarioTitle: this.scenarioTitle);
+        }
+
+        #region Setup
         /// <summary>
         /// Test specifications can override this method to customise the creation
         /// of the test IoC container.
@@ -74,12 +80,6 @@ namespace Mofichan.Spec
             return mock.Object;
         }
         #endregion
-
-        [Fact]
-        public void Execute()
-        {
-            this.BDDfy(scenarioTitle: this.scenarioTitle);
-        }
 
         protected IContainer Container { get; }
         protected IList<OutgoingMessage> SentMessages { get; }

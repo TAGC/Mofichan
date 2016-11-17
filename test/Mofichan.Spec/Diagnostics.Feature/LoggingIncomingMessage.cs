@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Autofac;
 using Mofichan.Core.Interfaces;
 using Moq;
@@ -16,23 +13,6 @@ namespace Mofichan.Spec.Diagnostics.Feature
     public class LoggingIncomingMessage : BaseScenario
     {
         private TextWriter generatedLogs;
-
-        private class MockUser : IUser
-        {
-            public string Name { get { return "Joe Somebody"; } }
-            public string UserId { get { return "Joe Somebody"; } }
-            public UserType Type { get { return UserType.NormalUser; } }
-           
-            public void ReceiveMessage(string message)
-            {
-                throw new NotImplementedException();
-            }
-
-            public override string ToString()
-            {
-                return this.Name;
-            }
-        }
 
         public LoggingIncomingMessage() : base("An incoming message handled by a behaviour is logged")
         {
@@ -48,6 +28,21 @@ namespace Mofichan.Spec.Diagnostics.Feature
                         "behaviour \"mock\" offered incoming message \"foo\" from \"Joe Somebody\""));
         }
 
+        protected override ContainerBuilder CreateContainerBuilder()
+        {
+            var builder = base.CreateContainerBuilder();
+
+            this.generatedLogs = new StringWriter();
+            var logger = new LoggerConfiguration()
+                .MinimumLevel.Verbose()
+                .WriteTo.TextWriter(this.generatedLogs)
+                .CreateLogger();
+
+            builder.RegisterInstance(logger).As<ILogger>();
+
+            return builder;
+        }
+
         private void Then_a_log_should_have_been_created_matching_pattern(string pattern)
         {
             var clumpedLogs = this.generatedLogs.ToString();
@@ -56,19 +51,41 @@ namespace Mofichan.Spec.Diagnostics.Feature
             logs.ShouldContain(it => Regex.IsMatch(it, pattern, RegexOptions.IgnoreCase));
         }
 
-        protected override ContainerBuilder CreateContainerBuilder()
+        private class MockUser : IUser
         {
-            var builder = base.CreateContainerBuilder();
+            public string Name
+            {
+                get
+                {
+                    return "Joe Somebody";
+                }
+            }
 
-            this.generatedLogs = new StringWriter();
-            var logger = new LoggerConfiguration()
-                .MinimumLevel.Verbose()
-                .WriteTo.TextWriter(generatedLogs)
-                .CreateLogger();
+            public string UserId
+            {
+                get
+                {
+                    return "Joe Somebody";
+                }
+            }
 
-            builder.RegisterInstance(logger).As<ILogger>();
+            public UserType Type
+            {
+                get
+                {
+                    return UserType.NormalUser;
+                }
+            }
 
-            return builder;
+            public void ReceiveMessage(string message)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override string ToString()
+            {
+                return this.Name;
+            }
         }
     }
 }

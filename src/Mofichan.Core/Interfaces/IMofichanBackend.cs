@@ -3,6 +3,27 @@
 namespace Mofichan.Core.Interfaces
 {
     /// <summary>
+    /// An enumeration of the types of users that exist.
+    /// </summary>
+    public enum UserType
+    {
+        /// <summary>
+        /// Represents Mofichan herself.
+        /// </summary>
+        Self,
+
+        /// <summary>
+        /// Represents a user with administrative privileges with Mofichan.
+        /// </summary>
+        Adminstrator,
+
+        /// <summary>
+        /// Represents a user that is not Mofichan or one of her admins.
+        /// </summary>
+        NormalUser
+    }
+
+    /// <summary>
     /// Represents an object that provides backend support for Mofichan. This includes connection management
     /// as well as sending and receiving messages using a particular platform.
     /// </summary>
@@ -69,9 +90,36 @@ namespace Mofichan.Core.Interfaces
     /// </summary>
     public interface IUser : IMessageTarget
     {
+        /// <summary>
+        /// Gets the user identifier.
+        /// </summary>
+        /// <value>
+        /// The user identifier.
+        /// </value>
         string UserId { get; }
+
+        /// <summary>
+        /// Gets the name.
+        /// </summary>
+        /// <value>
+        /// The name.
+        /// </value>
         string Name { get; }
+
+        /// <summary>
+        /// Gets the type of the user.
+        /// </summary>
+        /// <value>
+        /// The usertype.
+        /// </value>
         UserType Type { get; }
+
+        /// <summary>
+        /// Returns a <see cref="System.String" /> that represents this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance.
+        /// </returns>
         string ToString();
     }
 
@@ -80,27 +128,12 @@ namespace Mofichan.Core.Interfaces
     /// </summary>
     public interface IRoomOccupant : IUser
     {
+        /// <summary>
+        /// Gets the room that the occupant is within.
+        /// </summary>
+        /// <value>
+        /// The occupied room.
+        /// </value>
         IRoom Room { get; }
-    }
-
-    /// <summary>
-    /// An enumeration of the types of users that exist.
-    /// </summary>
-    public enum UserType
-    {
-        /// <summary>
-        /// Represents Mofichan herself.
-        /// </summary>
-        Self,
-
-        /// <summary>
-        /// Represents a user with administrative privileges with Mofichan.
-        /// </summary>
-        Adminstrator,
-
-        /// <summary>
-        /// Represents a user that is not Mofichan or one of her admins.
-        /// </summary>
-        NormalUser
     }
 }

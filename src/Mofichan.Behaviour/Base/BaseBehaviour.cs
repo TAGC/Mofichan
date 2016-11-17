@@ -7,41 +7,6 @@ using Mofichan.Core.Interfaces;
 
 namespace Mofichan.Behaviour.Base
 {
-    internal static class Extensions
-    {
-        /// <summary>
-        /// Forms an <see cref="OutgoingMessage"/> in response to an <see cref="IncomingMessage"/>
-        /// with a specified body.
-        /// </summary>
-        /// <param name="message">The message to form a reply to.</param>
-        /// <param name="replyBody">The body of the reply.</param>
-        /// <returns>The generated reply.</returns>
-        public static OutgoingMessage Reply(this IncomingMessage message, string replyBody)
-        {
-            var from = message.Context.From;
-            var to = message.Context.To;
-
-            var replyContext = new MessageContext(from: to, to: from, body: replyBody);
-
-            return new OutgoingMessage { Context = replyContext };
-        }
-
-        /// <summary>
-        /// Checks the sender of a particular message has an administration role and
-        /// throws a <see cref="MofichanAuthorisationException"/> if not.
-        /// </summary>
-        /// <param name="context">The message context.</param>
-        public static void CheckSenderAuthorised(this MessageContext context, string exceptionBody)
-        {
-            var sender = context.From as IUser;
-
-            if (sender != null && sender.Type != UserType.Adminstrator)
-            {
-                throw new MofichanAuthorisationException(exceptionBody, context);
-            }
-        }
-    }
-
     /// <summary>
     /// A base implementation of <see cref="IMofichanBehaviour"/>. 
     /// </summary>
@@ -244,6 +209,42 @@ namespace Mofichan.Behaviour.Base
         protected void SendUpstream(OutgoingMessage message)
         {
             this.upstreamObserver?.OnNext(message);
+        }
+    }
+
+    internal static class Extensions
+    {
+        /// <summary>
+        /// Forms an <see cref="OutgoingMessage"/> in response to an <see cref="IncomingMessage"/>
+        /// with a specified body.
+        /// </summary>
+        /// <param name="message">The message to form a reply to.</param>
+        /// <param name="replyBody">The body of the reply.</param>
+        /// <returns>The generated reply.</returns>
+        public static OutgoingMessage Reply(this IncomingMessage message, string replyBody)
+        {
+            var from = message.Context.From;
+            var to = message.Context.To;
+
+            var replyContext = new MessageContext(from: to, to: from, body: replyBody);
+
+            return new OutgoingMessage { Context = replyContext };
+        }
+
+        /// <summary>
+        /// Checks the sender of a particular message has an administration role and
+        /// throws a <see cref="MofichanAuthorisationException" /> if not.
+        /// </summary>
+        /// <param name="context">The message context.</param>
+        /// <param name="exceptionBody">The text to include in the exception raised, if any.</param>
+        public static void CheckSenderAuthorised(this MessageContext context, string exceptionBody)
+        {
+            var sender = context.From as IUser;
+
+            if (sender != null && sender.Type != UserType.Adminstrator)
+            {
+                throw new MofichanAuthorisationException(exceptionBody, context);
+            }
         }
     }
 }

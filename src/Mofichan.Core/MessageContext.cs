@@ -135,7 +135,7 @@ namespace Mofichan.Core
         /// <value>
         /// The message context.
         /// </value>
-        public MessageContext Context { set;  get; }
+        public MessageContext Context { get; set; }
 
         /// <summary>
         /// Returns a <see cref="System.String" /> that represents this instance.

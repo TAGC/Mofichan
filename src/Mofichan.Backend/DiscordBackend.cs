@@ -9,6 +9,39 @@ using Serilog;
 namespace Mofichan.Backend
 {
     /// <summary>
+    /// Represents a collection of Discord-specific settings.
+    /// </summary>
+    public struct DiscordSettings
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DiscordSettings"/> struct.
+        /// </summary>
+        /// <param name="botId">The bot identifier.</param>
+        /// <param name="adminId">The admin identifier.</param>
+        public DiscordSettings(string botId, string adminId)
+        {
+            this.BotId = botId;
+            this.AdminId = adminId;
+        }
+
+        /// <summary>
+        /// Gets the bot identifier.
+        /// </summary>
+        /// <value>
+        /// The bot identifier.
+        /// </value>
+        public string BotId { get; }
+
+        /// <summary>
+        /// Gets the admin identifier.
+        /// </summary>
+        /// <value>
+        /// The admin identifier.
+        /// </value>
+        public string AdminId { get; }
+    }
+
+    /// <summary>
     /// An implementation of <see cref="IMofichanBackend"/> that allows her to talk to
     /// people on Discord.
     /// </summary>
@@ -21,10 +54,11 @@ namespace Mofichan.Backend
         private DiscordSettings settings;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DiscordBackend"/> class.
+        /// Initializes a new instance of the <see cref="DiscordBackend" /> class.
         /// </summary>
         /// <param name="token">Mofichan's API token.</param>
         /// <param name="admin_id">The Discord identifier of Mofichan's sole administrator.</param>
+        /// <param name="logger">The logger to use.</param>
         public DiscordBackend(string token, string admin_id, ILogger logger) : base(logger.ForContext<DiscordBackend>())
         {
             this.apiToken = token;
@@ -41,7 +75,7 @@ namespace Mofichan.Backend
             this.client.ConnectAsync().Wait();
             this.Logger.Information("Successfully connected to Discord bot account");
 
-            this.client.MessageReceived += HandleIncomingMessage;
+            this.client.MessageReceived += this.HandleIncomingMessage;
 
             var botId = this.client.CurrentUser.Id.ToString();
             this.settings = new DiscordSettings(botId, this.adminId);
@@ -97,7 +131,6 @@ namespace Mofichan.Backend
         /// <returns>
         /// The room corresponding to the ID, if it exists.
         /// </returns>
-        /// <exception cref="System.NotImplementedException"></exception>
         protected override IRoom GetRoomById(string roomId)
         {
             throw new NotImplementedException();
@@ -110,7 +143,6 @@ namespace Mofichan.Backend
         /// <returns>
         /// The user corresponding to the ID, if it exists.
         /// </returns>
-        /// <exception cref="System.NotImplementedException"></exception>
         protected override Core.Interfaces.IUser GetUserById(string userId)
         {
             throw new NotImplementedException();
@@ -132,39 +164,6 @@ namespace Mofichan.Backend
 
             return Task.CompletedTask;
         }
-    }
-
-    /// <summary>
-    /// Represents a collection of Discord-specific settings.
-    /// </summary>
-    public struct DiscordSettings
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DiscordSettings"/> struct.
-        /// </summary>
-        /// <param name="botId">The bot identifier.</param>
-        /// <param name="adminId">The admin identifier.</param>
-        public DiscordSettings(string botId, string adminId)
-        {
-            this.BotId = botId;
-            this.AdminId = adminId;
-        }
-
-        /// <summary>
-        /// Gets the bot identifier.
-        /// </summary>
-        /// <value>
-        /// The bot identifier.
-        /// </value>
-        public string BotId { get; }
-
-        /// <summary>
-        /// Gets the admin identifier.
-        /// </summary>
-        /// <value>
-        /// The admin identifier.
-        /// </value>
-        public string AdminId { get; }
     }
 
     /// <summary>
@@ -225,7 +224,6 @@ namespace Mofichan.Backend
         /// Receives the message.
         /// </summary>
         /// <param name="message">The message to process.</param>
-        /// <exception cref="System.NotImplementedException"></exception>
         public override void ReceiveMessage(string message)
         {
             throw new NotImplementedException();
@@ -259,7 +257,7 @@ namespace Mofichan.Backend
         {
             get
             {
-                return channel.Name;
+                return this.channel.Name;
             }
         }
 
@@ -273,7 +271,7 @@ namespace Mofichan.Backend
         {
             get
             {
-                return channel.Id.ToString();
+                return this.channel.Id.ToString();
             }
         }
 
@@ -289,7 +287,6 @@ namespace Mofichan.Backend
         /// <summary>
         /// Connects Mofichan to this room.
         /// </summary>
-        /// <exception cref="System.NotImplementedException"></exception>
         public void Join()
         {
             throw new NotImplementedException();
@@ -298,7 +295,6 @@ namespace Mofichan.Backend
         /// <summary>
         /// Disconnects Mofichan from this room.
         /// </summary>
-        /// <exception cref="System.NotImplementedException"></exception>
         public void Leave()
         {
             throw new NotImplementedException();

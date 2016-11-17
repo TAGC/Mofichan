@@ -80,7 +80,6 @@ namespace Mofichan.Backend
         /// <summary>
         /// Notifies the observer that the provider has finished sending push-based notifications.
         /// </summary>
-        /// <exception cref="System.NotImplementedException"></exception>
         public void OnCompleted()
         {
             throw new NotImplementedException();
@@ -90,7 +89,6 @@ namespace Mofichan.Backend
         /// Notifies the observer that the provider has experienced an error condition.
         /// </summary>
         /// <param name="error">An object that provides additional information about the error.</param>
-        /// <exception cref="System.NotImplementedException"></exception>
         public void OnError(Exception error)
         {
             throw new NotImplementedException();
@@ -129,7 +127,7 @@ namespace Mofichan.Backend
             {
                 this.Logger.Debug("Sending {MessageBody} to {Recipient} with {Delay} delay",
                     message.Body, message.To, message.Delay);
-                Task.Run(() => HandleMessageDelayAsync(message))
+                Task.Run(() => this.HandleMessageDelayAsync(message))
                     .ContinueWith(_ => message.To.ReceiveMessage(message.Body));
             }
             else
@@ -138,7 +136,6 @@ namespace Mofichan.Backend
                     message.Body, message.To);
                 message.To.ReceiveMessage(message.Body);
             }
-
         }
 
         /// <summary>

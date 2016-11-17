@@ -2,11 +2,16 @@
 
 namespace Mofichan.Core.Exceptions
 {
+    /// <summary>
+    /// An type of exception raised when a user makes an unauthorised request
+    /// to Mofichan.
+    /// </summary>
     public class MofichanAuthorisationException : MofichanException
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="MofichanAuthorisationException"/> class.
+        /// Initializes a new instance of the <see cref="MofichanAuthorisationException" /> class.
         /// </summary>
+        /// <param name="messageContext">The message context.</param>
         public MofichanAuthorisationException(MessageContext messageContext) : this(null, messageContext)
         {
         }

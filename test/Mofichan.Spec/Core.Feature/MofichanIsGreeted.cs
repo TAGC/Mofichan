@@ -46,7 +46,7 @@ namespace Mofichan.Spec.Core.Feature
                     .And(s => s.Given_Mofichan_is_running())
                 .When(s => s.When_I_say_greeting(greeting), WhenGreetingTemplate)
                 .Then(s => s.Then_Mofichan_should_greet_me_back())
-                .WithExamples(Examples)
+                .WithExamples(this.Examples)
                 .TearDownWith(s => s.TearDown());
         }
 
@@ -57,7 +57,7 @@ namespace Mofichan.Spec.Core.Feature
                 var greetings = from start in new[] { "Hello", "Hey", "Hi", "Sup", "Yo" }
                                 from middle in new[] { ",", " " }
                                 from name in new[] { "Mofi", "Mofichan" }
-                                from end in new[] { "", " ", "!", "." }
+                                from end in new[] { string.Empty, " ", "!", "." }
                                 let greeting = string.Format("{0}{1}{2}{3}", start, middle, name, end)
                                 select greeting;
 
@@ -95,7 +95,7 @@ namespace Mofichan.Spec.Core.Feature
                     .And(s => s.Given_Mofichan_is_running())
                 .When(s => s.When_I_say_greeting(greeting), WhenGreetingTemplate)
                 .Then(s => s.Then_Mofichan_should_not_have_said_anything())
-                .WithExamples(Examples);
+                .WithExamples(this.Examples);
         }
 
         private ExampleTable Examples
