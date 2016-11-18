@@ -5,7 +5,6 @@ branches:
         - /temp.*/
 
 configuration:
-- Debug
 - Release
 
 platform: x64
@@ -17,7 +16,6 @@ init:
 - ps: $Env:LABEL = "CI" + $Env:APPVEYOR_BUILD_NUMBER.PadLeft(5, "0")
 
 before_build:
-- cmd: copy NUL src\Mofichan.Runner\mofichan.config
 - appveyor-retry dotnet restore -v Minimal
 
 build_script:
@@ -52,3 +50,13 @@ test_script:
     pip install git+git://github.com/codecov/codecov-python.git
 
     codecov -f $RESULTS_FILE -X gcov
+
+after_test:
+- cmd: >-
+    set DOCKER_HEADERS="Content-Type: application/json"
+    
+    set DOCKER_DATA='{"source_type": "Branch", "source_name": "%APPVEYOR_REPO_BRANCH%"}'
+
+    set DOCKER_URL=https://registry.hub.docker.com/u/tagc/mofichan/trigger/fa9e6823-dc8e-46e1-a9bd-0ab96b35fb03/
+
+    curl -H %DOCKER_HEADERS% --data %DOCKER_DATA% -X POST %DOCKER_URL%
