@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using Mofichan.Behaviour.Base;
 using Mofichan.Behaviour.FilterAttributes;
 using Mofichan.Core;
+using Mofichan.Core.Exceptions;
 using Mofichan.Core.Interfaces;
 using Moq;
 using Shouldly;
@@ -58,6 +59,15 @@ namespace Mofichan.Tests
             public OutgoingMessage? Should_Invoke_On_Match(IncomingMessage message)
             {
                 return BuildMessageWithBody("Matched: " + message.Context.Body);
+            }
+
+            [RegexIncomingMessageFilter(regex: "Perform special command")]
+            [AuthorisationIncomingMessageFilter(UserType.Adminstrator, "Insufficient privileges")]
+            public OutgoingMessage? Administrative_Request_Handler(IncomingMessage message)
+            {
+                var from = message.Context.From as IUser;
+
+                return BuildMessageWithBody("Hello " + from.Name);
             }
 
             private static OutgoingMessage ReflectBackMessageWithSuffix(IncomingMessage message, string suffix)
@@ -122,26 +132,62 @@ namespace Mofichan.Tests
             var observer = Observer.Create<OutgoingMessage>(response => responses.Add(response.Context.Body));
             behaviour.Subscribe(observer);
 
-            // WHEN we pass "abc" to the observer.
+            // WHEN we pass "abc" to the behaviour.
             behaviour.OnNext(abc);
 
             // THEN we should not have received a "matched" response.
             responses.ShouldNotContain("Matched: abc");
             responses.Clear();
 
-            // WHEN we pass "abcdef" to the observer.
+            // WHEN we pass "abcdef" to the behaviour.
             behaviour.OnNext(abcdef);
 
             // THEN we should have received a "matched" response.
             responses.ShouldContain("Matched: abcdef");
             responses.Clear();
 
-            // WHEN we pass "aBcDeF" to the observer.
+            // WHEN we pass "aBcDeF" to the behaviour.
             behaviour.OnNext(aBcDeF);
 
             // THEN we should have received a "matched" response.
             responses.ShouldContain("Matched: aBcDeF");
-            responses.Clear();
+        }
+
+        [Fact]
+        public void Reflection_Behaviour_Should_Support_Checking_Request_Authorisation()
+        {
+            // GIVEN an instance of a mock reflection behaviour.
+            var behaviour = new MockReflectionBehaviour();
+
+            // GIVEN a set of incoming messages
+            Func<UserType, IncomingMessage> messageBuilder = userType =>
+            {
+                var mockFrom = new Mock<IUser>();
+                mockFrom.SetupGet(it => it.Type).Returns(userType);
+                mockFrom.SetupGet(it => it.Name).Returns("Stewart Mockington");
+
+                var mockTo = Mock.Of<IMessageTarget>();
+                var body = "Perform special command";
+                var messageContext = new MessageContext(mockFrom.Object, mockTo, body);
+                return new IncomingMessage(messageContext);
+            };
+
+            var unauthorised = messageBuilder(UserType.NormalUser);
+            var authorised = messageBuilder(UserType.Adminstrator);
+
+            // GIVEN we are subscribed to responses from the behaviour.
+            var responses = new List<string>();
+            var observer = Observer.Create<OutgoingMessage>(response => responses.Add(response.Context.Body));
+            behaviour.Subscribe(observer);
+
+            // EXPECT an exception when we pass an authorised message to the behaviour.
+            Assert.Throws<MofichanAuthorisationException>(() => behaviour.OnNext(unauthorised));
+
+            // WHEN we pass an authorised request to the behaviour
+            behaviour.OnNext(authorised);
+
+            // THEN we should not have received a response without exceptions being raised.
+            responses.ShouldContain("Hello Stewart Mockington");
         }
     }
 }
