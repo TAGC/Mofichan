@@ -7,6 +7,7 @@ using Mofichan.Backend;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
+using Mofichan.Core.Utility;
 using Serilog;
 
 namespace Mofichan.Runner
@@ -61,9 +62,10 @@ namespace Mofichan.Runner
                 container.ResolveNamed<IMofichanBehaviour>("greeting")
             };
 
+            var chainBuilder = container.Resolve<IBehaviourChainBuilder>();
             var rootLogger = container.Resolve<ILogger>();
 
-            var mofichan = new Kernel(MofichanName, backend, behaviours, rootLogger);
+            var mofichan = new Kernel(MofichanName, backend, behaviours, chainBuilder, rootLogger);
 
             return mofichan;
         }
@@ -86,6 +88,9 @@ namespace Mofichan.Runner
                 .As<IConfigurationLoader>();
 
             containerBuilder.RegisterInstance(CreateRootLogger());
+            containerBuilder
+                .RegisterType<BehaviourChainBuilder>()
+                .As<IBehaviourChainBuilder>();
 
             // Register behaviour plugins.
             containerBuilder

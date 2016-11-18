@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
+using Mofichan.Core.Utility;
 using Moq;
 using Serilog;
 using Xunit;
@@ -26,39 +27,44 @@ namespace Mofichan.Tests
         public void Kernel_Should_Throw_Exception_If_Null_Behaviour_Collection_Provided()
         {
             var backend = Mock.Of<IMofichanBackend>();
+            var chainBuilder = Mock.Of<IBehaviourChainBuilder>();
             var logger = MockLogger;
 
             // GIVEN an null behaviour collection.
             IEnumerable<IMofichanBehaviour> behaviours = null;
 
             // EXPECT an exception to be thrown if we construct a kernel with it.
-            Assert.Throws<ArgumentNullException>(() => new Kernel(string.Empty, backend, behaviours, logger));
+            Assert.Throws<ArgumentNullException>(
+                () => new Kernel(string.Empty, backend, behaviours, chainBuilder, logger));
         }
 
         [Fact]
         public void Kernel_Should_Throw_Exception_If_No_Behaviours_Provided()
         {
             var backend = Mock.Of<IMofichanBackend>();
+            var chainBuilder = Mock.Of<IBehaviourChainBuilder>();
             var logger = MockLogger;
 
             // GIVEN an empty behaviour collection.
             IEnumerable<IMofichanBehaviour> behaviours = Enumerable.Empty<IMofichanBehaviour>();
 
             // EXPECT an exception to be thrown if we construct a kernel with it.
-            Assert.Throws<ArgumentException>(() => new Kernel(string.Empty, backend, behaviours, logger));
+            Assert.Throws<ArgumentException>(
+                () => new Kernel(string.Empty, backend, behaviours, chainBuilder, logger));
         }
 
         [Fact]
         public void Kernel_Should_Start_Backend_When_Started()
         {
             var behaviours = new[] { Mock.Of<IMofichanBehaviour>() };
+            var chainBuilder = new BehaviourChainBuilder();
             var logger = MockLogger;
 
             // GIVEN a mock backend.
             var backend = new Mock<IMofichanBackend>();
 
             // GIVEN a kernel constructed with the backend.
-            var kernel = new Kernel(string.Empty, backend.Object, behaviours, logger);
+            var kernel = new Kernel(string.Empty, backend.Object, behaviours, chainBuilder, logger);
 
             // WHEN we start the kernel.
             kernel.Start();

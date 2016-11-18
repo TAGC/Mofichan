@@ -14,7 +14,7 @@ namespace Mofichan.Core
         /// <value>
         /// The name of the bot.
         /// </value>
-        public string BotName { private set; get; }
+        public string BotName { get; private set; }
 
         /// <summary>
         /// Gets the name of the developer.
@@ -22,7 +22,7 @@ namespace Mofichan.Core
         /// <value>
         /// The name of the developer.
         /// </value>
-        public string DeveloperName { private set; get; }
+        public string DeveloperName { get; private set; }
 
         /// <summary>
         /// Gets the selected backend.
@@ -30,7 +30,7 @@ namespace Mofichan.Core
         /// <value>
         /// The selected backend.
         /// </value>
-        public string SelectedBackend { private set; get; }
+        public string SelectedBackend { get; private set; }
 
         /// <summary>
         /// Gets the backend configuration.
@@ -38,7 +38,7 @@ namespace Mofichan.Core
         /// <value>
         /// The backend configuration.
         /// </value>
-        public IReadOnlyDictionary<string, string> BackendConfiguration { private set; get; }
+        public IReadOnlyDictionary<string, string> BackendConfiguration { get; private set; }
 
         /// <summary>
         /// Builds instances of <see cref="BotConfiguration"/>. 

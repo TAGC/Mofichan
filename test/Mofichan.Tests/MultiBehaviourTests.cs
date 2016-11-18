@@ -4,6 +4,7 @@ using System.Linq;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
+using Mofichan.Core.Utility;
 using Moq;
 using Shouldly;
 using Xunit;
@@ -84,12 +85,7 @@ namespace Mofichan.Tests
         private class MockMultiBehaviour : BaseMultiBehaviour
         {
             public MockMultiBehaviour(params IMofichanBehaviour[] subBehaviours)
-                : base(subBehaviours)
-            {
-            }
-
-            public MockMultiBehaviour(IEnumerable<IMofichanBehaviour> subBehaviours)
-                : base(subBehaviours.ToArray())
+                : base(ChainBuilder, subBehaviours)
             {
             }
 
@@ -98,6 +94,14 @@ namespace Mofichan.Tests
                 get
                 {
                     throw new NotImplementedException();
+                }
+            }
+
+            private static IBehaviourChainBuilder ChainBuilder
+            {
+                get
+                {
+                    return new BehaviourChainBuilder();
                 }
             }
         }

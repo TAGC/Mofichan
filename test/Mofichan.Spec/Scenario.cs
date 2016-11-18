@@ -6,6 +6,7 @@ using Autofac;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
+using Mofichan.Core.Utility;
 using Moq;
 using Serilog;
 using Shouldly;
@@ -60,6 +61,10 @@ namespace Mofichan.Spec
                 .AssignableTo(typeof(IMofichanBehaviour))
                 .Named<IMofichanBehaviour>(getBehaviourName)
                 .AsImplementedInterfaces();
+
+            containerBuilder
+                .RegisterType<BehaviourChainBuilder>()
+                .As<IBehaviourChainBuilder>();
 
             containerBuilder
                 .RegisterInstance(new LoggerConfiguration().CreateLogger())
@@ -132,7 +137,9 @@ namespace Mofichan.Spec
         protected void Given_Mofichan_is_running()
         {
             this.Mofichan = new Kernel("Mofichan", this.Backend, this.Behaviours,
+                this.Container.Resolve<IBehaviourChainBuilder>(),
                 this.Container.Resolve<ILogger>());
+
             this.Mofichan.Start();
         }
         #endregion

@@ -17,24 +17,16 @@ namespace Mofichan.Behaviour.Base
         private readonly List<IMofichanBehaviour> subBehaviours;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BaseMultiBehaviour"/> class.
+        /// Initializes a new instance of the <see cref="BaseMultiBehaviour" /> class.
         /// </summary>
+        /// <param name="chainBuilder">
+        /// The object to use for composing <paramref name="subBehaviours"/> into a chain.
+        /// </param>
         /// <param name="subBehaviours">The sub-behaviours to use.</param>
-        public BaseMultiBehaviour(params IMofichanBehaviour[] subBehaviours)
+        public BaseMultiBehaviour(IBehaviourChainBuilder chainBuilder, params IMofichanBehaviour[] subBehaviours)
         {
             this.subBehaviours = subBehaviours.ToList();
-
-            /*
-             * Ensure sub-behaviours are internally linked.
-             */
-            for (var i = 0; i < this.subBehaviours.Count - 1; i++)
-            {
-                var upstreamBehaviour = this.subBehaviours[i];
-                var downstreamBehaviour = this.subBehaviours[i + 1];
-
-                upstreamBehaviour.Subscribe<IncomingMessage>(downstreamBehaviour.OnNext);
-                downstreamBehaviour.Subscribe<OutgoingMessage>(upstreamBehaviour.OnNext);
-            }
+            chainBuilder.BuildChain(this.subBehaviours);
         }
 
         /// <summary>

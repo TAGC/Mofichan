@@ -18,6 +18,7 @@ namespace Mofichan.Spec.Admin.Feature.ToggleBehaviour
             this.mockBehaviour = new Mock<IMofichanBehaviour>();
             this.mockBehaviour.SetupGet(it => it.Id).Returns("mock");
             this.mockBehaviour.Setup(it => it.OnNext(It.IsAny<IncomingMessage>()));
+            this.mockBehaviour.Setup(it => it.ToString()).Returns("mock");
         }
 
         protected Mock<IMofichanBehaviour> MockBehaviour

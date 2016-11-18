@@ -87,7 +87,7 @@ namespace Mofichan.Behaviour.Base
         /// <param name="error">An object that provides additional information about the error.</param>
         public void OnError(Exception error)
         {
-            // Override if necssary.
+            // Override if necessary.
         }
 
         /// <summary>

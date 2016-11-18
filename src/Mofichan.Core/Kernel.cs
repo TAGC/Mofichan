@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
 using Mofichan.Core.Interfaces;
@@ -19,8 +18,8 @@ namespace Mofichan.Core
     {
         private readonly ILogger logger;
 
-        private IMofichanBackend backend;
-        private IMofichanBehaviour rootBehaviour;
+        private readonly IMofichanBackend backend;
+        private readonly IMofichanBehaviour rootBehaviour;
 
         private bool disposedValue = false; // To detect redundant calls
 
@@ -30,8 +29,10 @@ namespace Mofichan.Core
         /// <param name="name">Mofichan's name (which should of course just be Mofichan).</param>
         /// <param name="backend">The selected backend.</param>
         /// <param name="behaviours">The collection of behaviours to determine Mofichan's personality.</param>
+        /// <param name="chainBuilder">The object to use to compose the provided behaviours into a chain.</param>
         /// <param name="logger">The logger to use.</param>
-        public Kernel(string name, IMofichanBackend backend, IEnumerable<IMofichanBehaviour> behaviours, ILogger logger)
+        public Kernel(string name, IMofichanBackend backend, IEnumerable<IMofichanBehaviour> behaviours,
+            IBehaviourChainBuilder chainBuilder, ILogger logger)
         {
             Raise.ArgumentNullException.IfIsNull(behaviours, nameof(behaviours));
             Raise.ArgumentException.IfNot(
@@ -43,7 +44,7 @@ namespace Mofichan.Core
             this.logger.Information("Initialising Mofichan with {Backend} and {Behaviours}", backend, behaviours);
 
             this.backend = backend;
-            this.rootBehaviour = BuildBehaviourChain(behaviours);
+            this.rootBehaviour = BuildBehaviourChain(behaviours, chainBuilder);
 
             this.backend.Subscribe(this.rootBehaviour);
             this.rootBehaviour.Subscribe(this.backend);
@@ -100,15 +101,17 @@ namespace Mofichan.Core
         /// Links behaviours within a collection together to form a chain.
         /// </summary>
         /// <param name="behaviours">The behaviours to link.</param>
-        /// <returns>The root behaviour in the chain.</returns>
-        private static IMofichanBehaviour BuildBehaviourChain(IEnumerable<IMofichanBehaviour> behaviours)
+        /// <param name="chainBuilder">The object to use to compose the provided behaviours into a chain.</param>
+        /// <returns>
+        /// The root behaviour in the chain.
+        /// </returns>
+        private static IMofichanBehaviour BuildBehaviourChain(
+            IEnumerable<IMofichanBehaviour> behaviours, IBehaviourChainBuilder chainBuilder)
         {
-            Debug.Assert(behaviours.Any(), "There should be at least one behaviour to build");
-
             var behaviourList = behaviours.ToList();
 
             /*
-             * Allows behaviours a chance to inspect/modify
+             * Gives behaviours a chance to inspect/modify
              * other behaviours in the stack before they are
              * wired up and started.
              */
@@ -117,16 +120,7 @@ namespace Mofichan.Core
                 behaviour.InspectBehaviourStack(behaviourList);
             }
 
-            for (var i = 0; i < behaviourList.Count - 1; i++)
-            {
-                var upstreamBehaviour = behaviourList[i];
-                var downstreamBehaviour = behaviourList[i + 1];
-
-                upstreamBehaviour.Subscribe<IncomingMessage>(downstreamBehaviour.OnNext);
-                downstreamBehaviour.Subscribe<OutgoingMessage>(upstreamBehaviour.OnNext);
-            }
-
-            return behaviourList[0];
+            return chainBuilder.BuildChain(behaviourList);
         }
     }
 }

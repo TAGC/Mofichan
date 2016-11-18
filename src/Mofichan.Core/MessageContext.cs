@@ -145,7 +145,7 @@ namespace Mofichan.Core
         /// </returns>
         public override string ToString()
         {
-            return string.Format("Outgoing message (context={0}, delay={1})", this.Context);
+            return string.Format("Outgoing message (context={0})", this.Context);
         }
     }
 }
