@@ -5,11 +5,10 @@
 #       as environment variables.
 #
 
-FROM microsoft/dotnet
+FROM microsoft/dotnet:1.1.0-sdk-projectjson
 MAINTAINER David Fallah <davidfallah1@gmail.com>
 WORKDIR /app
 COPY . .
 RUN dotnet restore
-RUN dotnet test "test/Mofichan.Spec"
 RUN dotnet publish "src/Mofichan.Runner" -c Debug
 ENTRYPOINT ["dotnet", "src/Mofichan.Runner/bin/Debug/netcoreapp1.0/Mofichan.Runner.dll"]
