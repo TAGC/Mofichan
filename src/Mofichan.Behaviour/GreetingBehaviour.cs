@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Linq;
 using System.Text.RegularExpressions;
 using Mofichan.Behaviour.Base;
+using Mofichan.Behaviour.FilterAttributes;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
 
@@ -14,15 +13,16 @@ namespace Mofichan.Behaviour
     /// <remarks>
     /// Adding this module to the behaviour chain will allow Mofichan to respond to people greeting her.
     /// </remarks>
-    public class GreetingBehaviour : BaseBehaviour
+    public class GreetingBehaviour : BaseReflectionBehaviour
     {
+        private const string IdentityMatch = @"(mofichan|mofi)";
+        private const string GreetingWordMatch = @"(hey|hi|hello|sup|yo)";
+        private const string GreetingMatch = GreetingWordMatch + @",?\s*" + IdentityMatch + @"\W*";
+
         private static readonly string[] MofiGreetings = new[] { "Hey", "Hi", "Hello" };
         private static readonly string[] MofiEmotes = new[] { ":3", "^-^", "o/" };
-        private static readonly string[] UserGreetings = MofiGreetings.Concat(new[] { "Sup", "Yo" }).ToArray();
-
         private static readonly double EmoteChance = 0.7;
 
-        private readonly Regex greetingPattern;
         private readonly Random random;
 
         /// <summary>
@@ -30,81 +30,21 @@ namespace Mofichan.Behaviour
         /// </summary>
         public GreetingBehaviour()
         {
-            // TODO: refactor to inject identity match logic.
-            var identityMatch = @"(mofichan|mofi)";
-
-            var greetingMatch = string.Concat("(", string.Join("|", UserGreetings), ")");
-
-            this.greetingPattern = new Regex(string.Format(@"{0},?\s*{1}\W*", greetingMatch, identityMatch),
-                RegexOptions.IgnoreCase);
-
             this.random = new Random();
         }
 
         /// <summary>
-        /// Determines whether this instance can process the specified incoming message.
+        /// Generates a greeting when Mofichan receives one.
         /// </summary>
-        /// <param name="message">The message to check can be handled.</param>
-        /// <returns>
-        ///   <c>true</c> if this instance can process the incoming message; otherwise, <c>false</c>.
-        /// </returns>
-        protected override bool CanHandleIncomingMessage(IncomingMessage message)
+        /// <param name="message">The received greeting.</param>
+        /// <returns>A greeting in response.</returns>
+        [RegexIncomingMessageFilter(GreetingMatch, RegexOptions.IgnoreCase)]
+        public OutgoingMessage? ReturnGreeting(IncomingMessage message)
         {
-            return this.IsGreetingForMofichan(message);
-        }
-
-        /// <summary>
-        /// Determines whether this instance can process the specified outgoing message.
-        /// </summary>
-        /// <param name="message">The message to check can be handled.</param>
-        /// <returns>
-        ///   <c>true</c> if this instance can process the outgoing messagee; otherwise, <c>false</c>.
-        /// </returns>
-        protected override bool CanHandleOutgoingMessage(OutgoingMessage message)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Handles the incoming message.
-        /// <para></para>
-        /// This method will only be invoked if <c>CanHandleIncomingMessage(message)</c> is <c>true</c>.
-        /// </summary>
-        /// <param name="message">The message to process.</param>
-        protected override void HandleIncomingMessage(IncomingMessage message)
-        {
-            Debug.Assert(this.IsGreetingForMofichan(message),
-                "The message should definitely be a greeting for Mofichan");
-
             var sender = message.Context.From as IUser;
             var recipient = message.Context.To as IUser;
 
-            var outgoingMessage = this.ConstructGreetingMessage(
-                mofichan: recipient, target: sender);
-
-            this.SendUpstream(outgoingMessage);
-        }
-
-        /// <summary>
-        /// Handles the outgoing message.
-        /// <para></para>
-        /// This method will only be invoked if <c>CanHandleOutgoingMessage(message)</c> is <c>true</c>.
-        /// </summary>
-        /// <param name="message">The message to process.</param>
-        protected override void HandleOutgoingMessage(OutgoingMessage message)
-        {
-            throw new NotImplementedException();
-        }
-
-        private bool IsGreetingForMofichan(IncomingMessage message)
-        {
-            var sender = message.Context.From as IUser;
-
-            var senderIsUser = sender != null;
-            var senderIsNotSelf = sender.Type != UserType.Self;
-            var messageIsGreeting = this.greetingPattern.IsMatch(message.Context.Body);
-
-            return senderIsUser && senderIsNotSelf && messageIsGreeting;
+            return this.ConstructGreetingMessage(mofichan: recipient, target: sender);
         }
 
         private OutgoingMessage ConstructGreetingMessage(IUser mofichan, IUser target)

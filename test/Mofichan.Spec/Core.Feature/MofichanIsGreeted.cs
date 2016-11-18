@@ -132,7 +132,8 @@ namespace Mofichan.Spec.Core.Feature
     {
         public MofichanGreetingHerself() : base("Mofichan sees a greeting from herself")
         {
-            this.Given(s => s.Given_Mofichan_is_configured_with_behaviour("greeting"), AddBehaviourTemplate)
+            this.Given(s => s.Given_Mofichan_is_configured_with_behaviour("selfignore"), AddBehaviourTemplate)
+                .Given(s => s.Given_Mofichan_is_configured_with_behaviour("greeting"), AddBehaviourTemplate)
                 .And(s => s.Given_Mofichan_is_running())
             .When(s => s.When_Mofichan_receives_a_message(this.MofichanUser, "Hello Mofichan"),
                 "When Mofichan receives message: '{1}'")

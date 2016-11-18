@@ -18,12 +18,15 @@ namespace Mofichan.Behaviour.Base
             BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.Instance;
 
         private readonly IEnumerable<IObserver<IncomingMessage>> messageHandlers;
+        private readonly Queue<OutgoingMessage> outgoingMessageQueue;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BaseReflectionBehaviour"/> class.
         /// </summary>
         protected BaseReflectionBehaviour()
         {
+            this.outgoingMessageQueue = new Queue<OutgoingMessage>();
+
             var candidateMethods = this.GetType().GetTypeInfo().GetMethods(CandidateBindingFlags);
 
             this.messageHandlers = from methodInfo in candidateMethods
@@ -42,7 +45,7 @@ namespace Mofichan.Behaviour.Base
         /// </returns>
         protected override bool CanHandleIncomingMessage(IncomingMessage message)
         {
-            return true;
+            return this.messageHandlers.Any();
         }
 
         /// <summary>
@@ -65,9 +68,33 @@ namespace Mofichan.Behaviour.Base
         /// <param name="message">The message to process.</param>
         protected override void HandleIncomingMessage(IncomingMessage message)
         {
-            foreach (var handler in this.messageHandlers)
+            Debug.Assert(this.outgoingMessageQueue.Count == 0, "The queue should be empty");
+
+            try
             {
-                handler.OnNext(message);
+                foreach (var handler in this.messageHandlers)
+                {
+                    handler.OnNext(message);
+                }
+
+                /*
+                 * Send the message downstream if this instance
+                 * hasn't handled it.
+                 */
+                if (this.outgoingMessageQueue.Count == 0)
+                {
+                    this.SendDownstream(message);
+                    return;
+                }
+
+                while (this.outgoingMessageQueue.Any())
+                {
+                    this.SendUpstream(this.outgoingMessageQueue.Dequeue());
+                }
+            }
+            finally
+            {
+                this.outgoingMessageQueue.Clear();
             }
         }
 
@@ -126,7 +153,7 @@ namespace Mofichan.Behaviour.Base
 
             if (response.HasValue)
             {
-                this.SendUpstream(response.Value);
+                this.outgoingMessageQueue.Enqueue(response.Value);
             }
         }
     }

@@ -30,7 +30,6 @@ namespace Mofichan.Behaviour.FilterAttributes
         /// Called to notify this observer of an incoming message.
         /// </summary>
         /// <param name="message">The incoming message.</param>
-        /// <exception cref="MofichanAuthorisationException"></exception>
         public override void OnNext(IncomingMessage message)
         {
             var user = message.Context.From as IUser;
@@ -38,7 +37,7 @@ namespace Mofichan.Behaviour.FilterAttributes
             /*
              * We forward messages not from a user. Should this be the case?
              */
-            if (user == null || user.Type == requiredUserType)
+            if (user == null || user.Type == this.requiredUserType)
             {
                 this.SendDownstream(message);
             }
