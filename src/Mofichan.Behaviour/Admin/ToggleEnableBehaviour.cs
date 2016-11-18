@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Mofichan.Behaviour.Base;
+using Mofichan.Behaviour.FilterAttributes;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
 
@@ -18,11 +19,14 @@ namespace Mofichan.Behaviour.Admin
     /// <para></para>
     /// Certain modules (such as the "administrator" module) cannot be enabled or disabled.
     /// </remarks>
-    internal class ToggleEnableBehaviour : BaseBehaviour
+    internal class ToggleEnableBehaviour : BaseReflectionBehaviour
     {
-        private readonly Regex enableBehaviourPattern;
-        private readonly Regex disableBehaviourPattern;
-
+        private const RegexOptions MatchOptions = RegexOptions.IgnoreCase;
+        private const string IdentityMatch = @"(mofichan|mofi)";
+        private const string EnableMatch = @"enable (?<behaviour>\w+) behaviour";
+        private const string DisableMatch = @"disable (?<behaviour>\w+) behaviour";
+        private const string FullEnableMatch = IdentityMatch + ",? " + EnableMatch;
+        private const string FullDisableMatch = IdentityMatch + ",? " + DisableMatch;
         private readonly IDictionary<string, EnableableBehaviourDecorator> behaviourMap;
 
         /// <summary>
@@ -31,17 +35,34 @@ namespace Mofichan.Behaviour.Admin
         public ToggleEnableBehaviour()
         {
             this.behaviourMap = new Dictionary<string, EnableableBehaviourDecorator>();
+        }
 
-            // TODO: refactor to inject identity match logic.
-            var identityMatch = @"(mofichan|mofi)";
+        /// <summary>
+        /// Attempts to enable a behaviour based on its ID.
+        /// </summary>
+        /// <param name="message">The incoming message.</param>
+        /// <returns>A response based on the success or failure of the operation.</returns>
+        [RegexIncomingMessageFilter(FullEnableMatch, MatchOptions)]
+        [AuthorisationIncomingMessageFilter(
+            requiredUserType: UserType.Adminstrator,
+            onFailure: "Non-admin user attempted to enable behaviour")]
+        public OutgoingMessage? EnableBehaviour(IncomingMessage message)
+        {
+            return this.ChangeBehaviourEnableState(message, FullEnableMatch, "enabled", true);
+        }
 
-            this.enableBehaviourPattern = new Regex(
-                string.Format(@"{0},? enable (?<behaviour>\w+) behaviour", identityMatch),
-                RegexOptions.IgnoreCase);
-
-            this.disableBehaviourPattern = new Regex(
-                string.Format(@"{0},? disable (?<behaviour>\w+) behaviour", identityMatch),
-                RegexOptions.IgnoreCase);
+        /// <summary>
+        /// Attempts to disable a behaviour based on its ID.
+        /// </summary>
+        /// <param name="message">The incoming message.</param>
+        /// <returns>A response based on the success or failure of the operation.</returns>
+        [RegexIncomingMessageFilter(FullDisableMatch, MatchOptions)]
+        [AuthorisationIncomingMessageFilter(
+            requiredUserType: UserType.Adminstrator,
+            onFailure: "Non-admin user attempted to disable behaviour")]
+        public OutgoingMessage? DisableBehaviour(IncomingMessage message)
+        {
+            return this.ChangeBehaviourEnableState(message, FullDisableMatch, "disabled", false);
         }
 
         /// <summary>
@@ -78,100 +99,7 @@ namespace Mofichan.Behaviour.Admin
             }
         }
 
-        /// <summary>
-        /// Determines whether this instance can process the specified incoming message.
-        /// </summary>
-        /// <param name="message">The message to check can be handled.</param>
-        /// <returns>
-        ///   <c>true</c> if this instance can process the incoming message; otherwise, <c>false</c>.
-        /// </returns>
-        protected override bool CanHandleIncomingMessage(IncomingMessage message)
-        {
-            var body = message.Context.Body;
-
-            return this.enableBehaviourPattern.IsMatch(body) ||
-                this.disableBehaviourPattern.IsMatch(body);
-        }
-
-        /// <summary>
-        /// Handles the incoming message.
-        /// <para></para>
-        /// This method will only be invoked if <c>CanHandleIncomingMessage(message)</c> is <c>true</c>.
-        /// </summary>
-        /// <param name="message">The message to process.</param>
-        /// <exception cref="Core.Exceptions.MofichanAuthorisationException">If user is not an admin.</exception>
-        protected override void HandleIncomingMessage(IncomingMessage message)
-        {
-            message.Context.CheckSenderAuthorised("Non-admin user attempted to change behaviour enable state");
-
-            var body = message.Context.Body;
-
-            Match enableBehaviourMatch = this.enableBehaviourPattern.Match(body);
-            Match disableBehaviourMatch = this.disableBehaviourPattern.Match(body);
-
-            EnableableBehaviourDecorator decoratedBehaviour;
-            if (enableBehaviourMatch.Success)
-            {
-                string behaviour = enableBehaviourMatch.Groups["behaviour"].Value;
-
-                if (this.behaviourMap.TryGetValue(behaviour, out decoratedBehaviour))
-                {
-                    decoratedBehaviour.Enabled = true;
-                    var reply = string.Format("'{0}' behaviour is now enabled", behaviour);
-                    this.SendUpstream(message.Reply(reply));
-                }
-                else
-                {
-                    this.HandleNonExistentBehaviour(behaviour, "enabled", message);
-                }
-            }
-            else if (disableBehaviourMatch.Success)
-            {
-                string behaviour = disableBehaviourMatch.Groups["behaviour"].Value;
-
-                if (this.behaviourMap.TryGetValue(behaviour, out decoratedBehaviour))
-                {
-                    decoratedBehaviour.Enabled = false;
-                    var reply = string.Format("'{0}' behaviour is now disabled", behaviour);
-                    this.SendUpstream(message.Reply(reply));
-                }
-                else
-                {
-                    this.HandleNonExistentBehaviour(behaviour, "disabled", message);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Determines whether this instance can process the specified outgoing message.
-        /// </summary>
-        /// <param name="message">The message to check can be handled.</param>
-        /// <returns>
-        ///   <c>true</c> if this instance can process the outgoing messagee; otherwise, <c>false</c>.
-        /// </returns>
-        protected override bool CanHandleOutgoingMessage(OutgoingMessage message)
-        {
-            return false;
-        }
-
-        /// <summary>
-        /// Handles the outgoing message.
-        /// <para></para>
-        /// This method will only be invoked if <c>CanHandleOutgoingMessage(message)</c> is <c>true</c>.
-        /// </summary>
-        /// <param name="message">The message to process.</param>
-        protected override void HandleOutgoingMessage(OutgoingMessage message)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Handles the non existent behaviour.
-        /// </summary>
-        /// <param name="behaviour">The behaviour.</param>
-        /// <param name="action">The action.</param>
-        /// <param name="message">The message.</param>
-        private void HandleNonExistentBehaviour(string behaviour, string action, IncomingMessage message)
+        private static OutgoingMessage HandleNonExistentBehaviour(string behaviour, string action, IncomingMessage message)
         {
             var from = message.Context.From as IUser;
             Debug.Assert(from != null, "The message sender should be a user");
@@ -179,7 +107,27 @@ namespace Mofichan.Behaviour.Admin
             var reply = string.Format("I'm afraid behaviour '{0}' doesn't exist or can't be {1}, {2}",
                 behaviour, action, from.Name);
 
-            this.SendUpstream(message.Reply(reply));
+            return message.Reply(reply);
+        }
+
+        private OutgoingMessage ChangeBehaviourEnableState(
+            IncomingMessage message, string pattern, string enableStateName, bool enableState)
+        {
+            var match = Regex.Match(message.Context.Body, pattern, MatchOptions);
+
+            string behaviour = match.Groups["behaviour"].Value;
+
+            EnableableBehaviourDecorator decoratedBehaviour;
+            if (this.behaviourMap.TryGetValue(behaviour, out decoratedBehaviour))
+            {
+                decoratedBehaviour.Enabled = enableState;
+                var reply = string.Format("'{0}' behaviour is now {1}", behaviour, enableStateName);
+                return message.Reply(reply);
+            }
+            else
+            {
+                return HandleNonExistentBehaviour(behaviour, enableStateName, message);
+            }
         }
 
         private class EnableableBehaviourDecorator : BaseBehaviourDecorator

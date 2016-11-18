@@ -12,9 +12,10 @@ namespace Mofichan.Behaviour.Base
     /// </summary>
     public abstract class BaseBehaviour : IMofichanBehaviour
     {
+        private readonly bool passThroughMessages;
+
         private IObserver<IncomingMessage> downstreamObserver;
         private IObserver<OutgoingMessage> upstreamObserver;
-        private bool passThroughMessages;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BaseBehaviour"/> class.
