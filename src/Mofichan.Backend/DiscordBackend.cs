@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using Discord;
 using Discord.WebSocket;
 using Mofichan.Core;
@@ -50,7 +53,10 @@ namespace Mofichan.Backend
         private readonly string apiToken;
         private readonly string adminId;
         private readonly DiscordSocketClient client;
+        private readonly BufferBlock<MessageContext> outgoingMessageQueue;
+        private readonly CancellationTokenSource cancellationSource;
 
+        private Task sendMessagesTask;
         private DiscordSettings settings;
 
         /// <summary>
@@ -64,6 +70,8 @@ namespace Mofichan.Backend
             this.apiToken = token;
             this.adminId = admin_id;
             this.client = new DiscordSocketClient();
+            this.outgoingMessageQueue = new BufferBlock<MessageContext>();
+            this.cancellationSource = new CancellationTokenSource();
         }
 
         /// <summary>
@@ -79,6 +87,7 @@ namespace Mofichan.Backend
 
             var botId = this.client.CurrentUser.Id.ToString();
             this.settings = new DiscordSettings(botId, this.adminId);
+            this.sendMessagesTask = this.SendOutgoingMessagesAsync(this.cancellationSource.Token);
         }
 
         /// <summary>
@@ -87,8 +96,39 @@ namespace Mofichan.Backend
         public override void Dispose()
         {
             base.Dispose();
+
+            this.cancellationSource.Cancel();
+
+            try
+            {
+                this.sendMessagesTask?.Wait();
+            }
+            catch (AggregateException e)
+            {
+                if (e.InnerException is TaskCanceledException)
+                {
+                    Logger.Verbose(e, "Expected task cancellation exception thrown");
+                }
+                else
+                {
+                    throw;
+                }
+            }
+            finally
+            {
+                this.cancellationSource.Dispose();
+            }
+
             this.client.Dispose();
             this.Logger.Debug("Disposed {Client}", this.client);
+        }
+
+        protected override void SendMessage(MessageContext message)
+        {
+            this.Logger.Verbose("Queueing message {MessageBody} to {Recipient} with {Delay} delay",
+                message.Body, message.To, message.Delay);
+
+            this.outgoingMessageQueue.Post(message);
         }
 
         /// <summary>
@@ -146,6 +186,25 @@ namespace Mofichan.Backend
         protected override Core.Interfaces.IUser GetUserById(string userId)
         {
             throw new NotImplementedException();
+        }
+
+        private async Task SendOutgoingMessagesAsync(CancellationToken token)
+        {
+            MessageContext context;
+            while (true)
+            {
+                context = await this.outgoingMessageQueue.ReceiveAsync(token);
+                
+                if (context.Delay != TimeSpan.Zero)
+                {
+                    await this.HandleMessageDelayAsync(context);
+                }
+
+                this.Logger.Debug("Sending message {MessageBody} to {Recipient}",
+                    context.Body, context.To);
+
+                context.To.ReceiveMessage(context.Body);
+            }
         }
 
         private Task HandleIncomingMessage(SocketMessage message)

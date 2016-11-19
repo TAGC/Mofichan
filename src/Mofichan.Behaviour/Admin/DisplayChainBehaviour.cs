@@ -7,6 +7,7 @@ using Mofichan.Behaviour.Base;
 using Mofichan.Behaviour.FilterAttributes;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
+using Mofichan.Core.Utility;
 
 namespace Mofichan.Behaviour.Admin
 {
@@ -22,9 +23,8 @@ namespace Mofichan.Behaviour.Admin
     /// </remarks>
     public class DisplayChainBehaviour : BaseReflectionBehaviour
     {
-        private const string IdentityMatch = @"(mofichan|mofi)";
         private const string CommandMatch = @"(display|show( your)?) behaviour chain";
-        private const string DisplayChainMatch = IdentityMatch + ",? " + CommandMatch;
+        private const string DisplayChainMatch = Constants.IdentityMatch + ",? " + CommandMatch;
         private const string BehaviourChainConnector = " ⇄ ";
 
         private IList<IMofichanBehaviour> behaviourStack;
