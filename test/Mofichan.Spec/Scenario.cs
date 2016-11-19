@@ -174,6 +174,17 @@ namespace Mofichan.Spec
                 .Select(it => it.Context.Body)
                 .Any(it => it.Contains(substring)));
         }
+
+        protected void Then_Mofichan_should_respond_to__message__(string message)
+        {
+            this.Then_Mofichan_should_respond_to__message__from__user__(this.JohnSmithUser, message);
+        }
+
+        protected void Then_Mofichan_should_respond_to__message__from__user__(IUser user, string message)
+        {
+            this.When_Mofichan_receives_a_message(user, message);
+            this.SentMessages.ShouldNotBeEmpty();
+        }
         #endregion
     }
 }

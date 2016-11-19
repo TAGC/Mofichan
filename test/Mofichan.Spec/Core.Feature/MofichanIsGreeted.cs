@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using Shouldly;
 using TestStack.BDDfy;
 
@@ -134,7 +135,7 @@ namespace Mofichan.Spec.Core.Feature
         {
             this.Given(s => s.Given_Mofichan_is_configured_with_behaviour("selfignore"), AddBehaviourTemplate)
                 .Given(s => s.Given_Mofichan_is_configured_with_behaviour("greeting"), AddBehaviourTemplate)
-                .And(s => s.Given_Mofichan_is_running())
+                    .And(s => s.Given_Mofichan_is_running())
             .When(s => s.When_Mofichan_receives_a_message(this.MofichanUser, "Hello Mofichan"),
                 "When Mofichan receives message: '{1}'")
             .Then(s => s.Then_Mofichan_should_not_have_said_anything());
@@ -143,6 +144,46 @@ namespace Mofichan.Spec.Core.Feature
         private void Then_Mofichan_should_not_have_said_anything()
         {
             this.SentMessages.ShouldBeEmpty();
+        }
+    }
+
+    public class MofiRespondsToWellbeingRequest : MofichanIsGreeted
+    {
+        public MofiRespondsToWellbeingRequest() : base("Mofichan responds to people asking how she is")
+        {
+            var wellbeingRequest = default(string);
+
+            this.Given(s => s.Given_Mofichan_is_configured_with_behaviour("greeting"), AddBehaviourTemplate)
+                    .And(s => s.Given_Mofichan_is_running())
+                .Then(s => s.Then_Mofichan_should_respond_to__message__(wellbeingRequest))
+                .WithExamples(this.Examples)
+                .TearDownWith(s => s.Teardown());
+        }
+
+        private static IEnumerable<string> ExampleMessages
+        {
+            get
+            {
+                yield return "How are you Mofi?";
+                yield return "How r u Mofi?";
+                yield return "you alright Mofi?";
+                yield return "Mofichan, how are you?";
+                yield return "Mofi you alright?";
+            }
+        }
+
+        private ExampleTable Examples
+        {
+            get
+            {
+                var table = new ExampleTable("wellbeingRequest"); ;
+                foreach (var wellbeingRequest in ExampleMessages)
+                {
+                    table.Add(wellbeingRequest);
+                }
+
+                return table;
+            }
         }
     }
 }

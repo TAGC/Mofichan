@@ -6,6 +6,7 @@ using Mofichan.Behaviour.Base;
 using Mofichan.Behaviour.FilterAttributes;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
+using Mofichan.Core.Utility;
 
 namespace Mofichan.Behaviour.Admin
 {
@@ -22,11 +23,10 @@ namespace Mofichan.Behaviour.Admin
     internal class ToggleEnableBehaviour : BaseReflectionBehaviour
     {
         private const RegexOptions MatchOptions = RegexOptions.IgnoreCase;
-        private const string IdentityMatch = @"(mofichan|mofi)";
         private const string EnableMatch = @"enable (?<behaviour>\w+) behaviour";
         private const string DisableMatch = @"disable (?<behaviour>\w+) behaviour";
-        private const string FullEnableMatch = IdentityMatch + ",? " + EnableMatch;
-        private const string FullDisableMatch = IdentityMatch + ",? " + DisableMatch;
+        private const string FullEnableMatch = Constants.IdentityMatch + ",? " + EnableMatch;
+        private const string FullDisableMatch = Constants.IdentityMatch + ",? " + DisableMatch;
         private readonly IDictionary<string, EnableableBehaviourDecorator> behaviourMap;
 
         /// <summary>
