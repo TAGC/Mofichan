@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Mofichan.Core;
 using Mofichan.Core.Interfaces;
 using Mofichan.Library;
 using Moq;
@@ -19,6 +20,9 @@ namespace Mofichan.Tests.Library
                 yield return TaggedArticle.From("this is baz", "baz");
                 yield return TaggedArticle.From("this is foo and bar", "foo", "bar");
                 yield return TaggedArticle.From("this is foo, bar and baz", "foo", "bar", "baz");
+                yield return TaggedArticle.From(
+                    "${message.from.name} says ${message.body} to ${message.to.name}",
+                    "requires-context");
             }
         }
 
@@ -80,7 +84,34 @@ namespace Mofichan.Tests.Library
             mockLibrary.SetupGet(it => it.Articles).Returns(ExampleArticles);
 
             var articleFilter = new ArticleFilter(new[] { mockLibrary.Object });
-            this.responseBuilder = new ResponseBuilder(articleFilter);
+            var articleResolver = new ArticleResolver();
+            this.responseBuilder = new ResponseBuilder(articleFilter, articleResolver);
+        }
+
+        [Fact]
+        public void Response_Builder_Should_Resolve_Message_Context_Placeholders()
+        {
+            // GIVEN a message context.
+            var from = new Mock<IUser>();
+            var to = new Mock<IUser>();
+            var body = "Wingardium Leviosahhhh";
+
+            from.SetupGet(it => it.Name).Returns("Ron Weasley");
+            to.SetupGet(it => it.Name).Returns("Hermione Granger");
+
+            var messageContext = new MessageContext(from: from.Object, to: to.Object, body: body);
+
+            // WHEN we provide this message context to the response builder.
+            this.responseBuilder.UsingContext(messageContext);
+
+            // AND we configure the response builder to produce a response requiring a message context.
+            this.responseBuilder.FromTags(prefix: string.Empty, tags: new[] { "requires-context" });
+
+            // AND we build the response.
+            var response = this.responseBuilder.Build();
+
+            // THEN the response should contain the context-specific information.
+            response.ShouldBe("Ron Weasley says Wingardium Leviosahhhh to Hermione Granger");
         }
 
         [Fact]

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Linq;
 using System.Text;
+using Mofichan.Core;
 using Mofichan.Core.Interfaces;
 
 namespace Mofichan.Library
@@ -12,14 +14,42 @@ namespace Mofichan.Library
         private static readonly string DefaultPrefix = " ";
 
         private readonly IArticleFilter articleFilter;
+        private readonly IArticleResolver articleResolver;
         private readonly StringBuilder stringBuilder;
         private readonly Random random;
+        private readonly dynamic context;
 
-        public ResponseBuilder(IArticleFilter articleFilter)
+        public ResponseBuilder(IArticleFilter articleFilter, IArticleResolver articleResolver)
         {
             this.articleFilter = articleFilter;
+            this.articleResolver = articleResolver;
             this.stringBuilder = new StringBuilder();
             this.random = new Random();
+            this.context = new ExpandoObject();
+        }
+
+        public IResponseBuilder UsingContext(MessageContext messageContext)
+        {
+            var fromUser = messageContext.From as IUser;
+            var toUser = messageContext.To as IUser;
+            var body = messageContext.Body;
+
+            this.context.message = new ExpandoObject();
+            this.context.message.body = body;
+
+            if (fromUser != null)
+            {
+                this.context.message.from = new ExpandoObject();
+                this.context.message.from.name = fromUser.Name;
+            }
+
+            if (toUser != null)
+            {
+                this.context.message.to = new ExpandoObject();
+                this.context.message.to.name = toUser.Name;
+            }
+
+            return this;
         }
 
         public IResponseBuilder FromRaw(string rawString)
@@ -30,20 +60,20 @@ namespace Mofichan.Library
 
         public IResponseBuilder FromAnyOf(params string[] phrases)
         {
-            return this.FromAnyOf(phrases, DefaultPrefix, DefaultChance);
+            return this.FromAnyOf(DefaultPrefix, DefaultChance, phrases);
         }
 
         public IResponseBuilder FromAnyOf(string prefix, IEnumerable<string> phrases)
         {
-            return this.FromAnyOf(phrases, prefix, DefaultChance);
+            return this.FromAnyOf(prefix, DefaultChance, phrases);
         }
 
         public IResponseBuilder FromAnyOf(double chance, IEnumerable<string> phrases)
         {
-            return this.FromAnyOf(phrases, DefaultPrefix, chance);
+            return this.FromAnyOf(DefaultPrefix, chance, phrases);
         }
 
-        public IResponseBuilder FromAnyOf(IEnumerable<string> phrases, string prefix, double chance)
+        public IResponseBuilder FromAnyOf(string prefix, double chance, IEnumerable<string> phrases)
         {
             var possibilities = phrases.Select(it => prefix + it);
             var part = this.PickAnyOfWithChance(possibilities, chance);
@@ -54,24 +84,40 @@ namespace Mofichan.Library
 
         public IResponseBuilder FromTags(params string[] tags)
         {
-            return this.FromTags(tags, DefaultPrefix, DefaultChance);
+            return this.FromTags(DefaultPrefix, DefaultChance, tags);
         }
 
         public IResponseBuilder FromTags(string prefix, IEnumerable<string> tags)
         {
-            return this.FromTags(tags, prefix, DefaultChance);
+            return this.FromTags(prefix, DefaultChance, tags);
         }
 
         public IResponseBuilder FromTags(double chance, IEnumerable<string> tags)
         {
-            return this.FromTags(tags, DefaultPrefix, chance);
+            return this.FromTags(DefaultPrefix, chance, tags);
         }
 
-        public IResponseBuilder FromTags(IEnumerable<string> tags, string prefix, double chance)
+        public IResponseBuilder FromTags(string prefix, double chance, IEnumerable<string> tags)
         {
             var tagRequirement = CreateTagRequirement(tags);
             var validArticles = this.articleFilter.FilterByTagRequirement(tagRequirement);
-            var possibilities = validArticles.Select(it => prefix + it);
+
+            IList<string> resolvedArticles = new List<string>();
+
+            foreach (var article in validArticles)
+            {
+                try
+                {
+                    string resolvedArticle = this.articleResolver.Resolve(article, this.context);
+                    resolvedArticles.Add(resolvedArticle);
+                }
+                catch (ArgumentException)
+                {
+                    continue;
+                }
+            }
+
+            var possibilities = resolvedArticles.Select(it => prefix + it);
             var part = this.PickAnyOfWithChance(possibilities, chance);
             this.stringBuilder.Append(part);
 

@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using Autofac;
@@ -16,6 +17,7 @@ namespace Mofichan.Library
             builder.RegisterInstance(BuildLibrary("emotes"));
 
             builder.RegisterType<ArticleFilter>().As<IArticleFilter>();
+            builder.RegisterType<ArticleResolver>().As<IArticleResolver>();
             builder.RegisterType<ResponseBuilder>().As<IResponseBuilder>();
         }
 
