@@ -16,9 +16,9 @@ namespace Mofichan.Tests.Library
             {
                 yield return new object[]
                 {
-                    new StringBuilder("{ \"articles\": [")
+                    new StringBuilder("[")
                         .Append(BuildJsonArticle("this is foo", "foo"))
-                        .Append("]}")
+                        .Append("]")
                         .ToString(),
 
                     new[]
@@ -29,10 +29,10 @@ namespace Mofichan.Tests.Library
 
                 yield return new object[]
                 {
-                    new StringBuilder("{ \"articles\": [")
+                    new StringBuilder("[")
                         .Append(BuildJsonArticle("this is foo", "foo")).Append(",")
                         .Append(BuildJsonArticle("this is foo and bar", "foo", "bar"))
-                        .Append("]}")
+                        .Append("]")
                         .ToString(),
 
                     new[]
@@ -44,11 +44,11 @@ namespace Mofichan.Tests.Library
 
                 yield return new object[]
                 {
-                    new StringBuilder("{ \"articles\": [")
+                    new StringBuilder("[")
                         .Append(BuildJsonArticle("this is foo", "foo")).Append(",")
                         .Append(BuildJsonArticle("this is foo and bar", "foo", "bar")).Append(",")
                         .Append(BuildJsonArticle("this is foo, bar and baz", "foo", "bar", "baz"))
-                        .Append("]}")
+                        .Append("]")
                         .ToString(),
 
                     new[]

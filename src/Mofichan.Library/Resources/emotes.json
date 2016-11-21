@@ -1,0 +1,18 @@
+﻿[
+  {
+    "article": ":3",
+    "tags": [ "emote", "happy", "cute" ]
+  },
+  {
+    "article": "^-^",
+    "tags": [ "emote", "happy", "cute" ]
+  },
+  {
+    "article": ":)",
+    "tags": [ "emote", "happy" ]
+  },
+  {
+    "article": "o/",
+    "tags": [ "emote", "greeting", "goodbye" ]
+  }
+]

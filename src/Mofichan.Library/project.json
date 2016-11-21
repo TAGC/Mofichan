@@ -1,5 +1,10 @@
 ﻿{
   "version": "1.0.0-*",
+  "buildOptions": {
+    "embed": {
+      "include": "Resources/*.json"
+    }
+  },
 
   "dependencies": {
     "Autofac": "4.2.0",

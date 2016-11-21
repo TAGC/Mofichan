@@ -1,14 +1,33 @@
-﻿using System;
+﻿using System.Diagnostics;
+using System.IO;
+using System.Reflection;
 using Autofac;
+using Mofichan.Core.Interfaces;
 
 namespace Mofichan.Library
 {
-    public class LibraryModule : Module
+    public class LibraryModule : Autofac.Module
     {
         protected override void Load(ContainerBuilder builder)
         {
-            // TODO
-            throw new NotImplementedException();
+            /*
+             * Libraries.
+             */
+            builder.RegisterInstance(BuildLibrary("emotes"));
+
+            builder.RegisterType<ArticleFilter>().As<IArticleFilter>();
+            builder.RegisterType<ResponseBuilder>().As<IResponseBuilder>();
+        }
+
+        private static ILibrary BuildLibrary(string resourceName)
+        {
+            var assembly = typeof(LibraryModule).GetTypeInfo().Assembly;
+            var resourcePath = "Mofichan.Library.Resources." + resourceName + ".json";
+            var resourceStream = assembly.GetManifestResourceStream(resourcePath);
+
+            Debug.Assert(resourceStream != null, "The resource should exist");
+
+            return new JsonSourceLibrary(new StreamReader(resourceStream));
         }
     }
 }

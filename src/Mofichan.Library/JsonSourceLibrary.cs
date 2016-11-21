@@ -18,8 +18,7 @@ namespace Mofichan.Library
 
         private static IEnumerable<TaggedArticle> LoadArticles(string source)
         {
-            JObject root = JObject.Parse(source);
-            JArray articles = (JArray)root["articles"];
+            JArray articles = JArray.Parse(source);
 
             return from articleNode in articles.Children()
                    let article = articleNode["article"].Value<string>()
