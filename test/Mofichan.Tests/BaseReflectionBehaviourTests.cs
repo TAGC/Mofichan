@@ -36,6 +36,10 @@ namespace Mofichan.Tests
 
         private class MockReflectionBehaviour : BaseReflectionBehaviour
         {
+            public MockReflectionBehaviour() : base(() => Mock.Of<IResponseBuilder>())
+            {
+            }
+
             [MockIncomingMessageFilter(permitMessage: true)]
             public OutgoingMessage? Should_Receive_Message_And_Add_Suffix_Foo(IncomingMessage message)
             {

@@ -8,6 +8,7 @@ using Mofichan.Behaviour.Base;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
 using Mofichan.Core.Utility;
+using Mofichan.Library;
 using Serilog;
 
 namespace Mofichan.Runner
@@ -91,6 +92,9 @@ namespace Mofichan.Runner
             containerBuilder
                 .RegisterType<BehaviourChainBuilder>()
                 .As<IBehaviourChainBuilder>();
+
+            // Register library module.
+            containerBuilder.RegisterModule<LibraryModule>();
 
             // Register behaviour plugins.
             containerBuilder

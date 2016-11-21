@@ -21,8 +21,10 @@ namespace Mofichan.Behaviour.Diagnostics
         /// <summary>
         /// Initializes a new instance of the <see cref="DiagnosticsBehaviour"/> class.
         /// </summary>
+        /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder"/>.</param>
         /// <param name="logger">The logger to use.</param>
-        public DiagnosticsBehaviour(ILogger logger)
+        public DiagnosticsBehaviour(Func<IResponseBuilder> responseBuilderFactory, ILogger logger)
+            : base(responseBuilderFactory)
         {
             this.logger = logger;
         }

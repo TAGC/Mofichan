@@ -18,7 +18,7 @@ namespace Mofichan.Tests
         {
             private readonly string suffix;
 
-            public MockBehaviour(string toAppend)
+            public MockBehaviour(string toAppend) : base(() => Mock.Of<IResponseBuilder>())
             {
                 this.suffix = toAppend;
             }

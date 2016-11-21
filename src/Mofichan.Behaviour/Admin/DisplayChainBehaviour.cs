@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
@@ -28,6 +29,14 @@ namespace Mofichan.Behaviour.Admin
         private const string BehaviourChainConnector = " ⇄ ";
 
         private IList<IMofichanBehaviour> behaviourStack;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DisplayChainBehaviour"/> class.
+        /// </summary>
+        /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder"/>.</param>
+        public DisplayChainBehaviour(Func<IResponseBuilder> responseBuilderFactory) : base(responseBuilderFactory)
+        {
+        }
 
         /// <summary>
         /// Returns a string representation of the the behaviour chain.

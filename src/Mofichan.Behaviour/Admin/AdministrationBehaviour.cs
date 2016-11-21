@@ -27,12 +27,14 @@ namespace Mofichan.Behaviour.Admin
         /// <summary>
         /// Initializes a new instance of the <see cref="AdministrationBehaviour" /> class.
         /// </summary>
+        /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder"/>.</param>
         /// <param name="chainBuilder">The object to use for composing sub-behaviours into a chain.</param>
         /// <param name="logger">The logger to use.</param>
-        public AdministrationBehaviour(IBehaviourChainBuilder chainBuilder, ILogger logger) : base(
+        public AdministrationBehaviour(Func<IResponseBuilder> responseBuilderFactory, IBehaviourChainBuilder chainBuilder,
+            ILogger logger) : base(
             chainBuilder,
-            new ToggleEnableBehaviour(),
-            new DisplayChainBehaviour())
+            new ToggleEnableBehaviour(responseBuilderFactory),
+            new DisplayChainBehaviour(responseBuilderFactory))
         {
             this.logger = logger.ForContext<AdministrationBehaviour>();
         }

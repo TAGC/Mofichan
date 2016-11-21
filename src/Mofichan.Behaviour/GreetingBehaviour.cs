@@ -24,18 +24,12 @@ namespace Mofichan.Behaviour
         private static readonly string[] MofiGreetings = new[] { "Hey", "Hi", "Hello" };
         private static readonly string[] WellbeingResponses = new[] { "I'm good thanks", "I'm okay ty" };
 
-        private static readonly string[] MofiWellbeingEmotes = new[] { ":3", "^-^" };
-        private static readonly string[] MofiGreetingEmotes = new[] { ":3", "^-^", "o/" };
-        private static readonly double EmoteChance = 0.7;
-
-        private readonly Random random;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="GreetingBehaviour"/> class.
+        /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder"/>.</param>
         /// </summary>
-        public GreetingBehaviour()
+        public GreetingBehaviour(Func<IResponseBuilder> responseBuilderFactory) : base(responseBuilderFactory)
         {
-            this.random = new Random();
         }
 
         /// <summary>
@@ -47,9 +41,16 @@ namespace Mofichan.Behaviour
         public OutgoingMessage? ReturnGreeting(IncomingMessage message)
         {
             var sender = message.Context.From as IUser;
-            var recipient = message.Context.To as IUser;
 
-            return this.ConstructGreetingMessage(mofichan: recipient, target: sender);
+            var responseBody = this.ResponseBuilder
+                .FromAnyOf(prefix: string.Empty, phrases: MofiGreetings)
+                .FromRaw(" " + sender.Name)
+                .FromTags("emote,greeting", "emote,cute")
+                .Build();
+
+            var context = new MessageContext(from: null, to: sender, body: responseBody);
+
+            return new OutgoingMessage { Context = context };
         }
 
         [RegexIncomingMessageFilter(IdentityMatch, RegexOptions.IgnoreCase)]
@@ -58,31 +59,14 @@ namespace Mofichan.Behaviour
         {
             var sender = message.Context.From as IUser;
 
-            string wellbeingResponse = WellbeingResponses[this.random.Next(WellbeingResponses.Length)];
-            string emote = string.Empty;
+            var responseBody = this.ResponseBuilder
+                .FromAnyOf(prefix: string.Empty, phrases: WellbeingResponses)
+                .FromRaw(" " + sender.Name)
+                .FromTags("emote,happy", "emote,cute")
+                .Build();
 
-            if (this.random.NextDouble() < EmoteChance)
-            {
-                emote = string.Concat(" ", MofiWellbeingEmotes[this.random.Next(MofiWellbeingEmotes.Length)]);
-            }
+            var context = new MessageContext(from: null, to: sender, body: responseBody);
 
-            var body = string.Format("{0} {1}{2}", wellbeingResponse, sender.Name, emote);
-            var context = new MessageContext(from: null, to: sender, body: body);
-            return new OutgoingMessage { Context = context };
-        }
-
-        private OutgoingMessage ConstructGreetingMessage(IUser mofichan, IUser target)
-        {
-            string greeting = MofiGreetings[this.random.Next(MofiGreetings.Length)];
-            string emote = string.Empty;
-
-            if (this.random.NextDouble() < EmoteChance)
-            {
-                emote = string.Concat(" ", MofiGreetingEmotes[this.random.Next(MofiGreetingEmotes.Length)]);
-            }
-
-            var body = string.Format("{0} {1}{2}", greeting, target.Name, emote);
-            var context = new MessageContext(from: mofichan, to: target, body: body);
             return new OutgoingMessage { Context = context };
         }
     }

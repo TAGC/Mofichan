@@ -12,20 +12,21 @@ namespace Mofichan.Behaviour.Base
     /// </summary>
     public abstract class BaseBehaviour : IMofichanBehaviour
     {
+        private readonly Func<IResponseBuilder> responseBuilderFactory;
         private readonly bool passThroughMessages;
 
         private IObserver<IncomingMessage> downstreamObserver;
         private IObserver<OutgoingMessage> upstreamObserver;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BaseBehaviour"/> class.
+        /// Initializes a new instance of the <see cref="BaseBehaviour" /> class.
         /// </summary>
-        /// <param name="passThroughMessages">
-        /// If set to <c>true</c>, unhandled messages will automatically
-        /// be passed downstream.
-        /// </param>
-        protected BaseBehaviour(bool passThroughMessages = true)
+        /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder"/>.</param>
+        /// <param name="passThroughMessages">If set to <c>true</c>, unhandled messages will automatically
+        /// {D255958A-8513-4226-94B9-080D98F904A1}be passed downstream and upstream.</param>
+        protected BaseBehaviour(Func<IResponseBuilder> responseBuilderFactory, bool passThroughMessages = true)
         {
+            this.responseBuilderFactory = responseBuilderFactory;
             this.passThroughMessages = passThroughMessages;
         }
 
@@ -41,6 +42,14 @@ namespace Mofichan.Behaviour.Base
             {
                 return this.GetType().GetTypeInfo().Name.Replace("Behaviour", string.Empty)
                     .ToLowerInvariant();
+            }
+        }
+
+        protected IResponseBuilder ResponseBuilder
+        {
+            get
+            {
+                return this.responseBuilderFactory();
             }
         }
 
