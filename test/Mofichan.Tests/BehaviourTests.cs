@@ -1,6 +1,7 @@
 ﻿using System;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
+using Mofichan.Core.Interfaces;
 using Moq;
 using Shouldly;
 using Xunit;
@@ -11,7 +12,8 @@ namespace Mofichan.Tests
     {
         private class MockBehaviour : BaseBehaviour
         {
-            public MockBehaviour(bool passThroughMessages = true) : base(passThroughMessages)
+            public MockBehaviour(bool passThroughMessages = true) :
+                base(() => Mock.Of<IResponseBuilder>(), passThroughMessages)
             {
             }
 

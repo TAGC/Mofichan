@@ -7,6 +7,7 @@ using Mofichan.Behaviour.Base;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
 using Mofichan.Core.Utility;
+using Mofichan.Library;
 using Moq;
 using Serilog;
 using Shouldly;
@@ -69,6 +70,8 @@ namespace Mofichan.Spec
             containerBuilder
                 .RegisterInstance(new LoggerConfiguration().CreateLogger())
                 .As<ILogger>();
+
+            containerBuilder.RegisterModule<LibraryModule>();
 
             return containerBuilder;
         }

@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
+using Mofichan.Core.Interfaces;
 
 namespace Mofichan.Behaviour
 {
@@ -22,8 +23,9 @@ namespace Mofichan.Behaviour
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DelayBehaviour"/> class.
+        /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder"/>.</param>
         /// </summary>
-        public DelayBehaviour()
+        public DelayBehaviour(Func<IResponseBuilder> responseBuilderFactory) : base(responseBuilderFactory)
         {
             this.random = new Random();
         }

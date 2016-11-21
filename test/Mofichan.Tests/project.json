@@ -8,6 +8,9 @@
     "Mofichan.Behaviour": {
       "target": "project"
     },
+    "Mofichan.Library": {
+      "target": "project"
+    },
     "Mofichan.Core": {
       "target": "project"
     },

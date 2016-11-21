@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using Mofichan.Core;
+using Mofichan.Core.Interfaces;
 
 namespace Mofichan.Behaviour.Base
 {
@@ -21,9 +22,13 @@ namespace Mofichan.Behaviour.Base
         private readonly Queue<OutgoingMessage> outgoingMessageQueue;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BaseReflectionBehaviour"/> class.
+        /// Initializes a new instance of the <see cref="BaseReflectionBehaviour" /> class.
         /// </summary>
-        protected BaseReflectionBehaviour()
+        /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder"/>.</param>
+        /// <param name="passThroughMessages">If set to <c>true</c>, unhandled messages will automatically
+        /// be passed downstream and upstream.</param>
+        protected BaseReflectionBehaviour(Func<IResponseBuilder> responseBuilderFactory, bool passThroughMessages = true)
+            : base(responseBuilderFactory, passThroughMessages)
         {
             this.outgoingMessageQueue = new Queue<OutgoingMessage>();
 

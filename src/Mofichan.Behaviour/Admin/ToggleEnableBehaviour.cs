@@ -31,8 +31,9 @@ namespace Mofichan.Behaviour.Admin
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ToggleEnableBehaviour"/> class.
+        /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder"/>.</param>
         /// </summary>
-        public ToggleEnableBehaviour()
+        public ToggleEnableBehaviour(Func<IResponseBuilder> responseBuilderFactory) : base(responseBuilderFactory)
         {
             this.behaviourMap = new Dictionary<string, EnableableBehaviourDecorator>();
         }

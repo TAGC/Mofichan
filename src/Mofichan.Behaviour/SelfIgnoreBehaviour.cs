@@ -11,6 +11,15 @@ namespace Mofichan.Behaviour
     public class SelfIgnoreBehaviour : BaseBehaviour
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="SelfIgnoreBehaviour"/> class.
+        /// </summary>
+        /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder"/>.</param>
+        public SelfIgnoreBehaviour(Func<IResponseBuilder> responseBuilderFactory)
+            : base(responseBuilderFactory)
+        {
+        }
+
+        /// <summary>
         /// Determines whether this instance can process the specified incoming message.
         /// </summary>
         /// <param name="message">The message to check can be handled.</param>
