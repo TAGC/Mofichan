@@ -20,6 +20,7 @@ before_build:
 
 build_script:
 - dotnet build "src\Mofichan.Core" -c %CONFIGURATION% --no-dependencies
+- dotnet build "src\Mofichan.Library" -c %CONFIGURATION% --no-dependencies
 - dotnet build "src\Mofichan.Backend" -c %CONFIGURATION% --no-dependencies
 - dotnet build "src\Mofichan.Behaviour" -c %CONFIGURATION% --no-dependencies
 - dotnet build "src\Mofichan.Runner" -c %CONFIGURATION% --no-dependencies
