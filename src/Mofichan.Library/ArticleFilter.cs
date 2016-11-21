@@ -35,7 +35,7 @@ namespace Mofichan.Library
         {
             return from article in this.articles
                    where requirement.SatisfiedBy(article.Tags)
-                   select article.Body;
+                   select article.Article;
         }
     }
 }

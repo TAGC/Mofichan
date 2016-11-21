@@ -6,7 +6,8 @@
     "Mofichan.Core": {
       "target": "project"
     },
-    "NETStandard.Library": "1.6.1"
+    "NETStandard.Library": "1.6.1",
+    "Newtonsoft.Json": "9.0.2-beta1"
   },
 
   "frameworks": {
