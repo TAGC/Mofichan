@@ -5,11 +5,27 @@ using System.Text.RegularExpressions;
 
 namespace Mofichan.Library
 {
+    /// <summary>
+    /// Represents a tag requirement.
+    /// <para></para>
+    /// These will typically be used to filter the kind of responses
+    /// Mofichan will choose to respond with based on the tags
+    /// associated with each possible response she knows about.
+    /// </summary>
     internal interface ITagRequirement
     {
+        /// <summary>
+        /// Returns whether this <c>ITagRequirement</c> is satisfied by
+        /// the provided collection of tags.
+        /// </summary>
+        /// <param name="tags">The tag collection.</param>
+        /// <returns><c>true</c> if <c>this</c> is satisfied; otherwise, <c>false</c>.</returns>
         bool SatisfiedBy(IEnumerable<string> tags);
     }
 
+    /// <summary>
+    /// Provides static fields and methods.
+    /// </summary>
     internal static class TagRequirement
     {
         internal static readonly char AndSeparator = ',';
@@ -19,6 +35,12 @@ namespace Mofichan.Library
         private static readonly string AndMatcher = string.Format(@"((?<and>{0}){1})*(?<and>{0})", TagMatch, AndSeparator);
         private static readonly string OrMatcher = string.Format(@"^((?<or>{0}){1})*(?<or>{0})$", AndMatcher, OrSeparator);
 
+        /// <summary>
+        /// Parses a string and returns the represented <see cref="ITagRequirement"/>. 
+        /// </summary>
+        /// <param name="representation">The tag requirement string representation.</param>
+        /// <returns>The represented tag requirement.</returns>
+        /// <exception cref="ArgumentException">Thrown if the representation is invalid.</exception>
         public static ITagRequirement Parse(string representation)
         {
             var root = new AnyTagRequirement(from orGroup in GetMatchesFromRegex(representation, OrMatcher, "or")
