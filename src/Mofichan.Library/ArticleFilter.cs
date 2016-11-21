@@ -22,7 +22,6 @@ namespace Mofichan.Library
     /// An instance of <see cref="IArticleFilter"/> that filters against
     /// a set of <see cref="TaggedArticle"/> taken from a collection of <see cref="ILibrary"/>.  
     /// </summary>
-    /// <seealso cref="Mofichan.Library.IArticleFilter" />
     internal class ArticleFilter : IArticleFilter
     {
         private readonly IEnumerable<TaggedArticle> articles;
