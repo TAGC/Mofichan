@@ -21,9 +21,6 @@ namespace Mofichan.Behaviour
 
         private const string WellbeingQueries = @"(how are you|how r u|you alright)";
 
-        private static readonly string[] MofiGreetings = new[] { "Hey", "Hi", "Hello" };
-        private static readonly string[] WellbeingResponses = new[] { "I'm good thanks", "I'm okay ty" };
-
         /// <summary>
         /// Initializes a new instance of the <see cref="GreetingBehaviour"/> class.
         /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder"/>.</param>
@@ -43,8 +40,8 @@ namespace Mofichan.Behaviour
             var sender = message.Context.From as IUser;
 
             var responseBody = this.ResponseBuilder
-                .FromAnyOf(prefix: string.Empty, phrases: MofiGreetings)
-                .FromRaw(" " + sender.Name)
+                .UsingContext(message.Context)
+                .FromTags(prefix: string.Empty, tags: new[] { "greeting,phrase" })
                 .FromTags("emote,greeting", "emote,cute")
                 .Build();
 
@@ -60,8 +57,8 @@ namespace Mofichan.Behaviour
             var sender = message.Context.From as IUser;
 
             var responseBody = this.ResponseBuilder
-                .FromAnyOf(prefix: string.Empty, phrases: WellbeingResponses)
-                .FromRaw(" " + sender.Name)
+                .UsingContext(message.Context)
+                .FromTags(prefix: string.Empty, tags: new[] { "wellbeing-response,phrase" })
                 .FromTags("emote,happy", "emote,cute")
                 .Build();
 

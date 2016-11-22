@@ -14,6 +14,7 @@ namespace Mofichan.Library
             /*
              * Libraries.
              */
+            builder.RegisterInstance(BuildLibrary("greetings"));
             builder.RegisterInstance(BuildLibrary("emotes"));
 
             builder.RegisterType<ArticleFilter>().As<IArticleFilter>();

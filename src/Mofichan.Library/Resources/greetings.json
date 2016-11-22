@@ -1,0 +1,30 @@
+﻿[
+  {
+    "article": "Hello ${message.from.name}",
+    "tags": [ "phrase", "greeting" ]
+  },
+  {
+    "article": "Hey ${message.from.name}",
+    "tags": [ "phrase", "greeting" ]
+  },
+  {
+    "article": "Hi ${message.from.name}",
+    "tags": [ "phrase", "greeting" ]
+  },
+  {
+    "article": "I'm good ty",
+    "tags": [ "phrase", "wellbeing-response" ]
+  },
+  {
+    "article": "I'm good thanks",
+    "tags": [ "phrase", "wellbeing-response" ]
+  },
+  {
+    "article": "I'm okay ty",
+    "tags": [ "phrase", "wellbeing-response" ]
+  },
+  {
+    "article": "I'm okay thanks",
+    "tags": [ "phrase", "wellbeing-response" ]
+  }
+]
