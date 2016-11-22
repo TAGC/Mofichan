@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
 using Mofichan.Core.Interfaces;
@@ -19,8 +20,8 @@ namespace Mofichan.Core
         private readonly ILogger logger;
 
         private readonly IMofichanBackend backend;
-        private readonly IMofichanBehaviour rootBehaviour;
 
+        private List<IMofichanBehaviour> behaviours;
         private bool disposedValue = false; // To detect redundant calls
 
         /// <summary>
@@ -44,10 +45,10 @@ namespace Mofichan.Core
             this.logger.Information("Initialising Mofichan with {Backend} and {Behaviours}", backend, behaviours);
 
             this.backend = backend;
-            this.rootBehaviour = BuildBehaviourChain(behaviours, chainBuilder);
+            var rootBehaviour = BuildBehaviourChain(behaviours, chainBuilder);
 
-            this.backend.Subscribe(this.rootBehaviour);
-            this.rootBehaviour.Subscribe(this.backend);
+            this.backend.Subscribe(rootBehaviour);
+            rootBehaviour.Subscribe(this.backend);
         }
 
         /// <summary>
@@ -58,8 +59,10 @@ namespace Mofichan.Core
         /// </summary>
         public void Start()
         {
+            Debug.Assert(this.behaviours != null, "The behaviour list should have been set");
+
             this.backend.Start();
-            this.rootBehaviour.Start();
+            this.behaviours.ForEach(it => it.Start());
             this.logger.Information("Initialised Mofichan");
         }
 
@@ -84,12 +87,7 @@ namespace Mofichan.Core
                 if (disposing)
                 {
                     this.backend.Dispose();
-
-                    /*
-                     * Disposing the root behaviour should
-                     * propagate disposal down the chain.
-                     */
-                    this.rootBehaviour.Dispose();
+                    this.behaviours?.ForEach(it => ((IObserver<IncomingMessage>)it).OnCompleted());
                 }
 
                 this.disposedValue = true;
@@ -105,7 +103,7 @@ namespace Mofichan.Core
         /// <returns>
         /// The root behaviour in the chain.
         /// </returns>
-        private static IMofichanBehaviour BuildBehaviourChain(
+        private IMofichanBehaviour BuildBehaviourChain(
             IEnumerable<IMofichanBehaviour> behaviours, IBehaviourChainBuilder chainBuilder)
         {
             var behaviourList = behaviours.ToList();
@@ -119,6 +117,8 @@ namespace Mofichan.Core
             {
                 behaviour.InspectBehaviourStack(behaviourList);
             }
+
+            this.behaviours = behaviourList;
 
             return chainBuilder.BuildChain(behaviourList);
         }

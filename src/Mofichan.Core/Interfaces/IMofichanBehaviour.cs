@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Reactive.Subjects;
 
 namespace Mofichan.Core.Interfaces
@@ -11,7 +10,7 @@ namespace Mofichan.Core.Interfaces
     /// messages, but may also allow her to have "passive" behaviours that
     /// cause her to act independently of received messages.
     /// </summary>
-    public interface IMofichanBehaviour : ISubject<IncomingMessage>, ISubject<OutgoingMessage>, IDisposable
+    public interface IMofichanBehaviour : ISubject<IncomingMessage>, ISubject<OutgoingMessage>
     {
         /// <summary>
         /// Gets the behaviour module identifier.

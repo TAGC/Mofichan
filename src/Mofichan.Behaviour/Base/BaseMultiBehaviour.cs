@@ -102,11 +102,11 @@ namespace Mofichan.Behaviour.Base
         }
 
         /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// Notifies the observer that the provider has finished sending push-based notifications.
         /// </summary>
-        public virtual void Dispose()
+        public virtual void OnCompleted()
         {
-            this.subBehaviours.ForEach(it => it.Dispose());
+            this.subBehaviours.ForEach(it => ((IObserver<IncomingMessage>)it).OnCompleted());
         }
 
         /// <summary>
@@ -127,6 +127,15 @@ namespace Mofichan.Behaviour.Base
         {
             var behaviour = this.MostDownstreamSubBehaviour;
             behaviour.OnNext(message);
+        }
+
+        /// <summary>
+        /// Notifies the observer that the provider has experienced an error condition.
+        /// </summary>
+        /// <param name="error">An object that provides additional information about the error.</param>
+        public virtual void OnError(Exception error)
+        {
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -162,23 +171,6 @@ namespace Mofichan.Behaviour.Base
         public override string ToString()
         {
             return string.Concat("[", this.Id, "]");
-        }
-
-        /// <summary>
-        /// Notifies the observer that the provider has finished sending push-based notifications.
-        /// </summary>
-        public virtual void OnCompleted()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Notifies the observer that the provider has experienced an error condition.
-        /// </summary>
-        /// <param name="error">An object that provides additional information about the error.</param>
-        public virtual void OnError(Exception error)
-        {
-            throw new NotImplementedException();
         }
     }
 }

@@ -42,14 +42,6 @@ namespace Mofichan.Behaviour.Base
         protected IMofichanBehaviour DelegateBehaviour { get; }
 
         /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        public virtual void Dispose()
-        {
-            this.DelegateBehaviour.Dispose();
-        }
-
-        /// <summary>
         /// Allows the behaviour to inspect the stack of behaviours Mofichan
         /// will be loaded with.
         /// </summary>

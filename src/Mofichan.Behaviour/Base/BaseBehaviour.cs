@@ -76,14 +76,6 @@ namespace Mofichan.Behaviour.Base
         }
 
         /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        public virtual void Dispose()
-        {
-            // Override if necessary.
-        }
-
-        /// <summary>
         /// Notifies the observer that the provider has finished sending push-based notifications.
         /// </summary>
         public virtual void OnCompleted()

@@ -34,6 +34,9 @@ namespace Mofichan.Tests
                 }
             }
 
+            public bool Started { get; private set; }
+            public bool Completed { get; private set; }
+
             public IDisposable Subscribe(IObserver<IncomingMessage> observer)
             {
                 this.DownstreamObserver = observer;
@@ -53,12 +56,12 @@ namespace Mofichan.Tests
 
             public void Start()
             {
-                throw new NotImplementedException();
+                this.Started = true;
             }
 
             public void OnCompleted()
             {
-                throw new NotImplementedException();
+                this.Completed = true;
             }
 
             public void OnError(Exception error)
@@ -106,6 +109,50 @@ namespace Mofichan.Tests
             }
         }
         #endregion
+
+        [Fact]
+        public void Multi_Behaviour_Should_Signal_Start_To_All_Sub_Behaviours_When_Started()
+        {
+            // GIVEN a collection of mock sub-behaviours.
+            var subBehaviours = new[]
+            {
+                new MockSubBehaviour(),
+                new MockSubBehaviour(),
+                new MockSubBehaviour(),
+            };
+
+            // GIVEN a multi-behaviour containing these sub-behaviours.
+            var multiBehaviour = new MockMultiBehaviour(subBehaviours);
+            subBehaviours.ShouldAllBe(it => !it.Started && !it.Completed);
+
+            // WHEN we start the multi-behaviour.
+            multiBehaviour.Start();
+
+            // THEN the sub-behaviours should have each started.
+            subBehaviours.ShouldAllBe(it => it.Started);
+        }
+
+        [Fact]
+        public void Multi_Behaviour_Should_Signal_Completion_To_All_Sub_Behaviours_When_Completed()
+        {
+            // GIVEN a collection of mock sub-behaviours.
+            var subBehaviours = new[]
+            {
+                new MockSubBehaviour(),
+                new MockSubBehaviour(),
+                new MockSubBehaviour(),
+            };
+
+            // GIVEN a multi-behaviour containing these sub-behaviours.
+            var multiBehaviour = new MockMultiBehaviour(subBehaviours);
+            subBehaviours.ShouldAllBe(it => !it.Started && !it.Completed);
+
+            // WHEN we signal completion to the multi-behaviour.
+            multiBehaviour.OnCompleted();
+
+            // THEN the sub-behaviours should have each have been signalled completion.
+            subBehaviours.ShouldAllBe(it => it.Completed);
+        }
 
         [Fact]
         public void Multi_Behaviour_Should_Subscribe_Upstream_Observers_To_Most_Upstream_Sub_Behaviour()
