@@ -16,9 +16,8 @@ namespace Mofichan.Runner
     /// <summary>
     /// Launches Mofichan as a console application.
     /// </summary>
-    public class Program
+    public static class Program
     {
-        private const string MofichanName = "Mofichan";
         private static readonly string DefaultConfigPath = "mofichan.config";
 
         /// <summary>
@@ -66,7 +65,7 @@ namespace Mofichan.Runner
             var chainBuilder = container.Resolve<IBehaviourChainBuilder>();
             var rootLogger = container.Resolve<ILogger>();
 
-            var mofichan = new Kernel(MofichanName, backend, behaviours, chainBuilder, rootLogger);
+            var mofichan = new Kernel(backend, behaviours, chainBuilder, rootLogger);
 
             return mofichan;
         }

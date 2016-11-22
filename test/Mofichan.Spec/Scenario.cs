@@ -139,7 +139,7 @@ namespace Mofichan.Spec
 
         protected void Given_Mofichan_is_running()
         {
-            this.Mofichan = new Kernel("Mofichan", this.Backend, this.Behaviours,
+            this.Mofichan = new Kernel(this.Backend, this.Behaviours,
                 this.Container.Resolve<IBehaviourChainBuilder>(),
                 this.Container.Resolve<ILogger>());
 

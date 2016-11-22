@@ -35,7 +35,7 @@ namespace Mofichan.Tests
 
             // EXPECT an exception to be thrown if we construct a kernel with it.
             Assert.Throws<ArgumentNullException>(
-                () => new Kernel(string.Empty, backend, behaviours, chainBuilder, logger));
+                () => new Kernel(backend, behaviours, chainBuilder, logger));
         }
 
         [Fact]
@@ -50,7 +50,7 @@ namespace Mofichan.Tests
 
             // EXPECT an exception to be thrown if we construct a kernel with it.
             Assert.Throws<ArgumentException>(
-                () => new Kernel(string.Empty, backend, behaviours, chainBuilder, logger));
+                () => new Kernel(backend, behaviours, chainBuilder, logger));
         }
 
         [Fact]
@@ -64,7 +64,7 @@ namespace Mofichan.Tests
             var backend = new Mock<IMofichanBackend>();
 
             // GIVEN a kernel constructed with the backend.
-            var kernel = new Kernel(string.Empty, backend.Object, behaviours, chainBuilder, logger);
+            var kernel = new Kernel(backend.Object, behaviours, chainBuilder, logger);
 
             // WHEN we start the kernel.
             kernel.Start();

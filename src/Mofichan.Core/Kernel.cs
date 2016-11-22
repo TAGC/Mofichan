@@ -27,19 +27,18 @@ namespace Mofichan.Core
         /// <summary>
         /// Initializes a new instance of the <see cref="Kernel" /> class.
         /// </summary>
-        /// <param name="name">Mofichan's name (which should of course just be Mofichan).</param>
         /// <param name="backend">The selected backend.</param>
         /// <param name="behaviours">The collection of behaviours to determine Mofichan's personality.</param>
         /// <param name="chainBuilder">The object to use to compose the provided behaviours into a chain.</param>
         /// <param name="logger">The logger to use.</param>
-        public Kernel(string name, IMofichanBackend backend, IEnumerable<IMofichanBehaviour> behaviours,
+        public Kernel(IMofichanBackend backend, IEnumerable<IMofichanBehaviour> behaviours,
             IBehaviourChainBuilder chainBuilder, ILogger logger)
         {
             Raise.ArgumentNullException.IfIsNull(behaviours, nameof(behaviours));
             Raise.ArgumentException.IfNot(
                 behaviours.Any(),
                 nameof(behaviours),
-                string.Format("At least one behaviour must be specified for {0}", name));
+                string.Format("At least one behaviour must be specified for Mofichan"));
 
             this.logger = logger.ForContext<Kernel>();
             this.logger.Information("Initialising Mofichan with {Backend} and {Behaviours}", backend, behaviours);
