@@ -35,6 +35,7 @@ namespace Mofichan.Behaviour.Base
             var candidateMethods = this.GetType().GetTypeInfo().GetMethods(CandidateBindingFlags);
 
             this.messageHandlers = from methodInfo in candidateMethods
+                                   where HasValidSignature(methodInfo)
                                    let filters = methodInfo.GetCustomAttributes<BaseIncomingMessageFilterAttribute>()
                                    where filters.Any()
                                    let rootFilter = this.BuildFilterForMethod(filters, methodInfo)
