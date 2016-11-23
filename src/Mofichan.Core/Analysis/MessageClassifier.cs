@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using Mofichan.Core.Utility;
 
@@ -40,6 +42,8 @@ namespace Mofichan.Core.Analysis
 
         private class BinaryBayesianClassifier
         {
+            private static readonly IEnumerable<string> IgnoredTerms = StopWords;
+
             private readonly IDictionary<string, double> positivePosteriors;
             private readonly IDictionary<string, double> negativePosteriors;
 
@@ -47,9 +51,6 @@ namespace Mofichan.Core.Analysis
                 IEnumerable<string> positiveExamples,
                 IEnumerable<string> negativeExamples)
             {
-                double numPositives = positiveExamples.Count();
-                double numNegatives = negativeExamples.Count();
-                double totalExamples = numPositives + numNegatives;
                 var combinedPosteriors = CalculatePosteriors(positiveExamples, negativeExamples);
 
                 this.positivePosteriors = combinedPosteriors[true];
@@ -106,10 +107,11 @@ namespace Mofichan.Core.Analysis
                 var posteriors = new Dictionary<string, double>();
 
                 double totalWordsForClass = classWordFrequencies.Sum(it => it.Value);
+                int vocabularySize = vocabulary.Count();
 
                 return (from term in vocabulary
                         let positiveOccurrencesOfTerm = classWordFrequencies[term]
-                        let termPosterior = positiveOccurrencesOfTerm / totalWordsForClass
+                        let termPosterior = (1 + positiveOccurrencesOfTerm) / (vocabularySize + totalWordsForClass)
                         select new { term, termPosterior })
                        .ToDictionary(it => it.term, it => it.termPosterior);
             }
@@ -130,8 +132,28 @@ namespace Mofichan.Core.Analysis
                      .Cast<Match>()
                      .Select(it => it.Value)
                      .Where(x => x != string.Empty)
+                     .Where(x => !IgnoredTerms.Contains(x.ToLowerInvariant()))
                      .GroupBy(x => x)
                      .ToDictionary(x => x.Key, x => x.Count());
+            }
+
+            private static IEnumerable<string> StopWords
+            {
+                get
+                {
+                    var assembly = typeof(MessageClassifier).GetTypeInfo().Assembly;
+                    var resourcePath = "Mofichan.Core.Resources.BayesianStopWords.txt";
+
+                    using (var stream = assembly.GetManifestResourceStream(resourcePath))
+                    using (var reader = new StreamReader(stream))
+                    {
+                        string line;
+                        while ((line = reader.ReadLine()) != null)
+                        {
+                            yield return line.Trim().ToLowerInvariant();
+                        }
+                    }
+                }
             }
         }
     }

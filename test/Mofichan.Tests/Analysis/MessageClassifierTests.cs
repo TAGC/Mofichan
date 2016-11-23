@@ -6,39 +6,8 @@ using Xunit;
 
 namespace Mofichan.Tests.Analysis
 {
-    public class MessageClassifierTests
+    public class MessageClassifierFixture
     {
-        public static IEnumerable<object[]> TestSet
-        {
-            get
-            {
-                yield return new object[]
-                {
-                    new TaggedMessage("Hey Mofichan ^-^",
-                        MessageClassification.DirectedAtMofichan,
-                        MessageClassification.Greeting)
-                };
-
-                yield return new object[]
-                {
-                    new TaggedMessage("Hi Mofi o/",
-                        MessageClassification.DirectedAtMofichan,
-                        MessageClassification.Greeting)
-                };
-
-                yield return new object[]
-                {
-                    new TaggedMessage("Nice weather today Mofi :)",
-                        MessageClassification.DirectedAtMofichan)
-                };
-
-                yield return new object[]
-                {
-                    new TaggedMessage("Spain is a nice place to visit")
-                };
-            }
-        }
-
         public static IEnumerable<TaggedMessage> TrainingSet
         {
             get
@@ -79,32 +48,110 @@ namespace Mofichan.Tests.Analysis
                 yield return new TaggedMessage("How are you, Mofi?",
                     MessageClassification.DirectedAtMofichan);
 
+                yield return new TaggedMessage("I think Adam is a bad person",
+                    MessageClassification.Unpleasant);
+
+                yield return new TaggedMessage("Susan is a fairly bad person",
+                    MessageClassification.Unpleasant);
+
+                yield return new TaggedMessage("John is definitely a bad person",
+                        MessageClassification.Unpleasant);
+
+                yield return new TaggedMessage("Amy is fairly nice once you get to know her",
+                    MessageClassification.Pleasant);
+
+                yield return new TaggedMessage("I think Steve is a really nice guy",
+                    MessageClassification.Pleasant);
+
+                yield return new TaggedMessage("Mofi, you're a really bad chatbot",
+                    MessageClassification.DirectedAtMofichan,
+                    MessageClassification.Unpleasant);
+
+                yield return new TaggedMessage("Mofi, you're a great chatbot",
+                    MessageClassification.DirectedAtMofichan,
+                    MessageClassification.Pleasant);
+
                 yield return new TaggedMessage("The capital of France is Paris?");
+            }
+        }
+
+        public MessageClassifierFixture()
+        {
+            this.Classifier = new MessageClassifier();
+            this.Classifier.Train(TrainingSet);
+        }
+
+        public MessageClassifier Classifier { get; }
+    }
+
+    public class MessageClassifierTests : IClassFixture<MessageClassifierFixture>
+    {
+        public static IEnumerable<object[]> TestSet
+        {
+            get
+            {
+                yield return new object[]
+                {
+                    new TaggedMessage("Hey Mofichan ^-^",
+                        MessageClassification.DirectedAtMofichan,
+                        MessageClassification.Greeting)
+                };
+
+                yield return new object[]
+                {
+                    new TaggedMessage("Hi Mofi o/",
+                        MessageClassification.DirectedAtMofichan,
+                        MessageClassification.Greeting)
+                };
+
+                yield return new object[]
+                {
+                    new TaggedMessage("Nice weather today Mofi :)",
+                        MessageClassification.DirectedAtMofichan)
+                };
+
+                yield return new object[]
+                {
+                    new TaggedMessage("Spain is an interesting place to visit")
+                };
+
+                yield return new object[]
+                {
+                    new TaggedMessage("Mofi please stop being bad",
+                    MessageClassification.DirectedAtMofichan,
+                    MessageClassification.Unpleasant)
+                };
+
+                yield return new object[]
+                {
+                    new TaggedMessage("I think Megan is pretty nice",
+                    MessageClassification.Pleasant)
+                };
             }
         }
 
         private readonly MessageClassifier classifier;
 
-        public MessageClassifierTests()
+        public MessageClassifierTests(MessageClassifierFixture classifierFixture)
         {
-            this.classifier = new MessageClassifier();
+            this.classifier = classifierFixture.Classifier;
         }
 
         [Theory]
         [MemberData(nameof(TestSet))]
-        public void Message_Classifier_Should_Classify_Message_When_Trained(TaggedMessage taggedMessage)
+        public void Message_Classifier_Should_Classify_Message_Correctly_After_Training(TaggedMessage taggedMessage)
         {
-            // GIVEN the classifier has been trained using the training set.
-            this.classifier.Train(TrainingSet);
+            // PRE: the message classifier should have been trained by the fixture.
 
             // WHEN we classify a message.
-            var actualClassifications = this.classifier.Classify(taggedMessage.Message);
+            var actualClassifications = new HashSet<MessageClassification>(
+                this.classifier.Classify(taggedMessage.Message));
 
             // THEN the expected classifications should have been associated with it.
-            var expectedClassifications = taggedMessage.Classifications;
+            var expectedClassifications = new HashSet<MessageClassification>(
+                taggedMessage.Classifications);
 
-            actualClassifications.Count().ShouldBe(expectedClassifications.Count());
-            expectedClassifications.ToList().ForEach(it => actualClassifications.ShouldContain(it));
+            actualClassifications.ShouldBe(expectedClassifications);
         }
     }
 }

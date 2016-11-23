@@ -1,6 +1,12 @@
 {
   "version": "1.0.0-*",
 
+  "buildOptions": {
+    "embed": {
+      "include": "Resources/*.txt"
+    }
+  },
+
   "dependencies": {
     "NETStandard.Library": "1.6.1",
     "Serilog": "2.4.0-dev-00746",
