@@ -26,34 +26,11 @@ namespace Mofichan.Core.Analysis
 
         public IEnumerable<MessageClassification> Classify(string message)
         {
-            var likelihoods = (from pair in this.classifierMap
-                               let classification = pair.Key
-                               let classifier = pair.Value
-                               let likelihood = classifier.GetMembershipLikelihood(message, classification)
-                               select new { classification, likelihood })
-                               .ToDictionary(it => it.classification, it => it.likelihood);
-
-            /**
-             * Normalising purely for convenience during tests.
-             */
-            var normalised = Normalise(likelihoods.Select(it => it.Value));
-            var averageLikelihood = normalised.Average();
-
-            var normalisedLikelihoods = likelihoods.Keys.Zip(
-                normalised, (classification, likelihood) => new { classification, likelihood });
-
-            return from entry in normalisedLikelihoods
-                   where entry.likelihood >= averageLikelihood
-                   select entry.classification;
-        }
-
-        private static IEnumerable<double> Normalise(IEnumerable<double> input)
-        {
-            var min = input.Min();
-            var max = input.Max();
-            var range = max - min;
-
-            return from o in input select (o - min) / range;
+            return from pair in this.classifierMap
+                   let classification = pair.Key
+                   let classifier = pair.Value
+                   where classifier.Classify(message, classification)
+                   select classification;
         }
 
         private static IEnumerable<MessageClassification> GetClassifications()
@@ -63,68 +40,88 @@ namespace Mofichan.Core.Analysis
 
         private class BinaryBayesianClassifier
         {
-            private readonly double prior;
-            private readonly IDictionary<string, double> posteriors;
+            private readonly IDictionary<string, double> positivePosteriors;
+            private readonly IDictionary<string, double> negativePosteriors;
 
             public BinaryBayesianClassifier(
                 IEnumerable<string> positiveExamples,
                 IEnumerable<string> negativeExamples)
             {
-                this.prior = CalculatePrior(positiveExamples, negativeExamples);
-                this.posteriors = CalculatorPosteriors(positiveExamples);
-            }
-
-            public double GetMembershipLikelihood(string message, MessageClassification temp)
-            {
-                var wordFrequencies = GetWordFrequencies(message);
-                var uniqueWords = wordFrequencies.Select(it => it.Key);
-
-                var wordPosteriors = from word in uniqueWords
-                                     let posterior = this.posteriors[word]
-                                     select posterior;
-
-                var likelihood = prior * wordPosteriors.Aggregate((a, e) => a * e);
-
-                return likelihood;
-            }
-
-            private static double CalculatePrior(IEnumerable<string> positiveExamples,
-                IEnumerable<string> negativeExamples)
-            {
                 double numPositives = positiveExamples.Count();
                 double numNegatives = negativeExamples.Count();
+                double totalExamples = numPositives + numNegatives;
+                var combinedPosteriors = CalculatePosteriors(positiveExamples, negativeExamples);
 
-                return numPositives / (numPositives + numNegatives);
+                this.positivePosteriors = combinedPosteriors[true];
+                this.negativePosteriors = combinedPosteriors[false];
             }
 
-            private static IDictionary<string, double> CalculatorPosteriors(IEnumerable<string> positiveExamples)
+            public bool Classify(string message, MessageClassification temp)
             {
-                var allWordFreqs = (from example in positiveExamples
-                                    let exampleWordFreqs = GetWordFrequencies(example)
-                                    from kvp in exampleWordFreqs
-                                    group kvp by kvp.Key)
-                                    .ToDictionary(x => x.Key, it => it.Sum(y => y.Value));
+                var wordFrequencies = GetWordFrequencies(message).WithDefaultValue(0);
+                var positiveLikelihood = CalculateLikelihood(this.positivePosteriors, wordFrequencies);
+                var negativeLikelihood = CalculateLikelihood(this.negativePosteriors, wordFrequencies);
 
-                var uniqueWords = allWordFreqs.Select(it => it.Key);
-                var numUniqueWords = uniqueWords.Count();
-                var totalWordCount = allWordFreqs.Sum(it => it.Value);
+                return positiveLikelihood > negativeLikelihood;
+            }
 
-                double defaultPosterior;
-                if (positiveExamples.Any())
-                {
-                    defaultPosterior = 1 / (double)(numUniqueWords + totalWordCount);
-                }
-                else
-                {
-                    defaultPosterior = 0;
-                }
+            private static double CalculateLikelihood(
+                IDictionary<string, double> posteriors,
+                IDictionary<string, int> wordFrequencies)
+            {
+                var totalWords = wordFrequencies.Sum(it => it.Value);
 
-                return (from word in uniqueWords
-                        let wordFreq = allWordFreqs[word]
-                        let posterior = (1 + wordFreq) / (double)(numUniqueWords + totalWordCount)
-                        select new { word, posterior })
-                        .ToDictionary(it => it.word, it => it.posterior)
-                        .WithDefaultValue(defaultPosterior);
+                var terms = from pair in posteriors
+                            let word = pair.Key
+                            let posterior = pair.Value
+                            let occurrences = wordFrequencies[word]
+                            select Math.Pow(posterior, occurrences);
+
+                /*
+                 * Note: the class prior is not included in this calculation.
+                 * 
+                 * Only the posteriors are considered for the time being.
+                 */
+                return terms.Aggregate(1.0, (e, a) => e * a);
+            }
+
+            private static IDictionary<bool, IDictionary<string, double>> CalculatePosteriors(
+                IEnumerable<string> positiveExamples, IEnumerable<string> negativeExamples)
+            {
+                IDictionary<string, int> positiveWordFreqs = GetWordFrequencies(positiveExamples);
+                IDictionary<string, int> negativeWordFreqs = GetWordFrequencies(negativeExamples);
+                IEnumerable<string> vocabulary = positiveWordFreqs.Keys.Union(negativeWordFreqs.Keys);
+
+                var posteriors = new Dictionary<bool, IDictionary<string, double>>();
+                posteriors[true] = CreatePosteriorsForClass(positiveWordFreqs, vocabulary);
+                posteriors[false] = CreatePosteriorsForClass(negativeWordFreqs, vocabulary);
+
+                return posteriors;
+            }
+
+            private static IDictionary<string, double> CreatePosteriorsForClass(
+                IDictionary<string, int> classWordFrequencies,
+                IEnumerable<string> vocabulary)
+            {
+                var posteriors = new Dictionary<string, double>();
+
+                double totalWordsForClass = classWordFrequencies.Sum(it => it.Value);
+
+                return (from term in vocabulary
+                        let positiveOccurrencesOfTerm = classWordFrequencies[term]
+                        let termPosterior = positiveOccurrencesOfTerm / totalWordsForClass
+                        select new { term, termPosterior })
+                       .ToDictionary(it => it.term, it => it.termPosterior);
+            }
+
+            private static IDictionary<string, int> GetWordFrequencies(IEnumerable<string> examples)
+            {
+                return (from example in examples
+                        let exampleWordFreqs = GetWordFrequencies(example)
+                        from kvp in exampleWordFreqs
+                        group kvp by kvp.Key)
+                        .ToDictionary(x => x.Key, it => it.Sum(y => y.Value))
+                        .WithDefaultValue(0);
             }
 
             private static IDictionary<string, int> GetWordFrequencies(string input)

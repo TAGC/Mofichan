@@ -43,14 +43,6 @@ namespace Mofichan.Tests.Analysis
         {
             get
             {
-                return GreetingExamples.Concat(NonGreetingExamples);
-            }
-        }
-
-        public static IEnumerable<TaggedMessage> GreetingExamples
-        {
-            get
-            {
                 yield return new TaggedMessage("Hello there Mofi",
                     MessageClassification.DirectedAtMofichan,
                     MessageClassification.Greeting);
@@ -74,13 +66,13 @@ namespace Mofichan.Tests.Analysis
                 yield return new TaggedMessage("Hey there Mofichan o/",
                     MessageClassification.DirectedAtMofichan,
                     MessageClassification.Greeting);
-            }
-        }
 
-        public static IEnumerable<TaggedMessage> NonGreetingExamples
-        {
-            get
-            {
+                yield return new TaggedMessage("Hello Miriam :I",
+                    MessageClassification.Greeting);
+
+                yield return new TaggedMessage("Hello Ivan o/",
+                    MessageClassification.Greeting);
+
                 yield return new TaggedMessage("Nice weather today, right Mofi?",
                     MessageClassification.DirectedAtMofichan);
 
