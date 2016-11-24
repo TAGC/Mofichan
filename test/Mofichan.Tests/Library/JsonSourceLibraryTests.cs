@@ -33,14 +33,14 @@ namespace Mofichan.Tests.Library
                 {
                     new StringBuilder("[")
                         .Append(BuildJsonArticle("this is happy", "happy")).Append(",")
-                        .Append(BuildJsonArticle("this is happy and pleasant", "happy", "pleasant"))
+                        .Append(BuildJsonArticle("this is happy and positive", "happy", "positive"))
                         .Append("]")
                         .ToString(),
 
                     new[]
                     {
                         TaggedMessage.From("this is happy", Tag.Happy),
-                        TaggedMessage.From("this is happy and pleasant", Tag.Happy, Tag.Pleasant)
+                        TaggedMessage.From("this is happy and positive", Tag.Happy, Tag.Positive)
                     }
                 };
 
@@ -48,16 +48,16 @@ namespace Mofichan.Tests.Library
                 {
                     new StringBuilder("[")
                         .Append(BuildJsonArticle("this is happy", "happy")).Append(",")
-                        .Append(BuildJsonArticle("this is happy and pleasant", "happy", "pleasant")).Append(",")
-                        .Append(BuildJsonArticle("this is happy, pleasant and cute", "happy", "pleasant", "cute"))
+                        .Append(BuildJsonArticle("this is happy and positive", "happy", "positive")).Append(",")
+                        .Append(BuildJsonArticle("this is happy, positive and cute", "happy", "positive", "cute"))
                         .Append("]")
                         .ToString(),
 
                     new[]
                     {
                         TaggedMessage.From("this is happy", Tag.Happy),
-                        TaggedMessage.From("this is happy and pleasant", Tag.Happy, Tag.Pleasant),
-                        TaggedMessage.From("this is happy, pleasant and cute", Tag.Happy, Tag.Pleasant, Tag.Cute)
+                        TaggedMessage.From("this is happy and positive", Tag.Happy, Tag.Positive),
+                        TaggedMessage.From("this is happy, positive and cute", Tag.Happy, Tag.Positive, Tag.Cute)
                     }
                 };
             }

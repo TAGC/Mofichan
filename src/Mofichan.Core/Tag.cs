@@ -10,15 +10,15 @@ namespace Mofichan.Core
     public enum Tag
     {
         DirectedAtMofichan,
-        WellbeingResponse,
+        Wellbeing,
         Phrase,
         Emote,
         Happy,
         Cute,
         Greeting,
         Goodbye,
-        Pleasant,
-        Unpleasant,
+        Positive,
+        Negative,
         Test
     }
 

@@ -26,7 +26,7 @@ namespace Mofichan.Tests.Library
                     // Unsatisfied by
                     new[]
                     {
-                        new[] { Tag.Pleasant },
+                        new[] { Tag.Positive },
                         new[] { Tag.Cute },
                     },
                 };
@@ -34,14 +34,14 @@ namespace Mofichan.Tests.Library
                 yield return new object[]
                 {
                     // Requirement
-                    Tag.Happy.Or(Tag.Pleasant).AsGroup(),
+                    Tag.Happy.Or(Tag.Positive).AsGroup(),
 
                     // Satisfied by
                     new[]
                     {
                         new[] { Tag.Happy },
                         new[] { Tag.Happy },
-                        new[] { Tag.Happy, Tag.Pleasant },
+                        new[] { Tag.Happy, Tag.Positive },
                     },
 
                     // Unsatisfied by
@@ -54,13 +54,13 @@ namespace Mofichan.Tests.Library
                 yield return new object[]
                 {
                     // Requirement
-                    Tag.Happy.And(Tag.Pleasant).Or(Tag.Cute).AsGroup(),
+                    Tag.Happy.And(Tag.Positive).Or(Tag.Cute).AsGroup(),
 
                     // Satisfied by
                     new[]
                     {
-                        new[] { Tag.Happy, Tag.Pleasant, Tag.Cute },
-                        new[] { Tag.Happy, Tag.Pleasant },
+                        new[] { Tag.Happy, Tag.Positive, Tag.Cute },
+                        new[] { Tag.Happy, Tag.Positive },
                         new[] { Tag.Happy, Tag.Cute },
                         new[] { Tag.Cute },
                     },
@@ -68,7 +68,7 @@ namespace Mofichan.Tests.Library
                     // Unsatisfied by
                     new[]
                     {
-                        new[] { Tag.Pleasant },
+                        new[] { Tag.Positive },
                         new[] { Tag.Happy },
                     },
                 };

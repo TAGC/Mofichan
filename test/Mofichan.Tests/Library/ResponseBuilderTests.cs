@@ -17,10 +17,10 @@ namespace Mofichan.Tests.Library
             get
             {
                 yield return TaggedMessage.From("this is happy", Tag.Happy);
-                yield return TaggedMessage.From("this is pleasant", Tag.Pleasant);
+                yield return TaggedMessage.From("this is positive", Tag.Positive);
                 yield return TaggedMessage.From("this is cute", Tag.Cute);
-                yield return TaggedMessage.From("this is happy and pleasant", Tag.Happy, Tag.Pleasant);
-                yield return TaggedMessage.From("this is happy, pleasant and cute", Tag.Happy, Tag.Pleasant, Tag.Cute);
+                yield return TaggedMessage.From("this is happy and positive", Tag.Happy, Tag.Positive);
+                yield return TaggedMessage.From("this is happy, positive and cute", Tag.Happy, Tag.Positive, Tag.Cute);
                 yield return TaggedMessage.From(
                     "${message.from.name} says ${message.body} to ${message.to.name}",
                     Tag.Test);
@@ -37,41 +37,41 @@ namespace Mofichan.Tests.Library
                     new[]
                     {
                         "this is happy",
-                        "this is happy and pleasant",
-                        "this is happy, pleasant and cute"
+                        "this is happy and positive",
+                        "this is happy, positive and cute"
                     }
                 };
 
                 yield return new object[]
                 {
-                    Tag.Happy.Or(Tag.Pleasant).AsGroup(),
+                    Tag.Happy.Or(Tag.Positive).AsGroup(),
                     new[]
                     {
                         "this is happy",
-                        "this is pleasant",
-                        "this is happy and pleasant",
-                        "this is happy, pleasant and cute"
+                        "this is positive",
+                        "this is happy and positive",
+                        "this is happy, positive and cute"
                     }
                 };
 
                 yield return new object[]
                 {
-                    Tag.Happy.And(Tag.Pleasant).AsGroup(),
+                    Tag.Happy.And(Tag.Positive).AsGroup(),
                     new[]
                     {
-                        "this is happy and pleasant",
-                        "this is happy, pleasant and cute"
+                        "this is happy and positive",
+                        "this is happy, positive and cute"
                     }
                 };
 
                 yield return new object[]
                 {
-                    Tag.Happy.And(Tag.Pleasant).Or(Tag.Cute).AsGroup(),
+                    Tag.Happy.And(Tag.Positive).Or(Tag.Cute).AsGroup(),
                     new[]
                     {
                         "this is cute",
-                        "this is happy and pleasant",
-                        "this is happy, pleasant and cute"
+                        "this is happy and positive",
+                        "this is happy, positive and cute"
                     }
                 };
             }
@@ -231,8 +231,8 @@ namespace Mofichan.Tests.Library
             {
                 "this is happy",
                 "this is cute",
-                "this is happy and pleasant",
-                "this is happy, pleasant and cute"
+                "this is happy and positive",
+                "this is happy, positive and cute"
             };
 
             var possibleResponses = from phrase in possiblePhrases

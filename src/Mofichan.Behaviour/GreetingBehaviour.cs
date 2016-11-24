@@ -61,7 +61,7 @@ namespace Mofichan.Behaviour
             var responseBody = this.ResponseBuilder
                 .UsingContext(message.Context)
                 .FromTags(prefix: string.Empty,
-                          tags: Tag.Phrase.And(Tag.WellbeingResponse).AsGroup())
+                          tags: Tag.Wellbeing.And(Tag.Phrase).AsGroup())
                 .FromTags(Tag.Emote.And(Tag.Happy).Or(
                           Tag.Emote.And(Tag.Cute)))
                 .Build();

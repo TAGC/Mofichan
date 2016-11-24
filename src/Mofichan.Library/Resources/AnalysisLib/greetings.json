@@ -1,58 +1,94 @@
 ﻿[
   {
     "article": "Hello Amy",
-    "tags": [ "phrase", "greeting" ]
+    "tags": [ "greeting" ]
+  },
+  {
+    "article": "Hello there Samantha",
+    "tags": [ "greeting" ]
+  },
+  {
+    "article": "Yo Megan",
+    "tags": [ "greeting" ]
   },
   {
     "article": "Hey Tom",
-    "tags": [ "phrase", "greeting" ]
+    "tags": [ "greeting" ]
   },
   {
     "article": "Hi there Andy",
-    "tags": [ "phrase", "greeting" ]
+    "tags": [ "greeting" ]
   },
   {
     "article": "Hey there Mofi",
-    "tags": [ "directedAtMofichan", "phrase", "greeting" ]
+    "tags": [ "directedAtMofichan", "greeting" ]
   },
   {
     "article": "Hello there Mofi",
-    "tags": [ "directedAtMofichan", "phrase", "greeting" ]
+    "tags": [ "directedAtMofichan", "greeting" ]
   },
   {
     "article": "Hi Mofi ^-^",
-    "tags": [ "directedAtMofichan", "phrase", "greeting" ]
+    "tags": [ "directedAtMofichan", "greeting" ]
   },
   {
     "article": "Hey Mofichan o/",
-    "tags": [ "directedAtMofichan", "phrase", "greeting" ]
+    "tags": [ "directedAtMofichan", "greeting" ]
   },
   {
     "article": "Hello Mofichan",
-    "tags": [ "directedAtMofichan", "phrase", "greeting" ]
+    "tags": [ "directedAtMofichan", "greeting" ]
   },
   {
     "article": "I'm good ty",
-    "tags": [ "phrase", "wellbeingResponse" ]
+    "tags": [ "wellbeing" ]
   },
   {
     "article": "I'm good thanks",
-    "tags": [ "phrase", "wellbeingResponse" ]
+    "tags": [ "wellbeing" ]
   },
   {
     "article": "I'm okay ty",
-    "tags": [ "phrase", "wellbeingResponse" ]
+    "tags": [ "wellbeing" ]
   },
   {
     "article": "I'm okay thanks",
-    "tags": [ "phrase", "wellbeingResponse" ]
+    "tags": [ "wellbeing" ]
+  },
+  {
+    "article": "how are you?",
+    "tags": [ "wellbeing" ]
+  },
+  {
+    "article": "hey, how are you?",
+    "tags": [ "greeting", "wellbeing" ]
+  },
+  {
+    "article": "how are you doing?",
+    "tags": [ "wellbeing" ]
+  },
+  {
+    "article": "how are things going for you Ben?",
+    "tags": [ "wellbeing" ]
+  },
+  {
+    "article": "how are you feeling right now?",
+    "tags": [ "wellbeing" ]
+  },
+  {
+    "article": "are you alright Mofi?",
+    "tags": [ "directedAtMofichan", "wellbeing" ]
+  },
+  {
+    "article": "are you good Mofi?",
+    "tags": [ "directedAtMofichan", "wellbeing" ]
   },
   {
     "article": "I'm good thanks Mofichan",
-    "tags": [ "directedAtMofichan", "phrase", "wellbeingResponse" ]
+    "tags": [ "directedAtMofichan", "wellbeing" ]
   },
   {
     "article": "I'm okay thanks Mofichan",
-    "tags": [ "directedAtMofichan", "phrase", "wellbeingResponse" ]
+    "tags": [ "directedAtMofichan", "wellbeing" ]
   }
 ]

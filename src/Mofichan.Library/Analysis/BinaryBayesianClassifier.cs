@@ -4,12 +4,24 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using Mofichan.Core;
 using Mofichan.Core.Utility;
 
 namespace Mofichan.Library.Analysis
 {
     internal class BinaryBayesianClassifier
     {
+        /// <summary>
+        /// Determines how confident the classifier must be about a message
+        /// in order to declare that it should be positively classified.
+        /// </summary>
+        /// <remarks>
+        /// The lower this ratio, the more confident the classifier must be.
+        /// <para></para>
+        /// This ratio should be in the range [0, 1].
+        /// </remarks>
+        private readonly double requiredConfidenceRatio;
+
         private static readonly IEnumerable<string> IgnoredTerms = StopWords;
 
         private readonly IDictionary<string, double> positiveLikelihoods;
@@ -35,6 +47,7 @@ namespace Mofichan.Library.Analysis
         }
 
         public BinaryBayesianClassifier(
+            double requiredConfidenceRatio,
             IEnumerable<string> positiveExamples,
             IEnumerable<string> negativeExamples)
         {
@@ -42,18 +55,29 @@ namespace Mofichan.Library.Analysis
 
             this.positiveLikelihoods = combinedLikelihoods[true];
             this.negativeLikelihoods = combinedLikelihoods[false];
+            this.requiredConfidenceRatio = requiredConfidenceRatio;
         }
 
-        public bool Classify(string message)
+        public bool Classify(string message, Tag temp)
         {
-            var wordFrequencies = GetWordFrequenciesWithinString(message);
-            var positivePosterior = CalculatePosterior(this.positiveLikelihoods, wordFrequencies);
-            var negativePosterior = CalculatePosterior(this.negativeLikelihoods, wordFrequencies);
+            var preprocessedMessage = PreprocessMessage(message);
 
-            return positivePosterior > negativePosterior;
+            var wordFrequencies = GetWordFrequenciesWithinString(preprocessedMessage);
+            var positiveLogPosterior = CalculateLogPosterior(this.positiveLikelihoods, wordFrequencies);
+            var negativeLogPosterior = CalculateLogPosterior(this.negativeLikelihoods, wordFrequencies);
+
+            /*
+             * Ratios < 1 mean that there is more confidence in a positive classification than a
+             * negative classification.
+             * 
+             * The lower the ratio, the more confident that message should be classified positively.
+             */
+            double confidenceRatio = Math.Exp(negativeLogPosterior - positiveLogPosterior);
+
+            return confidenceRatio <= this.requiredConfidenceRatio;
         }
 
-        private static double CalculatePosterior(
+        private static double CalculateLogPosterior(
             IDictionary<string, double> likelihoods,
             IDictionary<string, int> wordFrequencies)
         {
@@ -112,11 +136,19 @@ namespace Mofichan.Library.Analysis
         {
             return Regex.Matches(input, @"[\w']+")
                  .Cast<Match>()
-                 .Select(it => it.Value)
+                 .Select(it => it.Value.ToLowerInvariant())
                  .Where(x => x != string.Empty)
-                 .Where(x => !IgnoredTerms.Contains(x.ToLowerInvariant()))
+                 .Where(x => !IgnoredTerms.Contains(x))
                  .GroupBy(x => x)
                  .ToDictionary(x => x.Key, x => x.Count());
+        }
+
+        private static string PreprocessMessage(string message)
+        {
+            return Regex.Matches(message, @"[\w']+")
+                .Cast<Match>()
+                .Select(it => it.Value.ToLowerInvariant())
+                .Aggregate((e, a) => e + " " + a);
         }
     }
 }

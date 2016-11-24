@@ -36,14 +36,14 @@ namespace Mofichan.Tests
                 #region Test AND associativity
                 yield return new object[]
                 {
-                    Tag.Happy.And(Tag.Emote.And(Tag.Pleasant)).AsGroup(),
-                    new[] { new[] { Tag.Happy, Tag.Emote, Tag.Pleasant }}
+                    Tag.Happy.And(Tag.Emote.And(Tag.Positive)).AsGroup(),
+                    new[] { new[] { Tag.Happy, Tag.Emote, Tag.Positive }}
                 };
 
                 yield return new object[]
                 {
-                    (Tag.Happy.And(Tag.Emote)).And(Tag.Pleasant).AsGroup(),
-                    new[] { new[] { Tag.Happy, Tag.Emote, Tag.Pleasant }}
+                    (Tag.Happy.And(Tag.Emote)).And(Tag.Positive).AsGroup(),
+                    new[] { new[] { Tag.Happy, Tag.Emote, Tag.Positive }}
                 };
                 #endregion
 
@@ -64,14 +64,14 @@ namespace Mofichan.Tests
                 #region Test OR associativity
                 yield return new object[]
                 {
-                    Tag.Happy.Or(Tag.Emote.Or(Tag.Pleasant)).AsGroup(),
-                    new[] { new[] { Tag.Happy }, new[] { Tag.Emote }, new[] { Tag.Pleasant }}
+                    Tag.Happy.Or(Tag.Emote.Or(Tag.Positive)).AsGroup(),
+                    new[] { new[] { Tag.Happy }, new[] { Tag.Emote }, new[] { Tag.Positive }}
                 };
 
                 yield return new object[]
                 {
-                    (Tag.Happy.Or(Tag.Emote)).Or(Tag.Pleasant).AsGroup(),
-                    new[] { new[] { Tag.Happy }, new[] { Tag.Emote }, new[] { Tag.Pleasant }}
+                    (Tag.Happy.Or(Tag.Emote)).Or(Tag.Positive).AsGroup(),
+                    new[] { new[] { Tag.Happy }, new[] { Tag.Emote }, new[] { Tag.Positive }}
                 };
                 #endregion
 
@@ -79,29 +79,29 @@ namespace Mofichan.Tests
                 // Single [OR] AndGroup
                 yield return new object[]
                 {
-                    Tag.Happy.Or(Tag.Emote.And(Tag.Pleasant)).AsGroup(),
-                    new[] { new[] { Tag.Happy }, new[] { Tag.Emote, Tag.Pleasant }}
+                    Tag.Happy.Or(Tag.Emote.And(Tag.Positive)).AsGroup(),
+                    new[] { new[] { Tag.Happy }, new[] { Tag.Emote, Tag.Positive }}
                 };
 
                 // AndGroup [AND] AndGroup
                 yield return new object[]
                 {
-                    (Tag.Happy.And(Tag.Pleasant)).And(Tag.Greeting.And(Tag.Emote)).AsGroup(),
-                    new[] { new[] { Tag.Happy, Tag.Pleasant, Tag.Greeting, Tag.Emote }}
+                    (Tag.Happy.And(Tag.Positive)).And(Tag.Greeting.And(Tag.Emote)).AsGroup(),
+                    new[] { new[] { Tag.Happy, Tag.Positive, Tag.Greeting, Tag.Emote }}
                 };
 
                 // AndGroup [OR] AndGroup
                 yield return new object[]
                 {
-                    (Tag.Happy.And(Tag.Pleasant)).Or(Tag.Greeting.And(Tag.Emote)).AsGroup(),
-                    new[] { new[] { Tag.Happy, Tag.Pleasant }, new[] { Tag.Greeting, Tag.Emote }}
+                    (Tag.Happy.And(Tag.Positive)).Or(Tag.Greeting.And(Tag.Emote)).AsGroup(),
+                    new[] { new[] { Tag.Happy, Tag.Positive }, new[] { Tag.Greeting, Tag.Emote }}
                 };
 
                 // OrGroup [OR] OrGroup
                 yield return new object[]
                 {
-                    (Tag.Happy.Or(Tag.Pleasant)).Or(Tag.Greeting.Or(Tag.Emote)).AsGroup(),
-                    new[] { new[] { Tag.Happy }, new[] { Tag.Pleasant }, new[] { Tag.Greeting }, new[] { Tag.Emote }}
+                    (Tag.Happy.Or(Tag.Positive)).Or(Tag.Greeting.Or(Tag.Emote)).AsGroup(),
+                    new[] { new[] { Tag.Happy }, new[] { Tag.Positive }, new[] { Tag.Greeting }, new[] { Tag.Emote }}
                 };
                 #endregion
             }

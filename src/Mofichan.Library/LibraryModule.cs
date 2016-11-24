@@ -18,11 +18,13 @@ namespace Mofichan.Library
              */
             var analysisLibraries = new[]
             {
-                BuildAnalysisLibrary("greetings")
+                BuildAnalysisLibrary("greetings"),
+                BuildAnalysisLibrary("emotive")
             };
 
+            double requiredConfidenceRatio = 0.85;
             var messageClassifier = new MessageClassifier();
-            messageClassifier.Train(analysisLibraries.SelectMany(it => it.Articles));
+            messageClassifier.Train(analysisLibraries.SelectMany(it => it.Articles), requiredConfidenceRatio);
             builder.RegisterInstance(messageClassifier).As<IMessageClassifier>();
 
             /*

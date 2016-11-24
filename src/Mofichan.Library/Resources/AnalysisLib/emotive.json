@@ -1,0 +1,34 @@
+﻿[
+  {
+    "article": "Mofi is the best",
+    "tags": [ "directedAtMofichan", "positive" ]
+  },
+  {
+    "article": "Mofi is the worst",
+    "tags": [ "directedAtMofichan", "negative" ]
+  },
+  {
+    "article": "Steven is the best",
+    "tags": [ "positive" ]
+  },
+  {
+    "article": "Andrew is the worst",
+    "tags": [ "negative" ]
+  },
+  {
+    "article": "Mofi, I like you",
+    "tags": [ "directedAtMofichan", "positive" ]
+  },
+  {
+    "article": "Mofi, I dislike you",
+    "tags": [ "directedAtMofichan", "negative" ]
+  },
+  {
+    "article": "Tom is great",
+    "tags": [ "positive" ]
+  },
+  {
+    "article": "Tom is terrible",
+    "tags": [ "negative" ]
+  }
+]

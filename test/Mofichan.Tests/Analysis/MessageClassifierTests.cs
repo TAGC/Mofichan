@@ -50,27 +50,27 @@ namespace Mofichan.Tests.Analysis
                     Tag.DirectedAtMofichan);
 
                 yield return TaggedMessage.From("I think Adam is a bad person",
-                    Tag.Unpleasant);
+                    Tag.Negative);
 
                 yield return TaggedMessage.From("Susan is a fairly bad person",
-                    Tag.Unpleasant);
+                    Tag.Negative);
 
                 yield return TaggedMessage.From("John is definitely a bad person",
-                    Tag.Unpleasant);
+                    Tag.Negative);
 
                 yield return TaggedMessage.From("Amy is fairly nice once you get to know her",
-                    Tag.Pleasant);
+                    Tag.Positive);
 
                 yield return TaggedMessage.From("I think Steve is a really nice guy",
-                    Tag.Pleasant);
+                    Tag.Positive);
 
                 yield return TaggedMessage.From("Mofi, you're a really bad chatbot",
                     Tag.DirectedAtMofichan,
-                    Tag.Unpleasant);
+                    Tag.Negative);
 
                 yield return TaggedMessage.From("Mofi, you're a great chatbot",
                     Tag.DirectedAtMofichan,
-                    Tag.Pleasant);
+                    Tag.Positive);
 
                 yield return TaggedMessage.From("The capital of France is Paris?");
             }
@@ -78,8 +78,10 @@ namespace Mofichan.Tests.Analysis
 
         public MessageClassifierFixture()
         {
+            double requiredConfidenceRatioForUnitTesting = 0.9;
+
             this.Classifier = new MessageClassifier();
-            this.Classifier.Train(TrainingSet);
+            this.Classifier.Train(TrainingSet, requiredConfidenceRatioForUnitTesting);
         }
 
         internal MessageClassifier Classifier { get; }
@@ -120,13 +122,13 @@ namespace Mofichan.Tests.Analysis
                 {
                     TaggedMessage.From("Mofi please stop being bad",
                     Tag.DirectedAtMofichan,
-                    Tag.Unpleasant)
+                    Tag.Negative)
                 };
 
                 yield return new object[]
                 {
                     TaggedMessage.From("I think Megan is pretty nice",
-                    Tag.Pleasant)
+                    Tag.Positive)
                 };
             }
         }
