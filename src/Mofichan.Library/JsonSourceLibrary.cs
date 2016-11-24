@@ -5,7 +5,7 @@ using System.Linq;
 using Mofichan.Core;
 using Newtonsoft.Json.Linq;
 
-namespace Mofichan.Library.Response
+namespace Mofichan.Library
 {
     internal class JsonSourceLibrary : ILibrary
     {

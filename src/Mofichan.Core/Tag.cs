@@ -3,6 +3,10 @@ using System.Linq;
 
 namespace Mofichan.Core
 {
+    using AndGroup = IEnumerable<Tag>;
+    using OrGroup = IEnumerable<IEnumerable<Tag>>;
+    using TagGroup = IEnumerable<IEnumerable<Tag>>;
+
     public enum Tag
     {
         DirectedAtMofichan,
@@ -20,54 +24,90 @@ namespace Mofichan.Core
 
     public static class TagExtensions
     {
-        public static IEnumerable<IEnumerable<Tag>> AsGroup(this Tag tag)
+        #region As Group
+        public static TagGroup AsGroup(this Tag tag)
         {
             return new[] { new[] { tag } };
         }
 
-        public static IEnumerable<IEnumerable<Tag>> AsGroup(this IEnumerable<Tag> partialTagGroup)
+        public static TagGroup AsGroup(this AndGroup andGroup)
         {
-            return new[] { partialTagGroup };
+            return new[] { andGroup };
         }
 
-        public static IEnumerable<IEnumerable<Tag>> AsGroup(this IEnumerable<IEnumerable<Tag>> tagGroup)
+        public static TagGroup AsGroup(this OrGroup orGroup)
         {
-            return tagGroup;
+            return orGroup;
         }
+        #endregion
 
-        public static IEnumerable<Tag> And(this Tag tag, Tag otherTag)
+        #region And
+        public static AndGroup And(this Tag tag, Tag otherTag)
         {
             return new[] { tag, otherTag };
         }
 
-        public static IEnumerable<Tag> And(this Tag tag, IEnumerable<Tag> andGroup)
+        public static AndGroup And(this Tag tag, AndGroup andGroup)
         {
             return andGroup.Prepend(tag);
         }
 
-        public static IEnumerable<Tag> And(this IEnumerable<Tag> andGroup, Tag tag)
+        public static AndGroup And(this AndGroup andGroup, Tag tag)
         {
             return andGroup.Append(tag);
         }
 
-        public static IEnumerable<Tag> And(this IEnumerable<Tag> andGroup, IEnumerable<Tag> otherAndGroup)
+        public static AndGroup And(this AndGroup andGroup, AndGroup otherAndGroup)
         {
             return andGroup.Concat(otherAndGroup);
         }
+        #endregion
 
-        public static IEnumerable<IEnumerable<Tag>> Or(this IEnumerable<Tag> andGroup, Tag otherTag)
+        #region Or
+        public static OrGroup Or(this Tag tag, Tag otherTag)
         {
-            return new[] { andGroup, new[] { otherTag } };
+            return new[] { new[] { tag }, new[] { otherTag } };
         }
 
-        public static IEnumerable<IEnumerable<Tag>> Or(this IEnumerable<Tag> andGroup, IEnumerable<Tag> otherAndGroup)
+        public static OrGroup Or(this Tag tag, AndGroup andGroup)
+        {
+            return new[] { new[] { tag }, andGroup };
+        }
+
+        public static OrGroup Or(this Tag tag, OrGroup orGroup)
+        {
+            return orGroup.Prepend(new[] { tag });
+        }
+
+        public static OrGroup Or(this AndGroup andGroup, Tag tag)
+        {
+            return new[] { andGroup, new[] { tag } };
+        }
+
+        public static OrGroup Or(this AndGroup andGroup, AndGroup otherAndGroup)
         {
             return new[] { andGroup, otherAndGroup };
         }
 
-        public static IEnumerable<IEnumerable<Tag>> Or(this Tag tag, Tag otherTag)
+        public static OrGroup Or(this AndGroup andGroup, OrGroup orGroup)
         {
-            return new[] { new[] { tag }, new[] { otherTag } };
+            return orGroup.Prepend(andGroup);
         }
+
+        public static OrGroup Or(this OrGroup orGroup, Tag tag)
+        {
+            return orGroup.Append(new[] { tag });
+        }
+
+        public static OrGroup Or(this OrGroup orGroup, AndGroup andGroup)
+        {
+            return orGroup.Append(andGroup);
+        }
+
+        public static OrGroup Or(this OrGroup orGroup, OrGroup otherOrGroup)
+        {
+            return orGroup.Concat(otherOrGroup);
+        }
+        #endregion
     }
 }

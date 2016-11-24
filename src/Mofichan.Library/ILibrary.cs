@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Mofichan.Library.Response
+namespace Mofichan.Library
 {
     internal interface ILibrary
     {

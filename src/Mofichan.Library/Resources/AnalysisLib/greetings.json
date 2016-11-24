@@ -1,0 +1,58 @@
+﻿[
+  {
+    "article": "Hello Amy",
+    "tags": [ "phrase", "greeting" ]
+  },
+  {
+    "article": "Hey Tom",
+    "tags": [ "phrase", "greeting" ]
+  },
+  {
+    "article": "Hi there Andy",
+    "tags": [ "phrase", "greeting" ]
+  },
+  {
+    "article": "Hey there Mofi",
+    "tags": [ "directedAtMofichan", "phrase", "greeting" ]
+  },
+  {
+    "article": "Hello there Mofi",
+    "tags": [ "directedAtMofichan", "phrase", "greeting" ]
+  },
+  {
+    "article": "Hi Mofi ^-^",
+    "tags": [ "directedAtMofichan", "phrase", "greeting" ]
+  },
+  {
+    "article": "Hey Mofichan o/",
+    "tags": [ "directedAtMofichan", "phrase", "greeting" ]
+  },
+  {
+    "article": "Hello Mofichan",
+    "tags": [ "directedAtMofichan", "phrase", "greeting" ]
+  },
+  {
+    "article": "I'm good ty",
+    "tags": [ "phrase", "wellbeingResponse" ]
+  },
+  {
+    "article": "I'm good thanks",
+    "tags": [ "phrase", "wellbeingResponse" ]
+  },
+  {
+    "article": "I'm okay ty",
+    "tags": [ "phrase", "wellbeingResponse" ]
+  },
+  {
+    "article": "I'm okay thanks",
+    "tags": [ "phrase", "wellbeingResponse" ]
+  },
+  {
+    "article": "I'm good thanks Mofichan",
+    "tags": [ "directedAtMofichan", "phrase", "wellbeingResponse" ]
+  },
+  {
+    "article": "I'm okay thanks Mofichan",
+    "tags": [ "directedAtMofichan", "phrase", "wellbeingResponse" ]
+  }
+]

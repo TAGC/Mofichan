@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using Mofichan.Core;
+using Mofichan.Core.Interfaces;
 
 namespace Mofichan.Library.Analysis
 {
-    internal class MessageClassifier
+    internal class MessageClassifier : IMessageClassifier
     {
         private IDictionary<Tag, BinaryBayesianClassifier> classifierMap;
 

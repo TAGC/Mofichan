@@ -17,9 +17,9 @@ namespace Mofichan.Core
     /// </summary>
     public class Kernel : IDisposable
     {
-        private readonly ILogger logger;
-
+        private readonly IMessageClassifier messageClassifier;
         private readonly IMofichanBackend backend;
+        private readonly ILogger logger;
 
         private List<IMofichanBehaviour> behaviours;
         private bool disposedValue = false; // To detect redundant calls
@@ -30,23 +30,34 @@ namespace Mofichan.Core
         /// <param name="backend">The selected backend.</param>
         /// <param name="behaviours">The collection of behaviours to determine Mofichan's personality.</param>
         /// <param name="chainBuilder">The object to use to compose the provided behaviours into a chain.</param>
+        /// <param name="messageClassifier">The object used to classify messages Mofichan receives</param>
         /// <param name="logger">The logger to use.</param>
-        public Kernel(IMofichanBackend backend, IEnumerable<IMofichanBehaviour> behaviours,
-            IBehaviourChainBuilder chainBuilder, ILogger logger)
+        public Kernel(
+            IMofichanBackend backend,
+            IEnumerable<IMofichanBehaviour> behaviours,
+            IBehaviourChainBuilder chainBuilder,
+            IMessageClassifier messageClassifier,
+            ILogger logger)
         {
             Raise.ArgumentNullException.IfIsNull(behaviours, nameof(behaviours));
-            Raise.ArgumentException.IfNot(
-                behaviours.Any(),
-                nameof(behaviours),
-                string.Format("At least one behaviour must be specified for Mofichan"));
+            Raise.ArgumentException.IfNot(behaviours.Any(), nameof(behaviours),
+                "At least one behaviour must be specified for Mofichan");
 
+            this.messageClassifier = messageClassifier;
+            this.backend = backend;
             this.logger = logger.ForContext<Kernel>();
             this.logger.Information("Initialising Mofichan with {Backend} and {Behaviours}", backend, behaviours);
 
-            this.backend = backend;
             var rootBehaviour = BuildBehaviourChain(behaviours, chainBuilder);
 
-            this.backend.Subscribe(rootBehaviour);
+            // Temporary.
+            this.backend.Subscribe(message =>
+            {
+                this.LogMessageClassifications(message);
+                rootBehaviour.OnNext(message);
+            });
+
+            //this.backend.Subscribe(rootBehaviour);
             rootBehaviour.Subscribe(this.backend);
         }
 
@@ -120,6 +131,14 @@ namespace Mofichan.Core
             this.behaviours = behaviourList;
 
             return chainBuilder.BuildChain(behaviourList);
+        }
+
+        private void LogMessageClassifications(IncomingMessage message)
+        {
+            var messageBody = message.Context.Body;
+            var classifications = this.messageClassifier.Classify(messageBody);
+            this.logger.Debug("Classified {MessageBody} with {Classifications}",
+                messageBody, classifications);
         }
     }
 }

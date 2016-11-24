@@ -28,6 +28,7 @@ namespace Mofichan.Tests
         {
             var backend = Mock.Of<IMofichanBackend>();
             var chainBuilder = Mock.Of<IBehaviourChainBuilder>();
+            var messageClassifier = Mock.Of<IMessageClassifier>();
             var logger = MockLogger;
 
             // GIVEN an null behaviour collection.
@@ -35,7 +36,7 @@ namespace Mofichan.Tests
 
             // EXPECT an exception to be thrown if we construct a kernel with it.
             Assert.Throws<ArgumentNullException>(
-                () => new Kernel(backend, behaviours, chainBuilder, logger));
+                () => new Kernel(backend, behaviours, chainBuilder, messageClassifier, logger));
         }
 
         [Fact]
@@ -43,6 +44,7 @@ namespace Mofichan.Tests
         {
             var backend = Mock.Of<IMofichanBackend>();
             var chainBuilder = Mock.Of<IBehaviourChainBuilder>();
+            var messageClassifier = Mock.Of<IMessageClassifier>();
             var logger = MockLogger;
 
             // GIVEN an empty behaviour collection.
@@ -50,7 +52,7 @@ namespace Mofichan.Tests
 
             // EXPECT an exception to be thrown if we construct a kernel with it.
             Assert.Throws<ArgumentException>(
-                () => new Kernel(backend, behaviours, chainBuilder, logger));
+                () => new Kernel(backend, behaviours, chainBuilder, messageClassifier, logger));
         }
 
         [Fact]
@@ -58,13 +60,14 @@ namespace Mofichan.Tests
         {
             var behaviours = new[] { Mock.Of<IMofichanBehaviour>() };
             var chainBuilder = new BehaviourChainBuilder();
+            var messageClassifier = Mock.Of<IMessageClassifier>();
             var logger = MockLogger;
 
             // GIVEN a mock backend.
             var backend = new Mock<IMofichanBackend>();
 
             // GIVEN a kernel constructed with the backend.
-            var kernel = new Kernel(backend.Object, behaviours, chainBuilder, logger);
+            var kernel = new Kernel(backend.Object, behaviours, chainBuilder, messageClassifier, logger);
 
             // WHEN we start the kernel.
             kernel.Start();

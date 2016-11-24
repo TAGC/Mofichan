@@ -63,9 +63,10 @@ namespace Mofichan.Runner
             };
 
             var chainBuilder = container.Resolve<IBehaviourChainBuilder>();
+            var messageClassifier = container.Resolve<IMessageClassifier>();
             var rootLogger = container.Resolve<ILogger>();
 
-            var mofichan = new Kernel(backend, behaviours, chainBuilder, rootLogger);
+            var mofichan = new Kernel(backend, behaviours, chainBuilder, messageClassifier, rootLogger);
 
             return mofichan;
         }
