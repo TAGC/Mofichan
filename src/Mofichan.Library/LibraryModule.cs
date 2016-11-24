@@ -22,7 +22,7 @@ namespace Mofichan.Library
                 BuildAnalysisLibrary("emotive")
             };
 
-            double requiredConfidenceRatio = 0.85;
+            double requiredConfidenceRatio = 0.5;
             var messageClassifier = new MessageClassifier();
             messageClassifier.Train(analysisLibraries.SelectMany(it => it.Articles), requiredConfidenceRatio);
             builder.RegisterInstance(messageClassifier).As<IMessageClassifier>();

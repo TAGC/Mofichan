@@ -26,8 +26,8 @@ namespace Mofichan.Runner
         /// <param name="args">The program arguments.</param>
         public static void Main(string[] args)
         {
-            PerformTemporaryTests();
-            return;
+            //PerformTemporaryTests();
+            //return;
 
             using (var mofichan = CreateMofichan())
             {
