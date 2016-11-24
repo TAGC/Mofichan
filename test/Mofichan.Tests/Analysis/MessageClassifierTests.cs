@@ -2,6 +2,7 @@
 using Mofichan.Core;
 using Mofichan.Library;
 using Mofichan.Library.Analysis;
+using Serilog;
 using Shouldly;
 using Xunit;
 
@@ -80,7 +81,7 @@ namespace Mofichan.Tests.Analysis
         {
             double requiredConfidenceRatioForUnitTesting = 0.9;
 
-            this.Classifier = new MessageClassifier();
+            this.Classifier = new MessageClassifier(new LoggerConfiguration().CreateLogger());
             this.Classifier.Train(TrainingSet, requiredConfidenceRatioForUnitTesting);
         }
 

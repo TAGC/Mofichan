@@ -6,6 +6,7 @@ using Autofac;
 using Mofichan.Core.Interfaces;
 using Mofichan.Library.Analysis;
 using Mofichan.Library.Response;
+using Serilog;
 
 namespace Mofichan.Library
 {
@@ -23,9 +24,13 @@ namespace Mofichan.Library
             };
 
             double requiredConfidenceRatio = 0.5;
-            var messageClassifier = new MessageClassifier();
-            messageClassifier.Train(analysisLibraries.SelectMany(it => it.Articles), requiredConfidenceRatio);
-            builder.RegisterInstance(messageClassifier).As<IMessageClassifier>();
+            builder.Register(c =>
+            {
+                var messageClassifier = new MessageClassifier(c.Resolve<ILogger>());
+                messageClassifier.Train(analysisLibraries.SelectMany(it => it.Articles), requiredConfidenceRatio);
+
+                return messageClassifier;
+            }).As<IMessageClassifier>().SingleInstance();
 
             /*
              * Register response libraries directly - used by ResponseBuilder.
