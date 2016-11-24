@@ -7,21 +7,75 @@ namespace Mofichan.Core
     using OrGroup = IEnumerable<IEnumerable<Tag>>;
     using TagGroup = IEnumerable<IEnumerable<Tag>>;
 
+    /// <summary>
+    /// An enumeration of the possible classifications that can be
+    /// used to describe a message. 
+    /// </summary>
+    /// <remarks>
+    /// Associating tags with messages makes it easier for Mofichan to
+    /// both interpret incoming messages and generate responses.
+    /// </remarks>
     public enum Tag
     {
+        /// <summary>
+        /// Represents messages directed at Mofichan.
+        /// </summary>
         DirectedAtMofichan,
+
+        /// <summary>
+        /// Represents inquiries or responses about someone's wellbeing.
+        /// </summary>
         Wellbeing,
+
+        /// <summary>
+        /// Reprsents messages that constitute phrases.
+        /// </summary>
         Phrase,
+
+        /// <summary>
+        /// Represents messages that constitute emotes.
+        /// </summary>
         Emote,
+
+        /// <summary>
+        /// Represents messages that give the impression of happiness.
+        /// </summary>
         Happy,
+
+        /// <summary>
+        /// Represents messages that can be judged as cute.
+        /// </summary>
         Cute,
+
+        /// <summary>
+        /// Represents messages that serve as greetings.
+        /// </summary>
         Greeting,
+
+        /// <summary>
+        /// Represents messages that serve as goodbyes.
+        /// </summary>
         Goodbye,
+
+        /// <summary>
+        /// Represents messages with a positive emotive quality.
+        /// </summary>
         Positive,
+
+        /// <summary>
+        /// Represents messages with a negative emotive quality.
+        /// </summary>
         Negative,
+
+        /// <summary>
+        /// A tag associated with messages for testing purposes.
+        /// </summary>
         Test
     }
 
+    /// <summary>
+    /// Provides extension methods on <see cref=Tag/>
+    /// </summary>
     public static class TagExtensions
     {
         #region As Group
