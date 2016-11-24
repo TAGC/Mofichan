@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Dynamic;
-using Mofichan.Library;
+using Mofichan.Library.Response;
 using Shouldly;
 using Xunit;
 

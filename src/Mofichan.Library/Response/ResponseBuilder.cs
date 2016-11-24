@@ -6,7 +6,7 @@ using System.Text;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
 
-namespace Mofichan.Library
+namespace Mofichan.Library.Response
 {
     internal class ResponseBuilder : IResponseBuilder
     {
@@ -81,23 +81,22 @@ namespace Mofichan.Library
 
             return this;
         }
-
-        public IResponseBuilder FromTags(params string[] tags)
+        public IResponseBuilder FromTags(IEnumerable<IEnumerable<Tag>> tags)
         {
             return this.FromTags(DefaultPrefix, DefaultChance, tags);
         }
 
-        public IResponseBuilder FromTags(string prefix, IEnumerable<string> tags)
+        public IResponseBuilder FromTags(string prefix, IEnumerable<IEnumerable<Tag>> tags)
         {
             return this.FromTags(prefix, DefaultChance, tags);
         }
 
-        public IResponseBuilder FromTags(double chance, IEnumerable<string> tags)
+        public IResponseBuilder FromTags(double chance, IEnumerable<IEnumerable<Tag>> tags)
         {
             return this.FromTags(DefaultPrefix, chance, tags);
         }
 
-        public IResponseBuilder FromTags(string prefix, double chance, IEnumerable<string> tags)
+        public IResponseBuilder FromTags(string prefix, double chance, IEnumerable<IEnumerable<Tag>> tags)
         {
             var tagRequirement = CreateTagRequirement(tags);
             var validArticles = this.articleFilter.FilterByTagRequirement(tagRequirement);
@@ -129,11 +128,9 @@ namespace Mofichan.Library
             return this.stringBuilder.ToString();
         }
 
-        private static ITagRequirement CreateTagRequirement(IEnumerable<string> tags)
+        private static ITagRequirement CreateTagRequirement(IEnumerable<IEnumerable<Tag>> tags)
         {
-            var representation = string.Join(";", tags);
-
-            return TagRequirement.Parse(representation);
+            return TagRequirement.From(tags);
         }
 
         private string PickAnyOfWithChance(IEnumerable<string> possibilities, double chance)

@@ -41,8 +41,10 @@ namespace Mofichan.Behaviour
 
             var responseBody = this.ResponseBuilder
                 .UsingContext(message.Context)
-                .FromTags(prefix: string.Empty, tags: new[] { "greeting,phrase" })
-                .FromTags("emote,greeting", "emote,cute")
+                .FromTags(prefix: string.Empty,
+                          tags: Tag.Greeting.And(Tag.Phrase).AsGroup())
+                .FromTags(Tag.Emote.And(Tag.Greeting).Or(
+                          Tag.Emote.And(Tag.Cute)))
                 .Build();
 
             var context = new MessageContext(from: null, to: sender, body: responseBody);
@@ -58,8 +60,10 @@ namespace Mofichan.Behaviour
 
             var responseBody = this.ResponseBuilder
                 .UsingContext(message.Context)
-                .FromTags(prefix: string.Empty, tags: new[] { "wellbeing-response,phrase" })
-                .FromTags("emote,happy", "emote,cute")
+                .FromTags(prefix: string.Empty,
+                          tags: Tag.Phrase.And(Tag.WellbeingResponse).AsGroup())
+                .FromTags(Tag.Emote.And(Tag.Happy).Or(
+                          Tag.Emote.And(Tag.Cute)))
                 .Build();
 
             var context = new MessageContext(from: null, to: sender, body: responseBody);

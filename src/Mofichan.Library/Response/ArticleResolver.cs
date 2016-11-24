@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace Mofichan.Library
+namespace Mofichan.Library.Response
 {
     /// <summary>
     /// Represents objects that can be used to resolve context-dependent placeholders within an article.

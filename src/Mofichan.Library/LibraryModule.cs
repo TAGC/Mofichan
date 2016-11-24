@@ -1,9 +1,9 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using Autofac;
 using Mofichan.Core.Interfaces;
+using Mofichan.Library.Response;
 
 namespace Mofichan.Library
 {
@@ -25,12 +25,13 @@ namespace Mofichan.Library
         private static ILibrary BuildLibrary(string resourceName)
         {
             var assembly = typeof(LibraryModule).GetTypeInfo().Assembly;
-            var resourcePath = "Mofichan.Library.Resources." + resourceName + ".json";
-            var resourceStream = assembly.GetManifestResourceStream(resourcePath);
+            var resourcePath = "Mofichan.Library.Resources.ResponseLib." + resourceName + ".json";
+            using (var resourceStream = assembly.GetManifestResourceStream(resourcePath))
+            {
+                Debug.Assert(resourceStream != null, "The resource should exist");
 
-            Debug.Assert(resourceStream != null, "The resource should exist");
-
-            return new JsonSourceLibrary(new StreamReader(resourceStream));
+                return new JsonSourceLibrary(new StreamReader(resourceStream));
+            }
         }
     }
 }

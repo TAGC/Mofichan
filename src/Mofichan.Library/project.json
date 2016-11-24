@@ -2,7 +2,11 @@
   "version": "1.0.0-*",
   "buildOptions": {
     "embed": {
-      "include": "Resources/*.json"
+      "include": [
+        "Resources/AnalysisLib/*.txt",
+        "Resources/AnalysisLib/*.json",
+        "Resources/ResponseLib/*.json"
+      ]
     }
   },
 

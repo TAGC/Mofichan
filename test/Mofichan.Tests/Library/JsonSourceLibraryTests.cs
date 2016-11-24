@@ -2,7 +2,9 @@
 using System.IO;
 using System.Linq;
 using System.Text;
+using Mofichan.Core;
 using Mofichan.Library;
+using Mofichan.Library.Response;
 using Shouldly;
 using Xunit;
 
@@ -17,45 +19,45 @@ namespace Mofichan.Tests.Library
                 yield return new object[]
                 {
                     new StringBuilder("[")
-                        .Append(BuildJsonArticle("this is foo", "foo"))
+                        .Append(BuildJsonArticle("this is happy", "happy"))
                         .Append("]")
                         .ToString(),
 
                     new[]
                     {
-                        TaggedArticle.From("this is foo", "foo")
+                        TaggedMessage.From("this is happy", Tag.Happy)
                     }
                 };
 
                 yield return new object[]
                 {
                     new StringBuilder("[")
-                        .Append(BuildJsonArticle("this is foo", "foo")).Append(",")
-                        .Append(BuildJsonArticle("this is foo and bar", "foo", "bar"))
+                        .Append(BuildJsonArticle("this is happy", "happy")).Append(",")
+                        .Append(BuildJsonArticle("this is happy and pleasant", "happy", "pleasant"))
                         .Append("]")
                         .ToString(),
 
                     new[]
                     {
-                        TaggedArticle.From("this is foo", "foo"),
-                        TaggedArticle.From("this is foo and bar", "foo", "bar")
+                        TaggedMessage.From("this is happy", Tag.Happy),
+                        TaggedMessage.From("this is happy and pleasant", Tag.Happy, Tag.Pleasant)
                     }
                 };
 
                 yield return new object[]
                 {
                     new StringBuilder("[")
-                        .Append(BuildJsonArticle("this is foo", "foo")).Append(",")
-                        .Append(BuildJsonArticle("this is foo and bar", "foo", "bar")).Append(",")
-                        .Append(BuildJsonArticle("this is foo, bar and baz", "foo", "bar", "baz"))
+                        .Append(BuildJsonArticle("this is happy", "happy")).Append(",")
+                        .Append(BuildJsonArticle("this is happy and pleasant", "happy", "pleasant")).Append(",")
+                        .Append(BuildJsonArticle("this is happy, pleasant and cute", "happy", "pleasant", "cute"))
                         .Append("]")
                         .ToString(),
 
                     new[]
                     {
-                        TaggedArticle.From("this is foo", "foo"),
-                        TaggedArticle.From("this is foo and bar", "foo", "bar"),
-                        TaggedArticle.From("this is foo, bar and baz", "foo", "bar", "baz")
+                        TaggedMessage.From("this is happy", Tag.Happy),
+                        TaggedMessage.From("this is happy and pleasant", Tag.Happy, Tag.Pleasant),
+                        TaggedMessage.From("this is happy, pleasant and cute", Tag.Happy, Tag.Pleasant, Tag.Cute)
                     }
                 };
             }
@@ -71,7 +73,7 @@ namespace Mofichan.Tests.Library
         [Theory]
         [MemberData(nameof(Examples))]
         internal void Json_Source_Library_Should_Provide_Expected_Articles_When_Loaded_From_Json_Source(
-            string jsonSource, IEnumerable<TaggedArticle> expectedArticles)
+            string jsonSource, IEnumerable<TaggedMessage> expectedArticles)
         {
             // GIVEN a JsonSourceLibrary constructed using the provided source.
             var library = new JsonSourceLibrary(new StringReader(jsonSource));
@@ -83,7 +85,7 @@ namespace Mofichan.Tests.Library
 
             foreach (var pair in actualArticles.Zip(expectedArticles, (actual, expected) => new { actual, expected }))
             {
-                pair.actual.Article.ShouldBe(pair.expected.Article);
+                pair.actual.Message.ShouldBe(pair.expected.Message);
                 pair.actual.Tags.Count().ShouldBe(pair.expected.Tags.Count());
                 pair.expected.Tags.ToList().ForEach(it => pair.actual.Tags.ShouldContain(it));
             }

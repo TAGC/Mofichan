@@ -8,10 +8,10 @@ namespace Mofichan.Core.Interfaces
 
         IResponseBuilder FromRaw(string rawString);
 
-        IResponseBuilder FromTags(params string[] tags);
-        IResponseBuilder FromTags(double chance, IEnumerable<string> tags);
-        IResponseBuilder FromTags(string prefix, IEnumerable<string> tags);
-        IResponseBuilder FromTags(string prefix, double chance, IEnumerable<string> tags);
+        IResponseBuilder FromTags(IEnumerable<IEnumerable<Tag>> tags);
+        IResponseBuilder FromTags(double chance, IEnumerable<IEnumerable<Tag>> tags);
+        IResponseBuilder FromTags(string prefix, IEnumerable<IEnumerable<Tag>> tags);
+        IResponseBuilder FromTags(string prefix, double chance, IEnumerable<IEnumerable<Tag>> tags);
 
         IResponseBuilder FromAnyOf(params string[] phrases);
         IResponseBuilder FromAnyOf(double chance, IEnumerable<string> phrases);

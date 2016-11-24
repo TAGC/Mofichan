@@ -1,10 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 
-namespace Mofichan.Library
+namespace Mofichan.Library.Response
 {
     /// <summary>
-    /// Filters instances of <see cref="TaggedArticle"/> based on provided
+    /// Filters instances of <see cref="TaggedMessage"/> based on provided
     /// <see cref="ITagRequirement"/>. 
     /// </summary>
     internal interface IArticleFilter
@@ -20,11 +20,11 @@ namespace Mofichan.Library
 
     /// <summary>
     /// An instance of <see cref="IArticleFilter"/> that filters against
-    /// a set of <see cref="TaggedArticle"/> taken from a collection of <see cref="ILibrary"/>.  
+    /// a set of <see cref="TaggedMessage"/> taken from a collection of <see cref="ILibrary"/>.  
     /// </summary>
     internal class ArticleFilter : IArticleFilter
     {
-        private readonly IEnumerable<TaggedArticle> articles;
+        private readonly IEnumerable<TaggedMessage> articles;
 
         public ArticleFilter(IEnumerable<ILibrary> libraries)
         {
@@ -35,7 +35,7 @@ namespace Mofichan.Library
         {
             return from article in this.articles
                    where requirement.SatisfiedBy(article.Tags)
-                   select article.Article;
+                   select article.Message;
         }
     }
 }
