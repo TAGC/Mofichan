@@ -1,9 +1,14 @@
 ﻿{
   "core": {
-    "backend": "discord"
+    "backend": "" // options: "discord", "console"
   },
+  
+  /*******************************************************************
+    DISCORD BACKEND (uncomment and complete if core.backend="discord")
+   *******************************************************************
   "discord": {
     "token": "<<YOUR BOT TOKEN>>",
     "admin_id": "<<DISCORD USER ID OF ADMIN USER>>"
   }
+  *******************************************************************/
 }
