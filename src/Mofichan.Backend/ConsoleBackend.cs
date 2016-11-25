@@ -21,6 +21,12 @@ namespace Mofichan.Backend
 
         public override void Start()
         {
+            Console.CancelKeyPress += (s, e) =>
+            {
+                this.Dispose();
+                Environment.Exit(0);
+            };
+
             Console.Write("\nConsole backend started. Please enter your name: ");
 
             this.consoleUser = new ConsoleUser(Console.ReadLine());
