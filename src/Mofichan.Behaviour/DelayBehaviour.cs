@@ -23,8 +23,8 @@ namespace Mofichan.Behaviour
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DelayBehaviour"/> class.
-        /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder"/>.</param>
         /// </summary>
+        /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder"/>.</param>
         public DelayBehaviour(Func<IResponseBuilder> responseBuilderFactory) : base(responseBuilderFactory)
         {
             this.random = new Random();
@@ -94,14 +94,6 @@ namespace Mofichan.Behaviour
 
             double y1 = Math.Sqrt(-2.0 * Math.Log(x1)) * Math.Cos(2.0 * Math.PI * x2);
             return (y1 * standardDeviation) + mean;
-        }
-
-        private async Task SendDelayedMessageAsync(OutgoingMessage message)
-        {
-            TimeSpan delay = this.CalculateDelayForMessage(message.Context.Body);
-            await Task.Delay(delay);
-
-            this.SendUpstream(message);
         }
 
         private TimeSpan CalculateDelayForMessage(string messageBody)

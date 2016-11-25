@@ -10,8 +10,21 @@ using Serilog;
 
 namespace Mofichan.Library
 {
+    /// <summary>
+    /// An Autofac module that registers classes to aid in message analysis
+    /// and response generation.
+    /// </summary>
+    /// <seealso cref="Autofac.Module" />
     public class LibraryModule : Autofac.Module
     {
+        /// <summary>
+        /// Override to add registrations to the container.
+        /// </summary>
+        /// <param name="builder">The builder through which components can be
+        /// registered.</param>
+        /// <remarks>
+        /// Note that the ContainerBuilder parameter is unique to this module.
+        /// </remarks>
         protected override void Load(ContainerBuilder builder)
         {
             /*

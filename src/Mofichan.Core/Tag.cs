@@ -74,7 +74,7 @@ namespace Mofichan.Core
     }
 
     /// <summary>
-    /// Provides extension methods on <see cref=Tag/>
+    /// Provides extension methods on <see cref="Tag"/>
     /// </summary>
     public static class TagExtensions
     {

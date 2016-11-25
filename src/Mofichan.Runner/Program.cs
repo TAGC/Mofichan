@@ -26,9 +26,6 @@ namespace Mofichan.Runner
         /// <param name="args">The program arguments.</param>
         public static void Main(string[] args)
         {
-            //PerformTemporaryTests();
-            //return;
-
             using (var mofichan = CreateMofichan())
             {
                 mofichan.Start();
@@ -36,22 +33,6 @@ namespace Mofichan.Runner
                 Console.WriteLine("Started Mofichan");
                 Console.WriteLine("Press any key to shut down...");
                 Console.ReadKey();
-            }
-        }
-
-        private static void PerformTemporaryTests()
-        {
-            var container = BuildContainer();
-            var messageClassifier = container.Resolve<IMessageClassifier>();
-
-            while (true)
-            {
-                Console.Write("Enter message: ");
-                var message = Console.ReadLine();
-                var tags = messageClassifier.Classify(message);
-
-                Console.WriteLine("Tags: " + string.Join(", ", tags));
-                Console.WriteLine();
             }
         }
 

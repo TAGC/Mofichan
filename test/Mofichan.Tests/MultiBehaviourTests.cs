@@ -78,11 +78,6 @@ namespace Mofichan.Tests
             {
                 this.onNextCallback();
             }
-
-            public void Dispose()
-            {
-                throw new NotImplementedException();
-            }
         }
 
         private class MockMultiBehaviour : BaseMultiBehaviour

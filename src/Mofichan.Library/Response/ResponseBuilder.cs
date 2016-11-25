@@ -81,6 +81,7 @@ namespace Mofichan.Library.Response
 
             return this;
         }
+
         public IResponseBuilder FromTags(IEnumerable<IEnumerable<Tag>> tags)
         {
             return this.FromTags(DefaultPrefix, DefaultChance, tags);

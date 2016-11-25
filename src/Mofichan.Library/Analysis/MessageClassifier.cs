@@ -33,7 +33,7 @@ namespace Mofichan.Library.Analysis
                                       requiredConfidenceRatio,
                                       members ?? Enumerable.Empty<string>(),
                                       nonMembers ?? Enumerable.Empty<string>(),
-                                      logger)
+                                      this.logger)
                                   select new { classification, classifier })
                                   .ToDictionary(it => it.classification, it => it.classifier);
 

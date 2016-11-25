@@ -12,6 +12,8 @@ namespace Mofichan.Library.Analysis
 {
     internal class BinaryBayesianClassifier
     {
+        private static readonly IEnumerable<string> IgnoredTerms = StopWords;
+
         /// <summary>
         /// Determines how confident the classifier must be about a message
         /// in order to declare that it should be positively classified.
@@ -23,12 +25,26 @@ namespace Mofichan.Library.Analysis
         /// </remarks>
         private readonly double requiredConfidenceRatio;
 
-        private static readonly IEnumerable<string> IgnoredTerms = StopWords;
-
         private readonly string classifierId;
         private readonly IDictionary<string, double> positiveLikelihoods;
         private readonly IDictionary<string, double> negativeLikelihoods;
         private readonly ILogger logger;
+
+        public BinaryBayesianClassifier(
+            string classifierId,
+            double requiredConfidenceRatio,
+            IEnumerable<string> positiveExamples,
+            IEnumerable<string> negativeExamples,
+            ILogger logger)
+        {
+            var combinedLikelihoods = CalculateLikelihoods(positiveExamples, negativeExamples);
+
+            this.classifierId = classifierId;
+            this.positiveLikelihoods = combinedLikelihoods[true];
+            this.negativeLikelihoods = combinedLikelihoods[false];
+            this.requiredConfidenceRatio = requiredConfidenceRatio;
+            this.logger = logger.ForContext<BinaryBayesianClassifier>();
+        }
 
         private static IEnumerable<string> StopWords
         {
@@ -47,22 +63,6 @@ namespace Mofichan.Library.Analysis
                     }
                 }
             }
-        }
-
-        public BinaryBayesianClassifier(
-            string classifierId,
-            double requiredConfidenceRatio,
-            IEnumerable<string> positiveExamples,
-            IEnumerable<string> negativeExamples,
-            ILogger logger)
-        {
-            var combinedLikelihoods = CalculateLikelihoods(positiveExamples, negativeExamples);
-
-            this.classifierId = classifierId;
-            this.positiveLikelihoods = combinedLikelihoods[true];
-            this.negativeLikelihoods = combinedLikelihoods[false];
-            this.requiredConfidenceRatio = requiredConfidenceRatio;
-            this.logger = logger.ForContext<BinaryBayesianClassifier>();
         }
 
         public bool Classify(string message)
