@@ -168,7 +168,7 @@ namespace Mofichan.Library.Analysis
             return Regex.Matches(message, @"[\w']+")
                 .Cast<Match>()
                 .Select(it => it.Value.ToLowerInvariant())
-                .Aggregate((e, a) => e + " " + a);
+                .Aggregate(string.Empty, (e, a) => e + " " + a);
         }
     }
 }

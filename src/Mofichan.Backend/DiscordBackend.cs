@@ -122,6 +122,10 @@ namespace Mofichan.Backend
             this.Logger.Debug("Disposed {Client}", this.client);
         }
 
+        /// <summary>
+        /// Sends the message into the wider world.
+        /// </summary>
+        /// <param name="message">The message to send.</param>
         protected override void SendMessage(MessageContext message)
         {
             this.Logger.Verbose("Queueing message {MessageBody} to {Recipient} with {Delay} delay",

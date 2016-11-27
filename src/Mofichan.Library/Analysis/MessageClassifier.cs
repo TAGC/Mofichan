@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using Mofichan.Core;
 using Mofichan.Core.Interfaces;
 using Serilog;
 
@@ -11,7 +9,7 @@ namespace Mofichan.Library.Analysis
     {
         private readonly ILogger logger;
 
-        private IDictionary<Tag, BinaryBayesianClassifier> classifierMap;
+        private IDictionary<string, BinaryBayesianClassifier> classifierMap;
 
         public MessageClassifier(ILogger logger)
         {
@@ -23,13 +21,13 @@ namespace Mofichan.Library.Analysis
             this.logger.Debug("Training started. Required confidence ratio = {RequiredConfidenceRatio}",
                 requiredConfidenceRatio);
 
-            this.classifierMap = (from classification in GetClassifications()
+            this.classifierMap = (from classification in GetClassifications(trainingSet)
                                   let memberSplit = from o in trainingSet
                                                     group o.Message by o.Tags.Contains(classification)
                                   let members = memberSplit.FirstOrDefault(it => it.Key)
                                   let nonMembers = memberSplit.FirstOrDefault(it => !it.Key)
                                   let classifier = new BinaryBayesianClassifier(
-                                      classification.ToString(),
+                                      classification,
                                       requiredConfidenceRatio,
                                       members ?? Enumerable.Empty<string>(),
                                       nonMembers ?? Enumerable.Empty<string>(),
@@ -41,7 +39,7 @@ namespace Mofichan.Library.Analysis
                 this.classifierMap.Keys);
         }
 
-        public IEnumerable<Tag> Classify(string message)
+        public IEnumerable<string> Classify(string message)
         {
             return from pair in this.classifierMap
                    let classification = pair.Key
@@ -50,9 +48,9 @@ namespace Mofichan.Library.Analysis
                    select classification;
         }
 
-        private static IEnumerable<Tag> GetClassifications()
+        private static IEnumerable<string> GetClassifications(IEnumerable<TaggedMessage> trainingSet)
         {
-            return Enum.GetValues(typeof(Tag)).Cast<Tag>();
+            return new HashSet<string>(trainingSet.SelectMany(it => it.Tags));
         }
     }
 }

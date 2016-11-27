@@ -8,6 +8,23 @@ namespace Mofichan.Core.Utility
     public static class Extensions
     {
         /// <summary>
+        /// Forms an <see cref="OutgoingMessage"/> in response to a(n) <see cref="MessageContext"/>
+        /// with a specified body.
+        /// </summary>
+        /// <param name="messageContext">The message context to form a reply to.</param>
+        /// <param name="replyBody">The body of the reply.</param>
+        /// <returns>The generated reply.</returns>
+        public static OutgoingMessage Reply(this MessageContext messageContext, string replyBody)
+        {
+            var from = messageContext.From;
+            var to = messageContext.To;
+
+            var replyContext = new MessageContext(from: to, to: from, body: replyBody);
+
+            return new OutgoingMessage { Context = replyContext };
+        }
+
+        /// <summary>
         /// Tries the get a value from a dictionary and returns the default value
         /// if the key is not found.
         /// </summary>

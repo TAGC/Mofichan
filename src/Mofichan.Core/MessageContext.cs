@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Mofichan.Core.Interfaces;
+using PommaLabs.Thrower;
 
 namespace Mofichan.Core
 {
@@ -9,18 +12,21 @@ namespace Mofichan.Core
     public struct MessageContext
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="MessageContext"/> struct.
+        /// Initializes a new instance of the <see cref="MessageContext" /> struct.
         /// </summary>
         /// <param name="from">The sender of the message.</param>
         /// <param name="to">The recipient of the message.</param>
         /// <param name="body">The message body.</param>
         /// <param name="delay">An optional delay that should be waited before sending the message.</param>
-        public MessageContext(IMessageTarget from, IMessageTarget to, string body, TimeSpan? delay = null)
+        /// <param name="tags">An optional set of tags associated with this message, if classified.</param>
+        public MessageContext(IMessageTarget from, IMessageTarget to, string body, TimeSpan? delay = null,
+            IEnumerable<string> tags = null)
         {
             this.From = from;
             this.To = to;
             this.Body = body;
             this.Delay = delay ?? TimeSpan.Zero;
+            this.Tags = tags ?? Enumerable.Empty<string>();
         }
 
         /// <summary>
@@ -56,6 +62,26 @@ namespace Mofichan.Core
         public TimeSpan Delay { get; }
 
         /// <summary>
+        /// Gets the tags associated with the message during classification.
+        /// </summary>
+        /// <value>
+        /// The message tags.
+        /// </value>
+        public IEnumerable<string> Tags { get; }
+
+        /// <summary>
+        /// Derives a <c>MessageContext</c> from this instance with <paramref name="tags"/>
+        /// concatenated to this instance's collection of tags.
+        /// </summary>
+        /// <param name="tags">The tags to concatenate.</param>
+        /// <returns>A derived instance of <c>MessageContext</c>.</returns>
+        public MessageContext FromTags(IEnumerable<string> tags)
+        {
+            Raise.ArgumentNullException.IfIsNull(tags, nameof(tags));
+            return new MessageContext(this.From, this.To, this.Body, this.Delay, this.Tags.Concat(tags));
+        }
+
+        /// <summary>
         /// Returns a <see cref="System.String" /> that represents this instance.
         /// </summary>
         /// <returns>
@@ -63,8 +89,8 @@ namespace Mofichan.Core
         /// </returns>
         public override string ToString()
         {
-            return string.Format("Message (from={0}, to={1}, body={2} delay={3})",
-                this.From, this.To, this.Body, this.Delay);
+            return string.Format("Message (from={0}, to={1}, body={2}, delay={3}, tags={4})",
+                this.From, this.To, this.Body, this.Delay, string.Join(",", this.Tags));
         }
     }
 

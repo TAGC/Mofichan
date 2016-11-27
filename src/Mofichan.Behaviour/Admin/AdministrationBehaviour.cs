@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
 using Mofichan.Core.Exceptions;
 using Mofichan.Core.Interfaces;
+using Mofichan.Core.Utility;
 using Serilog;
 
 namespace Mofichan.Behaviour.Admin
@@ -21,22 +23,34 @@ namespace Mofichan.Behaviour.Admin
         internal const string AdministrationBehaviourId = "administration";
 
         private readonly ILogger logger;
+        private readonly AuthorisationFailureHandler authExceptionHandler;
 
         private IObserver<OutgoingMessage> upstreamObserver;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AdministrationBehaviour" /> class.
         /// </summary>
-        /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder"/>.</param>
+        /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder" />.</param>
+        /// <param name="transitionManagerFactory">The transition manager factory.</param>
+        /// <param name="flowDriver">The flow driver.</param>
+        /// <param name="flowTransitionSelector">The flow transition selector.</param>
         /// <param name="chainBuilder">The object to use for composing sub-behaviours into a chain.</param>
         /// <param name="logger">The logger to use.</param>
-        public AdministrationBehaviour(Func<IResponseBuilder> responseBuilderFactory, IBehaviourChainBuilder chainBuilder,
-            ILogger logger) : base(
-            chainBuilder,
-            new ToggleEnableBehaviour(responseBuilderFactory),
-            new DisplayChainBehaviour(responseBuilderFactory))
+        public AdministrationBehaviour(
+            Func<IResponseBuilder> responseBuilderFactory,
+            Func<IEnumerable<IFlowTransition>, IFlowTransitionManager> transitionManagerFactory,
+            IFlowDriver flowDriver,
+            IFlowTransitionSelector flowTransitionSelector,
+            IBehaviourChainBuilder chainBuilder,
+            ILogger logger)
+            : base(chainBuilder,
+            new ToggleEnableBehaviour(responseBuilderFactory, transitionManagerFactory, flowDriver,
+                flowTransitionSelector, logger),
+            new DisplayChainBehaviour(responseBuilderFactory, transitionManagerFactory, flowDriver,
+                flowTransitionSelector, logger))
         {
             this.logger = logger.ForContext<AdministrationBehaviour>();
+            this.authExceptionHandler = new AuthorisationFailureHandler(this.TrySendUpstream, logger);
         }
 
         /// <summary>
@@ -78,19 +92,13 @@ namespace Mofichan.Behaviour.Admin
             }
             catch (MofichanAuthorisationException e)
             {
-                this.logger.Information(e, "Failed to authorise {User} for request: {Request}",
-                    message.Context.From, message.Context.Body);
-
-                var sender = message.Context.From as IUser;
-
-                if (sender != null && this.upstreamObserver != null)
-                {
-                    var reply = message.Reply(string.Format("I'm afraid you're not authorised to do that, {0}",
-                        sender.Name));
-
-                    this.upstreamObserver.OnNext(reply);
-                }
+                this.authExceptionHandler.Handle(e);
             }
+        }
+
+        private void TrySendUpstream(OutgoingMessage message)
+        {
+            this.upstreamObserver?.OnNext(message);
         }
     }
 }

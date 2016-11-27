@@ -1,10 +1,12 @@
 ﻿using System;
-using System.Text.RegularExpressions;
+using System.Collections.Generic;
+using System.Linq;
 using Mofichan.Behaviour.Base;
-using Mofichan.Behaviour.FilterAttributes;
+using Mofichan.Behaviour.Flow;
 using Mofichan.Core;
+using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
-using static Mofichan.Core.Utility.Constants;
+using Serilog;
 
 namespace Mofichan.Behaviour
 {
@@ -14,61 +16,139 @@ namespace Mofichan.Behaviour
     /// <remarks>
     /// Adding this module to the behaviour chain will allow Mofichan to respond to people greeting her.
     /// </remarks>
-    public class GreetingBehaviour : BaseReflectionBehaviour
+    public sealed class GreetingBehaviour : BaseFlowReflectionBehaviour
     {
-        private const string GreetingWord = @"(hey|hi|hello|sup|yo)";
-        private const string GreetingMatch = GreetingWord + @",?\s*" + IdentityMatch + @"\W*";
-
-        private const string WellbeingQueries = @"(how are you|how r u|you alright)";
+        private readonly ILogger logger;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GreetingBehaviour"/> class.
-        /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder"/>.</param>
+        /// Initializes a new instance of the <see cref="GreetingBehaviour" /> class.
         /// </summary>
-        public GreetingBehaviour(Func<IResponseBuilder> responseBuilderFactory) : base(responseBuilderFactory)
+        /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder" />.</param>
+        /// <param name="transitionManagerFactory">The transition manager factory.</param>
+        /// <param name="flowDriver">The flow driver.</param>
+        /// <param name="flowTransitionSelector">The flow transition selector.</param>
+        /// <param name="logger">The logger to use.</param>
+        public GreetingBehaviour(
+            Func<IResponseBuilder> responseBuilderFactory,
+            Func<IEnumerable<IFlowTransition>, IFlowTransitionManager> transitionManagerFactory,
+            IFlowDriver flowDriver,
+            IFlowTransitionSelector flowTransitionSelector,
+            ILogger logger)
+            : base("S0", responseBuilderFactory, transitionManagerFactory, flowDriver, flowTransitionSelector, logger)
         {
+            this.logger = logger.ForContext<GreetingBehaviour>();
+            this.RegisterSimpleNode("STerm");
+            this.RegisterSimpleTransition("T0,Term", from: "S0", to: "STerm");
+            this.RegisterSimpleTransition("T0,1", from: "S0", to: "S1");
+            this.RegisterSimpleTransition("T1,1", from: "S1", to: "S1");
+            this.Configure();
         }
 
         /// <summary>
-        /// Generates a greeting when Mofichan receives one.
+        /// Represents the idle flow state.
         /// </summary>
-        /// <param name="message">The received greeting.</param>
-        /// <returns>A greeting in response.</returns>
-        [RegexIncomingMessageFilter(GreetingMatch, RegexOptions.IgnoreCase)]
-        public OutgoingMessage? ReturnGreeting(IncomingMessage message)
+        /// <param name="context">The flow context.</param>
+        /// <param name="manager">The transition manager.</param>
+        [FlowState(id: "S0")]
+        public void Idle(FlowContext context, IFlowTransitionManager manager)
         {
-            var sender = message.Context.From as IUser;
-
-            var responseBody = this.ResponseBuilder
-                .UsingContext(message.Context)
-                .FromTags(prefix: string.Empty,
-                          tags: Tag.Greeting.And(Tag.Phrase).AsGroup())
-                .FromTags(Tag.Emote.And(Tag.Greeting).Or(
-                          Tag.Emote.And(Tag.Cute)))
-                .Build();
-
-            var context = new MessageContext(from: null, to: sender, body: responseBody);
-
-            return new OutgoingMessage { Context = context };
+            if (context.Message.Tags.Contains("directedAtMofichan"))
+            {
+                manager.MakeTransitionCertain("T0,1");
+            }
+            else
+            {
+                manager.MakeTransitionCertain("T0,Term");
+            }
         }
 
-        [RegexIncomingMessageFilter(IdentityMatch, RegexOptions.IgnoreCase)]
-        [RegexIncomingMessageFilter(WellbeingQueries, RegexOptions.IgnoreCase)]
-        public OutgoingMessage? RespondToWellbeingQuery(IncomingMessage message)
+        /// <summary>
+        /// Represents the state while a user holds Mofichan's attention.
+        /// </summary>
+        /// <param name="context">The flow context.</param>
+        /// <param name="manager">The transition manager.</param>
+        [FlowState(id: "S1", distinctUntilChanged: true)]
+        public void WithAttention(FlowContext context, IFlowTransitionManager manager)
         {
-            var sender = message.Context.From as IUser;
+            var tags = context.Message.Tags;
 
-            var responseBody = this.ResponseBuilder
-                .UsingContext(message.Context)
-                .FromTags(prefix: string.Empty,
-                          tags: Tag.Wellbeing.And(Tag.Phrase).AsGroup())
-                .FromTags(Tag.Emote.And(Tag.Happy).Or(
-                          Tag.Emote.And(Tag.Cute)))
+            if (tags.Contains("wellbeing"))
+            {
+                manager.MakeTransitionCertain("T1,1:wellbeing");
+            }
+            else if (tags.Contains("greeting"))
+            {
+                manager.MakeTransitionCertain("T1,1:greeting");
+            }
+            else
+            {
+                ConfigureForEventualFlowTermination(manager);
+            }
+        }
+
+        /// <summary>
+        /// Called when Mofichan is greeted.
+        /// </summary>
+        /// <param name="context">The flow context.</param>
+        /// <param name="manager">The transition manager.</param>
+        [FlowTransition(id: "T1,1:greeting", from: "S1", to: "S1")]
+        public void OnGreeted(FlowContext context, IFlowTransitionManager manager)
+        {
+            ConfigureForEventualFlowTermination(manager);
+
+            var response = this.ResponseBuilder
+                .UsingContext(context.Message)
+                .FromTags(prefix: string.Empty, tags: new[] { "greeting,phrase" })
+                .FromTags("emote,greeting", "emote,cute")
                 .Build();
 
-            var context = new MessageContext(from: null, to: sender, body: responseBody);
+            this.Respond(context, response);
+        }
 
-            return new OutgoingMessage { Context = context };
+        /// <summary>
+        /// Called when someone asks Mofichan how she's doing.
+        /// </summary>
+        /// <param name="context">The flow context.</param>
+        /// <param name="manager">The transition manager.</param>
+        [FlowTransition(id: "T1,1:wellbeing", from: "S1", to: "STerm")]
+        public void OnWellbeingRequest(FlowContext context, IFlowTransitionManager manager)
+        {
+            ConfigureForEventualFlowTermination(manager);
+
+            var response = this.ResponseBuilder
+                .UsingContext(context.Message)
+                .FromTags(prefix: string.Empty, tags: new[] { "wellbeing,phrase" })
+                .FromTags("emote,happy", "emote,cute")
+                .Build();
+
+            this.Respond(context, response);
+        }
+
+        /// <summary>
+        /// Called when a user loses Mofichan's attention.
+        /// </summary>
+        /// <param name="context">The flow context.</param>
+        /// <param name="manager">The transition manager.</param>
+        [FlowTransition(id: "T1,Term:timeout", from: "S1", to: "STerm")]
+        public void OnLostAttention(FlowContext context, IFlowTransitionManager manager)
+        {
+            var user = context.Message.From as IUser;
+            this.logger.Debug("Mofichan stopped paying attention to {User}", user.Name);
+        }
+
+        private static void ConfigureForEventualFlowTermination(IFlowTransitionManager manager)
+        {
+            manager.ClearTransitionWeights();
+            manager["T1,1"] = 0.998;
+            manager["T1,Term:timeout"] = 1 - manager["T1,1"];
+        }
+
+        private void Respond(FlowContext context, string responseBody)
+        {
+            var sender = context.Message.From as IUser;
+            var responseContext = new MessageContext(from: null, to: sender, body: responseBody);
+            var response = new OutgoingMessage { Context = responseContext };
+            context.GeneratedResponseHandler(response);
         }
     }
 }

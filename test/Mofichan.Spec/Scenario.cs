@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using Autofac;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
+using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
 using Mofichan.Core.Utility;
 using Mofichan.Library;
@@ -21,12 +22,16 @@ namespace Mofichan.Spec
         protected const string AddBehaviourTemplate = "Given Mofichan is configured to use behaviour '{0}'";
 
         private readonly string scenarioTitle;
+        private readonly ControllableFlowDriver flowDriver;
 
         private IObserver<IncomingMessage> backendObserver;
+        private ILifetimeScope lifetimeScope;
 
         protected Scenario(string scenarioTitle = null)
         {
+
             this.scenarioTitle = scenarioTitle;
+            this.flowDriver = new ControllableFlowDriver();
             this.MofichanUser = ConstructMockUser("Mofichan", "Mofichan", UserType.Self);
             this.DeveloperUser = ConstructMockUser("ThymineC", "ThymineC", UserType.Adminstrator);
             this.JohnSmithUser = ConstructMockUser("John Smith", "JohnSmith", UserType.NormalUser);
@@ -34,6 +39,7 @@ namespace Mofichan.Spec
             this.Behaviours = new List<IMofichanBehaviour>();
             this.SentMessages = new List<OutgoingMessage>();
             this.Container = this.CreateContainerBuilder().Build();
+            this.lifetimeScope = this.Container.BeginLifetimeScope();
             this.MessageSent += (s, e) => this.SentMessages.Add(e.Message);
         }
 
@@ -43,7 +49,17 @@ namespace Mofichan.Spec
             this.BDDfy(scenarioTitle: this.scenarioTitle);
         }
 
+        private class ControllableFlowDriver : IFlowDriver
+        {
+            public void StepFlow()
+            {
+                this.OnNextStep?.Invoke(this, EventArgs.Empty);
+            }
+
+            public event EventHandler OnNextStep;
+        }
         #region Setup
+
         /// <summary>
         /// Test specifications can override this method to customise the creation
         /// of the test IoC container.
@@ -66,6 +82,18 @@ namespace Mofichan.Spec
             containerBuilder
                 .RegisterType<BehaviourChainBuilder>()
                 .As<IBehaviourChainBuilder>();
+
+            containerBuilder
+                .RegisterType<FairFlowTransitionSelector>()
+                .As<IFlowTransitionSelector>();
+
+            containerBuilder
+                .RegisterType<FlowTransitionManager>()
+                .As<IFlowTransitionManager>();
+
+            containerBuilder
+                .RegisterInstance(this.flowDriver)
+                .As<IFlowDriver>();
 
             containerBuilder
                 .RegisterInstance(new LoggerConfiguration().CreateLogger())
@@ -126,10 +154,21 @@ namespace Mofichan.Spec
             public OutgoingMessage Message { get; }
         }
 
+        protected virtual void TearDown()
+        {
+            this.Mofichan?.Dispose();
+            this.lifetimeScope?.Dispose();
+
+            this.Behaviours.Clear();
+            this.SentMessages.Clear();
+
+            this.lifetimeScope = this.Container.BeginLifetimeScope();
+        }
+
         #region Given
         protected void Given_Mofichan_is_configured_with_behaviour(string behaviour)
         {
-            this.Behaviours.Add(this.Container.ResolveNamed<IMofichanBehaviour>(behaviour));
+            this.Behaviours.Add(this.lifetimeScope.ResolveNamed<IMofichanBehaviour>(behaviour));
         }
 
         protected void Given_Mofichan_is_configured_with_behaviour(IMofichanBehaviour behaviour)
@@ -142,9 +181,9 @@ namespace Mofichan.Spec
             this.Mofichan = new Kernel(
                 this.Backend,
                 this.Behaviours,
-                this.Container.Resolve<IBehaviourChainBuilder>(),
-                this.Container.Resolve<IMessageClassifier>(),
-                this.Container.Resolve<ILogger>());
+                this.lifetimeScope.Resolve<IBehaviourChainBuilder>(),
+                this.lifetimeScope.Resolve<IMessageClassifier>(),
+                this.lifetimeScope.Resolve<ILogger>());
 
             this.Mofichan.Start();
         }
@@ -158,9 +197,22 @@ namespace Mofichan.Spec
 
             this.backendObserver.OnNext(incomingMessage);
         }
+
+        protected void When_flows_are_driven_by__stepCount__steps(int stepCount)
+        {
+            for (var i = 0; i < stepCount; i++)
+            {
+                this.flowDriver.StepFlow();
+            }
+        }
         #endregion
 
         #region Then
+        protected void Then_Mofichan_should_have_responded()
+        {
+            this.SentMessages.ShouldNotBeEmpty();
+        }
+
         protected void Then_Mofichan_should_have_sent__body__(string body)
         {
             this.SentMessages.Select(it => it.Context.Body).ShouldContain(body);

@@ -2,9 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Text;
-using Mofichan.Core;
 using Mofichan.Library;
-using Mofichan.Library.Response;
 using Shouldly;
 using Xunit;
 
@@ -19,45 +17,45 @@ namespace Mofichan.Tests.Library
                 yield return new object[]
                 {
                     new StringBuilder("[")
-                        .Append(BuildJsonArticle("this is happy", "happy"))
+                        .Append(BuildJsonArticle("this is foo", "foo"))
                         .Append("]")
                         .ToString(),
 
                     new[]
                     {
-                        TaggedMessage.From("this is happy", Tag.Happy)
+                        TaggedMessage.From("this is foo", "foo")
                     }
                 };
 
                 yield return new object[]
                 {
                     new StringBuilder("[")
-                        .Append(BuildJsonArticle("this is happy", "happy")).Append(",")
-                        .Append(BuildJsonArticle("this is happy and positive", "happy", "positive"))
+                        .Append(BuildJsonArticle("this is foo", "foo")).Append(",")
+                        .Append(BuildJsonArticle("this is foo and bar", "foo", "bar"))
                         .Append("]")
                         .ToString(),
 
                     new[]
                     {
-                        TaggedMessage.From("this is happy", Tag.Happy),
-                        TaggedMessage.From("this is happy and positive", Tag.Happy, Tag.Positive)
+                        TaggedMessage.From("this is foo", "foo"),
+                        TaggedMessage.From("this is foo and bar", "foo", "bar")
                     }
                 };
 
                 yield return new object[]
                 {
                     new StringBuilder("[")
-                        .Append(BuildJsonArticle("this is happy", "happy")).Append(",")
-                        .Append(BuildJsonArticle("this is happy and positive", "happy", "positive")).Append(",")
-                        .Append(BuildJsonArticle("this is happy, positive and cute", "happy", "positive", "cute"))
+                        .Append(BuildJsonArticle("this is foo", "foo")).Append(",")
+                        .Append(BuildJsonArticle("this is foo and bar", "foo", "bar")).Append(",")
+                        .Append(BuildJsonArticle("this is foo, bar and baz", "foo", "bar", "baz"))
                         .Append("]")
                         .ToString(),
 
                     new[]
                     {
-                        TaggedMessage.From("this is happy", Tag.Happy),
-                        TaggedMessage.From("this is happy and positive", Tag.Happy, Tag.Positive),
-                        TaggedMessage.From("this is happy, positive and cute", Tag.Happy, Tag.Positive, Tag.Cute)
+                        TaggedMessage.From("this is foo", "foo"),
+                        TaggedMessage.From("this is foo and bar", "foo", "bar"),
+                        TaggedMessage.From("this is foo, bar and baz", "foo", "bar", "baz")
                     }
                 };
             }

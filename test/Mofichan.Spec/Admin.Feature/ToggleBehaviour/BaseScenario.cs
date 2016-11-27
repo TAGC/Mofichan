@@ -28,11 +28,6 @@ namespace Mofichan.Spec.Admin.Feature.ToggleBehaviour
             }
         }
 
-        protected void TearDown()
-        {
-            this.Mofichan.Dispose();
-        }
-
         #region When
         protected void When_I_request_that__behaviour__behaviour_is_enabled(string behaviour)
         {
@@ -49,7 +44,7 @@ namespace Mofichan.Spec.Admin.Feature.ToggleBehaviour
         protected void When_John_Smith_requests_that__behaviour__behaviour_is_enabled(string behaviour)
         {
             this.When_Mofichan_receives_a_message(this.JohnSmithUser,
-                string.Format("Mofichan, disable {0} behaviour", behaviour));
+                string.Format("Mofichan, enable {0} behaviour", behaviour));
         }
 
         protected void When_John_Smith_requests_that__behaviour__behaviour_is_disabled(string behaviour)
@@ -63,12 +58,13 @@ namespace Mofichan.Spec.Admin.Feature.ToggleBehaviour
         protected void Then_the_mock_behaviour_should_have_received__message__(string message)
         {
             this.mockBehaviour.Verify(it => it.OnNext(
-                It.Is<IncomingMessage>(msg => msg.Context.Body == message)));
+                It.Is<IncomingMessage>(msg => msg.Context.Body == message)), Times.Once);
         }
 
-        protected void Then_the_mock_behaviour_should_not_have_received_any_messages()
+        protected void Then_the_mock_behaviour_should_not_have_received__message__(string message)
         {
-            this.mockBehaviour.Verify(it => it.OnNext(It.IsAny<IncomingMessage>()), Times.Never);
+            this.mockBehaviour.Verify(it => it.OnNext(
+                It.Is<IncomingMessage>(msg => msg.Context.Body == message)), Times.Never);
         }
         #endregion
     }

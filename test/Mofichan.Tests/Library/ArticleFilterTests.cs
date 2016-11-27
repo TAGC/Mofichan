@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Mofichan.Core;
 using Mofichan.Library;
 using Mofichan.Library.Response;
 using Moq;
@@ -15,11 +14,11 @@ namespace Mofichan.Tests.Library
         {
             get
             {
-                yield return TaggedMessage.From("this is happy", Tag.Happy);
-                yield return TaggedMessage.From("this is positive", Tag.Positive);
-                yield return TaggedMessage.From("this is cute", Tag.Cute);
-                yield return TaggedMessage.From("this is happy and positive", Tag.Happy, Tag.Positive);
-                yield return TaggedMessage.From("this is happy, positive and cute", Tag.Happy, Tag.Positive, Tag.Cute);
+                yield return TaggedMessage.From("this is foo", "foo");
+                yield return TaggedMessage.From("this is bar", "bar");
+                yield return TaggedMessage.From("this is baz", "baz");
+                yield return TaggedMessage.From("this is foo and bar", "foo", "bar");
+                yield return TaggedMessage.From("this is foo, bar and baz", "foo", "bar", "baz");
             }
         }
 
@@ -29,45 +28,45 @@ namespace Mofichan.Tests.Library
             {
                 yield return new object[]
                 {
-                    Tag.Happy.AsGroup(),
+                    "foo",
                     new[]
                     {
-                        "this is happy",
-                        "this is happy and positive",
-                        "this is happy, positive and cute"
+                        "this is foo",
+                        "this is foo and bar",
+                        "this is foo, bar and baz"
                     }
                 };
 
                 yield return new object[]
                 {
-                    Tag.Happy.And(Tag.Positive).AsGroup(),
+                    "foo,bar",
                     new[]
                     {
-                        "this is happy and positive",
-                        "this is happy, positive and cute"
+                        "this is foo and bar",
+                        "this is foo, bar and baz"
                     }
                 };
 
                 yield return new object[]
                 {
-                    Tag.Happy.Or(Tag.Positive).AsGroup(),
+                    "foo;bar",
                     new[]
                     {
-                        "this is happy",
-                        "this is positive",
-                        "this is happy and positive",
-                        "this is happy, positive and cute"
+                        "this is foo",
+                        "this is bar",
+                        "this is foo and bar",
+                        "this is foo, bar and baz"
                     }
                 };
 
                 yield return new object[]
                 {
-                    Tag.Happy.And(Tag.Positive).Or(Tag.Cute).AsGroup(),
+                    "foo,bar;baz",
                     new[]
                     {
-                        "this is cute",
-                        "this is happy and positive",
-                        "this is happy, positive and cute"
+                        "this is baz",
+                        "this is foo and bar",
+                        "this is foo, bar and baz"
                     }
                 };
             }
@@ -86,10 +85,10 @@ namespace Mofichan.Tests.Library
         [Theory]
         [MemberData(nameof(ArticleFilterExamples))]
         internal void Articles_Should_Be_Filtered_Based_On_Tag_Requirements(
-            IEnumerable<IEnumerable<Tag>> tagGroup, IEnumerable<string> expectedFilterArticles)
+            string tagRequirementRepr, IEnumerable<string> expectedFilterArticles)
         {
-            // GIVEN a tag requirement derived from the tag group.
-            var tagRequirement = TagRequirement.From(tagGroup);
+            // GIVEN a tag requirement derived from its representation.
+            var tagRequirement = TagRequirement.Parse(tagRequirementRepr);
 
             // WHEN we try to filter responses based on the provided tag requirement.
             var actualFilteredArticles = this.articleFilter.FilterByTagRequirement(tagRequirement);

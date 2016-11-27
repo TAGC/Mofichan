@@ -48,17 +48,8 @@ namespace Mofichan.Core
             this.logger = logger.ForContext<Kernel>();
             this.logger.Information("Initialising Mofichan with {Backend} and {Behaviours}", backend, behaviours);
 
-            var rootBehaviour = BuildBehaviourChain(behaviours, chainBuilder);
-
-            // Temporary.
-            this.backend.Subscribe(message =>
-            {
-                this.LogMessageClassifications(message);
-                rootBehaviour.OnNext(message);
-            });
-
-            //this.backend.Subscribe(rootBehaviour);
-            rootBehaviour.Subscribe(this.backend);
+            var rootBehaviour = this.BuildBehaviourChain(behaviours, chainBuilder);
+            Bridge(this.backend, rootBehaviour, this.messageClassifier, this.logger);
         }
 
         /// <summary>
@@ -105,6 +96,24 @@ namespace Mofichan.Core
         }
         #endregion
 
+        private static void Bridge(IMofichanBackend backend, IMofichanBehaviour rootBehaviour,
+            IMessageClassifier messageClassifier, ILogger logger)
+        {
+            backend.Subscribe(message =>
+            {
+                var tags = messageClassifier.Classify(message.Context.Body);
+                var structuredContext = message.Context.FromTags(tags);
+                var structuredMessage = new IncomingMessage(structuredContext);
+
+                logger.Debug("Classified {MessageBody} with {Tags}",
+                    message.Context.Body, tags);
+
+                rootBehaviour.OnNext(structuredMessage);
+            });
+
+            rootBehaviour.Subscribe(backend);
+        }
+
         /// <summary>
         /// Links behaviours within a collection together to form a chain.
         /// </summary>
@@ -131,14 +140,6 @@ namespace Mofichan.Core
             this.behaviours = behaviourList;
 
             return chainBuilder.BuildChain(behaviourList);
-        }
-
-        private void LogMessageClassifications(IncomingMessage message)
-        {
-            var messageBody = message.Context.Body;
-            var classifications = this.messageClassifier.Classify(messageBody);
-            this.logger.Debug("Classified {MessageBody} with {Classifications}",
-                messageBody, classifications);
         }
     }
 }

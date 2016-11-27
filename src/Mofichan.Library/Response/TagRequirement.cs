@@ -1,8 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
-using Mofichan.Core;
+using System.Text.RegularExpressions;
 
-namespace Mofichan.Library.Response
+namespace Mofichan.Library
 {
     /// <summary>
     /// Represents a tag requirement.
@@ -19,7 +20,7 @@ namespace Mofichan.Library.Response
         /// </summary>
         /// <param name="tags">The tag collection.</param>
         /// <returns><c>true</c> if <c>this</c> is satisfied; otherwise, <c>false</c>.</returns>
-        bool SatisfiedBy(IEnumerable<Tag> tags);
+        bool SatisfiedBy(IEnumerable<string> tags);
     }
 
     /// <summary>
@@ -30,15 +31,41 @@ namespace Mofichan.Library.Response
         internal static readonly char AndSeparator = ',';
         internal static readonly char OrSeparator = ';';
 
-        public static ITagRequirement From(IEnumerable<IEnumerable<Tag>> tags)
+        private static readonly string TagMatch = @"[a-zA-Z0-9\-]+";
+        private static readonly string AndMatcher = string.Format(@"((?<and>{0}){1})*(?<and>{0})", TagMatch, AndSeparator);
+        private static readonly string OrMatcher = string.Format(@"^((?<or>{0}){1})*(?<or>{0})$", AndMatcher, OrSeparator);
+
+        /// <summary>
+        /// Parses a string and returns the represented <see cref="ITagRequirement"/>. 
+        /// </summary>
+        /// <param name="representation">The tag requirement string representation.</param>
+        /// <returns>The represented tag requirement.</returns>
+        /// <exception cref="ArgumentException">Thrown if the representation is invalid.</exception>
+        public static ITagRequirement Parse(string representation)
         {
-            var root = new AnyTagRequirement(from orGroup in tags
-                                             let andGroup = from tag in orGroup
+            var root = new AnyTagRequirement(from orGroup in GetMatchesFromRegex(representation, OrMatcher, "or")
+                                             let andGroup = from tag in GetMatchesFromRegex(orGroup, AndMatcher, "and")
                                                             select new LeafTagRequirement(tag)
                                              let allTagRequirement = new AllTagRequirement(andGroup)
                                              select allTagRequirement);
 
             return root;
+        }
+
+        private static IEnumerable<string> GetMatchesFromRegex(string input, string pattern, string matchName)
+        {
+            var regex = Regex.Match(input, pattern);
+
+            if (!regex.Success)
+            {
+                var message = string.Format("Input '{0}' is invalid for pattern '{1}'", input, pattern);
+                throw new ArgumentException(message);
+            }
+
+            var captures = regex.Groups[matchName].Captures;
+
+            return from i in Enumerable.Range(0, captures.Count)
+                   select captures[i].Value;
         }
     }
 
@@ -51,7 +78,7 @@ namespace Mofichan.Library.Response
 
         public IEnumerable<ITagRequirement> Children { get; }
 
-        public abstract bool SatisfiedBy(IEnumerable<Tag> tags);
+        public abstract bool SatisfiedBy(IEnumerable<string> tags);
     }
 
     internal sealed class AllTagRequirement : CompositeTagRequirement
@@ -60,7 +87,7 @@ namespace Mofichan.Library.Response
         {
         }
 
-        public override bool SatisfiedBy(IEnumerable<Tag> tags)
+        public override bool SatisfiedBy(IEnumerable<string> tags)
         {
             return this.Children.All(it => it.SatisfiedBy(tags));
         }
@@ -77,7 +104,7 @@ namespace Mofichan.Library.Response
         {
         }
 
-        public override bool SatisfiedBy(IEnumerable<Tag> tags)
+        public override bool SatisfiedBy(IEnumerable<string> tags)
         {
             return this.Children.Any(it => it.SatisfiedBy(tags));
         }
@@ -90,21 +117,21 @@ namespace Mofichan.Library.Response
 
     internal sealed class LeafTagRequirement : ITagRequirement
     {
-        private readonly Tag requiredTag;
+        private readonly string requiredTag;
 
-        public LeafTagRequirement(Tag tag)
+        public LeafTagRequirement(string tag)
         {
             this.requiredTag = tag;
         }
 
-        public bool SatisfiedBy(IEnumerable<Tag> tags)
+        public bool SatisfiedBy(IEnumerable<string> tags)
         {
             return tags.Contains(this.requiredTag);
         }
 
         public override string ToString()
         {
-            return this.requiredTag.ToString();
+            return this.requiredTag;
         }
     }
 }

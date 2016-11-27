@@ -6,7 +6,7 @@ using Moq;
 using Shouldly;
 using Xunit;
 
-namespace Mofichan.Tests
+namespace Mofichan.Tests.Behaviour
 {
     public class BehaviourTests
     {

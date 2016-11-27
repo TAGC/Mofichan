@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
-using Mofichan.Core;
-using Mofichan.Library.Response;
+﻿using System;
+using System.Collections.Generic;
+using Mofichan.Library;
 using Shouldly;
 using Xunit;
 
@@ -15,61 +15,61 @@ namespace Mofichan.Tests.Library
                 yield return new object[]
                 {
                     // Requirement
-                    Tag.Happy.AsGroup(),
+                    "foo",
 
                     // Satisfied by
                     new[]
                     {
-                        new[] { Tag.Happy },
+                        new[] { "foo" },
                     },
 
                     // Unsatisfied by
                     new[]
                     {
-                        new[] { Tag.Positive },
-                        new[] { Tag.Cute },
+                        new[] { "bar" },
+                        new[] { "baz" },
                     },
                 };
 
                 yield return new object[]
                 {
                     // Requirement
-                    Tag.Happy.Or(Tag.Positive).AsGroup(),
+                    "foo;bar",
 
                     // Satisfied by
                     new[]
                     {
-                        new[] { Tag.Happy },
-                        new[] { Tag.Happy },
-                        new[] { Tag.Happy, Tag.Positive },
+                        new[] { "foo" },
+                        new[] { "foo" },
+                        new[] { "foo", "bar" },
                     },
 
                     // Unsatisfied by
                     new[]
                     {
-                        new[] { Tag.Cute },
+                        new[] { "baz" },
                     },
                 };
 
                 yield return new object[]
                 {
                     // Requirement
-                    Tag.Happy.And(Tag.Positive).Or(Tag.Cute).AsGroup(),
+                    "foo,bar;baz",
 
                     // Satisfied by
                     new[]
                     {
-                        new[] { Tag.Happy, Tag.Positive, Tag.Cute },
-                        new[] { Tag.Happy, Tag.Positive },
-                        new[] { Tag.Happy, Tag.Cute },
-                        new[] { Tag.Cute },
+                        new[] { "foo", "bar", "baz" },
+                        new[] { "foo", "bar" },
+                        new[] { "foo", "baz" },
+                        new[] { "baz" },
                     },
 
                     // Unsatisfied by
                     new[]
                     {
-                        new[] { Tag.Positive },
-                        new[] { Tag.Happy },
+                        new[] { "bar" },
+                        new[] { "foo" },
                     },
                 };
             }
@@ -77,13 +77,37 @@ namespace Mofichan.Tests.Library
 
         [Theory]
         [MemberData(nameof(TagRequirementExamples))]
-        public void Tag_Requirements_Should_Declare_Satisfaction_From_Provided_Tags_As_Expected(
-            IEnumerable<IEnumerable<Tag>> tagRequirementGroup,
-            IEnumerable<IEnumerable<Tag>> expectedSatisfiedBy,
-            IEnumerable<IEnumerable<Tag>> expectedUnsatisfiedBy)
+#pragma warning disable S2368 // Public methods should not have multidimensional array parameters
+        public void No_Exception_Should_Be_Thrown_When_Valid_Tag_Requirement_Representation_Is_Parsed(
+#pragma warning restore S2368 // Public methods should not have multidimensional array parameters
+            string validRepresentation, string[][] _, string[][] __)
         {
-            // GIVEN a tag requirement based on the provided tag requirement group.
-            var tagRequirement = TagRequirement.From(tagRequirementGroup);
+            // EXPECT we can parse the valid tag requirement representation without exception.
+            TagRequirement.Parse(validRepresentation).ShouldNotBeNull();
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("@illegal?characters")]
+        [InlineData("multiword tag without hyphen")]
+        public void Exception_Should_Be_Thrown_When_Invalid_Tag_Requirement_Representation_Is_Parsed(
+            string invalidRepresentation)
+        {
+            // EXPECT that an exception is thrown when we try to parse the invalid representation.
+            Assert.Throws<ArgumentException>(() => TagRequirement.Parse(invalidRepresentation));
+        }
+
+        [Theory]
+        [MemberData(nameof(TagRequirementExamples))]
+#pragma warning disable S2368 // Public methods should not have multidimensional array parameters
+        public void Tag_Requirements_Should_Declare_Satisfaction_From_Provided_Tags_As_Expected(
+#pragma warning restore S2368 // Public methods should not have multidimensional array parameters
+            string tagRequirementRepr,
+            string[][] expectedSatisfiedBy,
+            string[][] expectedUnsatisfiedBy)
+        {
+            // GIVEN a tag requirement based on the provided representation.
+            var tagRequirement = TagRequirement.Parse(tagRequirementRepr);
 
             // EXPECT that the tag requirement is satisfied by provided groups of tags as appropriate.
             expectedSatisfiedBy.ShouldAllBe(tagGroup => tagRequirement.SatisfiedBy(tagGroup));
