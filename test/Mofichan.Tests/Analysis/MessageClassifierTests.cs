@@ -15,63 +15,63 @@ namespace Mofichan.Tests.Analysis
             get
             {
                 yield return TaggedMessage.From("Hello there Mofi",
-                    Tag.DirectedAtMofichan,
-                    Tag.Greeting);
+                    "directedAtMofichan",
+                    "greeting");
 
                 yield return TaggedMessage.From("Hey Mofi",
-                    Tag.DirectedAtMofichan,
-                    Tag.Greeting);
+                    "directedAtMofichan",
+                    "greeting");
 
                 yield return TaggedMessage.From("Heya Mofichan",
-                    Tag.DirectedAtMofichan,
-                    Tag.Greeting);
+                    "directedAtMofichan",
+                    "greeting");
 
                 yield return TaggedMessage.From("Hey Mofichan ^-^",
-                    Tag.DirectedAtMofichan,
-                    Tag.Greeting);
+                    "directedAtMofichan",
+                    "greeting");
 
                 yield return TaggedMessage.From("Hi Mofi o/",
-                    Tag.DirectedAtMofichan,
-                    Tag.Greeting);
+                    "directedAtMofichan",
+                    "greeting");
 
                 yield return TaggedMessage.From("Hey there Mofichan o/",
-                    Tag.DirectedAtMofichan,
-                    Tag.Greeting);
+                    "directedAtMofichan",
+                    "greeting");
 
                 yield return TaggedMessage.From("Hello Miriam :I",
-                    Tag.Greeting);
+                    "greeting");
 
                 yield return TaggedMessage.From("Hello Ivan o/",
-                    Tag.Greeting);
+                    "greeting");
 
                 yield return TaggedMessage.From("Nice weather today, right Mofi?",
-                    Tag.DirectedAtMofichan);
+                    "directedAtMofichan");
 
                 yield return TaggedMessage.From("How are you, Mofi?",
-                    Tag.DirectedAtMofichan);
+                    "directedAtMofichan");
 
                 yield return TaggedMessage.From("I think Adam is a bad person",
-                    Tag.Negative);
+                    "negative");
 
                 yield return TaggedMessage.From("Susan is a fairly bad person",
-                    Tag.Negative);
+                    "negative");
 
                 yield return TaggedMessage.From("John is definitely a bad person",
-                    Tag.Negative);
+                    "negative");
 
                 yield return TaggedMessage.From("Amy is fairly nice once you get to know her",
-                    Tag.Positive);
+                    "positive");
 
                 yield return TaggedMessage.From("I think Steve is a really nice guy",
-                    Tag.Positive);
+                    "positive");
 
                 yield return TaggedMessage.From("Mofi, you're a really bad chatbot",
-                    Tag.DirectedAtMofichan,
-                    Tag.Negative);
+                    "directedAtMofichan",
+                    "negative");
 
                 yield return TaggedMessage.From("Mofi, you're a great chatbot",
-                    Tag.DirectedAtMofichan,
-                    Tag.Positive);
+                    "directedAtMofichan",
+                    "positive");
 
                 yield return TaggedMessage.From("The capital of France is Paris?");
             }
@@ -97,21 +97,21 @@ namespace Mofichan.Tests.Analysis
                 yield return new object[]
                 {
                     TaggedMessage.From("Hey Mofichan ^-^",
-                        Tag.DirectedAtMofichan,
-                        Tag.Greeting)
+                        "directedAtMofichan",
+                        "greeting")
                 };
 
                 yield return new object[]
                 {
                     TaggedMessage.From("Hi Mofi o/",
-                        Tag.DirectedAtMofichan,
-                        Tag.Greeting)
+                        "directedAtMofichan",
+                        "greeting")
                 };
 
                 yield return new object[]
                 {
                     TaggedMessage.From("Nice weather today Mofi :)",
-                        Tag.DirectedAtMofichan)
+                        "directedAtMofichan")
                 };
 
                 yield return new object[]
@@ -122,14 +122,14 @@ namespace Mofichan.Tests.Analysis
                 yield return new object[]
                 {
                     TaggedMessage.From("Mofi please stop being bad",
-                    Tag.DirectedAtMofichan,
-                    Tag.Negative)
+                    "directedAtMofichan",
+                    "negative")
                 };
 
                 yield return new object[]
                 {
                     TaggedMessage.From("I think Megan is pretty nice",
-                    Tag.Positive)
+                    "positive")
                 };
             }
         }
@@ -148,11 +148,11 @@ namespace Mofichan.Tests.Analysis
             // PRE: the message classifier should have been trained by the fixture.
 
             // WHEN we classify a message.
-            var actualClassifications = new HashSet<Tag>(
+            var actualClassifications = new HashSet<string>(
                 this.classifier.Classify(taggedMessage.Message));
 
             // THEN the expected tags should have been associated with it.
-            var expectedClassifications = new HashSet<Tag>(
+            var expectedClassifications = new HashSet<string>(
                 taggedMessage.Tags);
 
             actualClassifications.ShouldBe(expectedClassifications);

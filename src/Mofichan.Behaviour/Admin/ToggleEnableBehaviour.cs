@@ -1,12 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text.RegularExpressions;
 using Mofichan.Behaviour.Base;
-using Mofichan.Behaviour.FilterAttributes;
+using Mofichan.Behaviour.Flow;
 using Mofichan.Core;
+using Mofichan.Core.Exceptions;
+using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
 using Mofichan.Core.Utility;
+using Serilog;
 
 namespace Mofichan.Behaviour.Admin
 {
@@ -20,50 +24,111 @@ namespace Mofichan.Behaviour.Admin
     /// <para></para>
     /// Certain modules (such as the "administrator" module) cannot be enabled or disabled.
     /// </remarks>
-    internal class ToggleEnableBehaviour : BaseReflectionBehaviour
+    internal class ToggleEnableBehaviour : BaseFlowReflectionBehaviour
     {
-        private const RegexOptions MatchOptions = RegexOptions.IgnoreCase;
-        private const string EnableMatch = @"enable (?<behaviour>\w+) behaviour";
-        private const string DisableMatch = @"disable (?<behaviour>\w+) behaviour";
-        private const string FullEnableMatch = Constants.IdentityMatch + ",? " + EnableMatch;
-        private const string FullDisableMatch = Constants.IdentityMatch + ",? " + DisableMatch;
+        private static readonly string EnableMatch = @"enable (?<behaviour>\w+) behaviour";
+        private static readonly string DisableMatch = @"disable (?<behaviour>\w+) behaviour";
+
+        private readonly ILogger logger;
         private readonly IDictionary<string, EnableableBehaviourDecorator> behaviourMap;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ToggleEnableBehaviour"/> class.
-        /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder"/>.</param>
+        /// Initializes a new instance of the <see cref="ToggleEnableBehaviour" /> class.
         /// </summary>
-        public ToggleEnableBehaviour(Func<IResponseBuilder> responseBuilderFactory) : base(responseBuilderFactory)
+        /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder" />.</param>
+        /// <param name="transitionManagerFactory">The transition manager factory.</param>
+        /// <param name="flowDriver">The flow driver.</param>
+        /// <param name="flowTransitionSelector">The flow transition selector.</param>
+        /// <param name="logger">The logger to use.</param>
+        public ToggleEnableBehaviour(
+            Func<IResponseBuilder> responseBuilderFactory,
+            Func<IEnumerable<IFlowTransition>, IFlowTransitionManager> transitionManagerFactory,
+            IFlowDriver flowDriver,
+            IFlowTransitionSelector flowTransitionSelector,
+            ILogger logger)
+            : base("S0", responseBuilderFactory, transitionManagerFactory, flowDriver, flowTransitionSelector, logger)
         {
+            this.logger = logger.ForContext<ToggleEnableBehaviour>();
             this.behaviourMap = new Dictionary<string, EnableableBehaviourDecorator>();
+
+            this.RegisterSimpleNode("STerm");
+            this.RegisterSimpleTransition("T0,1", from: "S0", to: "S1");
+            this.RegisterSimpleTransition("T1,1", from: "S1", to: "S1");
+            this.RegisterSimpleTransition("T0,Term", from: "S0", to: "STerm");
+            this.Configure();
         }
 
         /// <summary>
-        /// Attempts to enable a behaviour based on its ID.
+        /// Represents the idle flow state.
         /// </summary>
-        /// <param name="message">The incoming message.</param>
-        /// <returns>A response based on the success or failure of the operation.</returns>
-        [RegexIncomingMessageFilter(FullEnableMatch, MatchOptions)]
-        [AuthorisationIncomingMessageFilter(
-            requiredUserType: UserType.Adminstrator,
-            onFailure: "Non-admin user attempted to enable behaviour")]
-        public OutgoingMessage? EnableBehaviour(IncomingMessage message)
+        /// <param name="context">The flow context.</param>
+        /// <param name="manager">The transition manager.</param>
+        [FlowState(id: "S0")]
+        public void Idle(FlowContext context, IFlowTransitionManager manager)
         {
-            return this.ChangeBehaviourEnableState(message, FullEnableMatch, "enabled", true);
+            var tags = context.Message.Tags;
+
+            if (tags.Contains("directedAtMofichan"))
+            {
+                manager.MakeTransitionCertain("T0,1");
+            }
+            else
+            {
+                manager.MakeTransitionCertain("T0,Term");
+            }
         }
 
         /// <summary>
-        /// Attempts to disable a behaviour based on its ID.
+        /// Represents the state while a user holds Mofichan's attention.
         /// </summary>
-        /// <param name="message">The incoming message.</param>
-        /// <returns>A response based on the success or failure of the operation.</returns>
-        [RegexIncomingMessageFilter(FullDisableMatch, MatchOptions)]
-        [AuthorisationIncomingMessageFilter(
-            requiredUserType: UserType.Adminstrator,
-            onFailure: "Non-admin user attempted to disable behaviour")]
-        public OutgoingMessage? DisableBehaviour(IncomingMessage message)
+        /// <param name="context">The flow context.</param>
+        /// <param name="manager">The transition manager.</param>
+        [FlowState(id: "S1", distinctUntilChanged: true)]
+        public void WithAttention(FlowContext context, IFlowTransitionManager manager)
         {
-            return this.ChangeBehaviourEnableState(message, FullDisableMatch, "disabled", false);
+            manager.ClearTransitionWeights();
+            manager["T1,1"] = 0.995;
+            manager["T1,Term:timeout"] = 1 - manager["T1,1"];
+
+            var messageBody = context.Message.Body;
+            bool authorised = (context.Message.From as IUser)?.Type == UserType.Adminstrator;
+            bool enableRequest = Regex.IsMatch(messageBody, EnableMatch);
+            bool disableRequest = Regex.IsMatch(messageBody, DisableMatch);
+
+            if (enableRequest && authorised)
+            {
+                var response = this.ChangeBehaviourEnableState(context.Message, EnableMatch, "enabled", true);
+                context.GeneratedResponseHandler(response);
+            }
+            else if (disableRequest && authorised)
+            {
+                var response = this.ChangeBehaviourEnableState(context.Message, DisableMatch, "disabled", false);
+                context.GeneratedResponseHandler(response);
+            }
+            else if (enableRequest && !authorised)
+            {
+                throw new MofichanAuthorisationException(
+                    "Non-admin user attempted to enable behaviour",
+                    context.Message);
+            }
+            else if (disableRequest && !authorised)
+            {
+                throw new MofichanAuthorisationException(
+                    "Non-admin user attempted to disable behaviour",
+                    context.Message);
+            }
+        }
+
+        /// <summary>
+        /// Called when a user loses Mofichan's attention.
+        /// </summary>
+        /// <param name="context">The flow context.</param>
+        /// <param name="manager">The transition manager.</param>
+        [FlowTransition(id: "T1,Term:timeout", from: "S1", to: "STerm")]
+        public void OnLostAttention(FlowContext context, IFlowTransitionManager manager)
+        {
+            var user = context.Message.From as IUser;
+            this.logger.Debug("Mofichan stopped paying attention to {User}", user.Name);
         }
 
         /// <summary>
@@ -100,34 +165,44 @@ namespace Mofichan.Behaviour.Admin
             }
         }
 
-        private static OutgoingMessage HandleNonExistentBehaviour(string behaviour, string action, IncomingMessage message)
+        private static OutgoingMessage HandleNonExistentBehaviour(string behaviour, string action, MessageContext messageContext)
         {
-            var from = message.Context.From as IUser;
+            var from = messageContext.From as IUser;
             Debug.Assert(from != null, "The message sender should be a user");
 
             var reply = string.Format("I'm afraid behaviour '{0}' doesn't exist or can't be {1}, {2}",
                 behaviour, action, from.Name);
 
-            return message.Reply(reply);
+            return messageContext.Reply(reply);
         }
 
         private OutgoingMessage ChangeBehaviourEnableState(
-            IncomingMessage message, string pattern, string enableStateName, bool enableState)
+            MessageContext messageContext, string pattern, string enableStateName, bool enableState)
         {
-            var match = Regex.Match(message.Context.Body, pattern, MatchOptions);
+            var match = Regex.Match(messageContext.Body, pattern, RegexOptions.IgnoreCase);
 
             string behaviour = match.Groups["behaviour"].Value;
 
             EnableableBehaviourDecorator decoratedBehaviour;
             if (this.behaviourMap.TryGetValue(behaviour, out decoratedBehaviour))
             {
-                decoratedBehaviour.Enabled = enableState;
-                var reply = string.Format("'{0}' behaviour is now {1}", behaviour, enableStateName);
-                return message.Reply(reply);
+                string reply;
+
+                if (decoratedBehaviour.Enabled == enableState)
+                {
+                    reply = string.Format("'{0}' behaviour is already {1}", behaviour, enableStateName);
+                }
+                else
+                {
+                    decoratedBehaviour.Enabled = enableState;
+                    reply = string.Format("'{0}' behaviour is now {1}", behaviour, enableStateName);
+                }
+
+                return messageContext.Reply(reply);
             }
             else
             {
-                return HandleNonExistentBehaviour(behaviour, enableStateName, message);
+                return HandleNonExistentBehaviour(behaviour, enableStateName, messageContext);
             }
         }
 

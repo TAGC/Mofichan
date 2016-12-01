@@ -9,9 +9,9 @@ using Moq;
 using Shouldly;
 using Xunit;
 
-namespace Mofichan.Tests
+namespace Mofichan.Tests.Behaviour
 {
-    public class BehaviourChainBuilderSpec
+    public class BehaviourChainBuilderTests
     {
         #region Mocks
         private class MockBehaviour : BaseBehaviour
@@ -53,7 +53,7 @@ namespace Mofichan.Tests
 
         private readonly BehaviourChainBuilder chainBuilder;
 
-        public BehaviourChainBuilderSpec()
+        public BehaviourChainBuilderTests()
         {
             this.chainBuilder = new BehaviourChainBuilder();
         }

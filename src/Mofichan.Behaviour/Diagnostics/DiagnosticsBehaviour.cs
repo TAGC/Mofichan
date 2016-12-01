@@ -102,7 +102,7 @@ namespace Mofichan.Behaviour.Diagnostics
 
         private class LoggingBehaviourDecorator : BaseBehaviourDecorator
         {
-            private const string Pencil = "🖉";
+            private const string Pencil = "✐";
 
             private readonly ILogger logger;
 

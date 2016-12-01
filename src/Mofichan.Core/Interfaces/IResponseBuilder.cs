@@ -29,12 +29,22 @@ namespace Mofichan.Core.Interfaces
         /// <param name="tags">The tags to base the chosen article on.</param>
         /// <returns>This builder.</returns>
         /// <remarks>
-        /// The set of tags is passed as a double-nested enumeration. The outer enumeration
-        /// specifies a requirement for <i>any</i> of the inner enumeration elements to be
-        /// satisfied, while each inner enumeration specifies a requirement for <i>all</i>
-        /// of its constituent tag requirements to be satisfied.
+        /// The set of tags is passed as an enumeration of strings.
+        /// <para></para>
+        /// Each string within the enumeration contains a comma-delimited list of tags which
+        /// represent a requirement for <i>all</i> of those tags to be satisfied.
+        /// <para></para>
+        /// The individual elements within the enumeration represent a requirement for
+        /// <i>any</i> nested tag group to be satisfied.
         /// </remarks>
-        IResponseBuilder FromTags(IEnumerable<IEnumerable<Tag>> tags);
+        /// <example>
+        /// <c>FromTags("foo,bar", "baz")</c> represents a requirement for an article tagged as:
+        /// <list type="bullet">
+        ///     <item>"foo" and "bar"; <i>or</i></item>
+        ///     <item>"baz"</item>
+        /// </list>
+        /// </example>
+        IResponseBuilder FromTags(params string[] tags);
 
         /// <summary>
         /// Specifies part of a response to be constructed using an article (snippet)
@@ -51,12 +61,24 @@ namespace Mofichan.Core.Interfaces
         /// This builder.
         /// </returns>
         /// <remarks>
-        /// The set of tags is passed as a double-nested enumeration. The outer enumeration
-        /// specifies a requirement for <i>any</i> of the inner enumeration elements to be
-        /// satisfied, while each inner enumeration specifies a requirement for <i>all</i>
-        /// of its constituent tag requirements to be satisfied.
+        /// The set of tags is passed as an enumeration of strings.
+        /// <para></para>
+        /// Each string within the enumeration contains a comma-delimited list of tags which
+        /// represent a requirement for <i>all</i> of those tags to be satisfied.
+        /// <para></para>
+        /// The individual elements within the enumeration represent a requirement for
+        /// <i>any</i> nested tag group to be satisfied.
         /// </remarks>
-        IResponseBuilder FromTags(double chance, IEnumerable<IEnumerable<Tag>> tags);
+        /// <example>
+        /// <c>FromTags(0.5, "foo,bar", "baz")</c> represents a requirement for an article tagged as:
+        /// <list type="bullet">
+        ///     <item>"foo" and "bar"; <i>or</i></item>
+        ///     <item>"baz"</item>
+        /// </list>
+        /// There is a 50% chance that one of all discovered viable articles will be appended to the response,
+        /// and 50% chance that no article will be appended to the response.
+        /// </example>
+        IResponseBuilder FromTags(double chance, IEnumerable<string> tags);
 
         /// <summary>
         /// Specifies part of a response to be constructed using an article (snippet)
@@ -68,12 +90,23 @@ namespace Mofichan.Core.Interfaces
         /// This builder.
         /// </returns>
         /// <remarks>
-        /// The set of tags is passed as a double-nested enumeration. The outer enumeration
-        /// specifies a requirement for <i>any</i> of the inner enumeration elements to be
-        /// satisfied, while each inner enumeration specifies a requirement for <i>all</i>
-        /// of its constituent tag requirements to be satisfied.
+        /// The set of tags is passed as an enumeration of strings.
+        /// <para></para>
+        /// Each string within the enumeration contains a comma-delimited list of tags which
+        /// represent a requirement for <i>all</i> of those tags to be satisfied.
+        /// <para></para>
+        /// The individual elements within the enumeration represent a requirement for
+        /// <i>any</i> nested tag group to be satisfied.
         /// </remarks>
-        IResponseBuilder FromTags(string prefix, IEnumerable<IEnumerable<Tag>> tags);
+        /// <example>
+        /// <c>FromTags("I say: ", "foo,bar", "baz")</c> represents a requirement for an article tagged as:
+        /// <list type="bullet">
+        ///     <item>"foo" and "bar"; <i>or</i></item>
+        ///     <item>"baz"</item>
+        /// </list>
+        /// "I say: <c>{chosen article}</c>" will be appended to  the response.
+        /// </example>
+        IResponseBuilder FromTags(string prefix, IEnumerable<string> tags);
 
         /// <summary>
         /// Specifies part of a response to be constructed using an article (snippet)
@@ -95,12 +128,24 @@ namespace Mofichan.Core.Interfaces
         /// This builder.
         /// </returns>
         /// <remarks>
-        /// The set of tags is passed as a double-nested enumeration. The outer enumeration
-        /// specifies a requirement for <i>any</i> of the inner enumeration elements to be
-        /// satisfied, while each inner enumeration specifies a requirement for <i>all</i>
-        /// of its constituent tag requirements to be satisfied.
+        /// The set of tags is passed as an enumeration of strings.
+        /// <para></para>
+        /// Each string within the enumeration contains a comma-delimited list of tags which
+        /// represent a requirement for <i>all</i> of those tags to be satisfied.
+        /// <para></para>
+        /// The individual elements within the enumeration represent a requirement for
+        /// <i>any</i> nested tag group to be satisfied.
         /// </remarks>
-        IResponseBuilder FromTags(string prefix, double chance, IEnumerable<IEnumerable<Tag>> tags);
+        /// <example>
+        /// <c>FromTags("I say: ", 0.5, "foo,bar", "baz")</c> represents a requirement for an article tagged as:
+        /// <list type="bullet">
+        ///     <item>"foo" and "bar"; <i>or</i></item>
+        ///     <item>"baz"</item>
+        /// </list>
+        /// There is a 50% chance that "I say: <c>{chosen article}</c>" will be appended to the response,
+        /// and 50% chance that no article will be appended to the response.
+        /// </example>
+        IResponseBuilder FromTags(string prefix, double chance, IEnumerable<string> tags);
 
         /// <summary>
         /// Specifies part of a response to be constructed using one of a provided

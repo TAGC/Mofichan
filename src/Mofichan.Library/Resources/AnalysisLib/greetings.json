@@ -40,6 +40,14 @@
     "tags": [ "directedAtMofichan", "greeting" ]
   },
   {
+    "article": "Sup Mofi",
+    "tags": [ "directedAtMofichan", "greeting" ]
+  },
+  {
+    "article": "Sup Mofichan",
+    "tags": [ "directedAtMofichan", "greeting" ]
+  },
+  {
     "article": "I'm good ty",
     "tags": [ "wellbeing" ]
   },
@@ -68,6 +76,14 @@
     "tags": [ "wellbeing" ]
   },
   {
+    "article": "how r u doing?",
+    "tags": [ "wellbeing" ]
+  },
+  {
+    "article": "how r u doing, Mofichan?",
+    "tags": [ "directedAtMofichan", "wellbeing" ]
+  },
+  {
     "article": "how are things going for you Ben?",
     "tags": [ "wellbeing" ]
   },
@@ -77,6 +93,10 @@
   },
   {
     "article": "are you alright Mofi?",
+    "tags": [ "directedAtMofichan", "wellbeing" ]
+  },
+  {
+    "article": "are you alright Mofichan?",
     "tags": [ "directedAtMofichan", "wellbeing" ]
   },
   {

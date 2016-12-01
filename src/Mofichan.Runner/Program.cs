@@ -6,6 +6,7 @@ using Autofac;
 using Mofichan.Backend;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
+using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
 using Mofichan.Core.Utility;
 using Mofichan.Library;
@@ -92,6 +93,21 @@ namespace Mofichan.Runner
             containerBuilder
                 .RegisterType<BehaviourChainBuilder>()
                 .As<IBehaviourChainBuilder>();
+
+            containerBuilder
+                .RegisterType<FlowTransitionManager>()
+                .As<IFlowTransitionManager>();
+
+            containerBuilder
+                .RegisterType<FairFlowTransitionSelector>()
+                .As<IFlowTransitionSelector>();
+
+            containerBuilder
+                .Register(c => new PeriodicFlowDriver(
+                    TimeSpan.FromMilliseconds(100),
+                    c.Resolve<ILogger>()))
+                .As<IFlowDriver>()
+                .SingleInstance();
 
             // Register library module.
             containerBuilder.RegisterModule<LibraryModule>();

@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
+using Mofichan.Core.Interfaces;
 using Shouldly;
 using TestStack.BDDfy;
 
@@ -25,12 +27,6 @@ namespace Mofichan.Spec.Core.Feature
         {
             this.When_Mofichan_receives_a_message(sender: this.DeveloperUser, message: greeting);
         }
-
-        protected void Teardown()
-        {
-            this.SentMessages.Clear();
-            this.Mofichan?.Dispose();
-        }
     }
 
     public class MofichanIsGreetedWithValidGreeting : MofichanIsGreeted
@@ -46,6 +42,7 @@ namespace Mofichan.Spec.Core.Feature
             this.Given(s => s.Given_Mofichan_is_configured_with_behaviour("greeting"), AddBehaviourTemplate)
                     .And(s => s.Given_Mofichan_is_running())
                 .When(s => s.When_I_say_greeting(greeting), WhenGreetingTemplate)
+                    .And(s => s.When_flows_are_driven_by__stepCount__steps(2))
                 .Then(s => s.Then_Mofichan_should_greet_me_back())
                 .WithExamples(this.Examples)
                 .TearDownWith(s => s.TearDown());
@@ -72,12 +69,6 @@ namespace Mofichan.Spec.Core.Feature
             }
         }
 
-        private void TearDown()
-        {
-            this.SentMessages.Clear();
-            this.Mofichan.Dispose();
-        }
-
         private void Then_Mofichan_should_greet_me_back()
         {
             var message = this.SentMessages.ShouldHaveSingleItem();
@@ -95,8 +86,10 @@ namespace Mofichan.Spec.Core.Feature
             this.Given(s => s.Given_Mofichan_is_configured_with_behaviour("greeting"), AddBehaviourTemplate)
                     .And(s => s.Given_Mofichan_is_running())
                 .When(s => s.When_I_say_greeting(greeting), WhenGreetingTemplate)
+                    .And(s => s.When_flows_are_driven_by__stepCount__steps(1))
                 .Then(s => s.Then_Mofichan_should_not_have_said_anything())
-                .WithExamples(this.Examples);
+                .WithExamples(this.Examples)
+                .TearDownWith(s => s.TearDown());
         }
 
         private ExampleTable Examples
@@ -138,6 +131,7 @@ namespace Mofichan.Spec.Core.Feature
                     .And(s => s.Given_Mofichan_is_running())
             .When(s => s.When_Mofichan_receives_a_message(this.MofichanUser, "Hello Mofichan"),
                 "When Mofichan receives message: '{1}'")
+                .And(s => s.When_flows_are_driven_by__stepCount__steps(1))
             .Then(s => s.Then_Mofichan_should_not_have_said_anything());
         }
 
@@ -155,17 +149,19 @@ namespace Mofichan.Spec.Core.Feature
 
             this.Given(s => s.Given_Mofichan_is_configured_with_behaviour("greeting"), AddBehaviourTemplate)
                     .And(s => s.Given_Mofichan_is_running())
-                .Then(s => s.Then_Mofichan_should_respond_to__message__(wellbeingRequest))
+                .When(s => s.When_Mofichan_receives_a_message(this.JohnSmithUser, wellbeingRequest))
+                    .And(s => s.When_flows_are_driven_by__stepCount__steps(2))
+                .Then(s => s.Then_Mofichan_should_have_responded())
                 .WithExamples(this.Examples)
-                .TearDownWith(s => s.Teardown());
+                .TearDownWith(s => s.TearDown());
         }
 
         private static IEnumerable<string> ExampleMessages
         {
             get
             {
-                yield return "How are you Mofi?";
-                yield return "How r u Mofi?";
+                yield return "How are you doing Mofi?";
+                yield return "How r u doing Mofi?";
                 yield return "you alright Mofi?";
                 yield return "Mofichan, how are you?";
                 yield return "Mofi you alright?";
@@ -184,6 +180,29 @@ namespace Mofichan.Spec.Core.Feature
 
                 return table;
             }
+        }
+    }
+
+    public class MofiRespondsToWellbeingRequestAfterGettingHerAttention : MofichanIsGreeted
+    {
+        public MofiRespondsToWellbeingRequestAfterGettingHerAttention()
+            : base("Mofichan responds to a wellbeing response after her attention is caught")
+        {
+            this.Given(s => s.Given_Mofichan_is_configured_with_behaviour("greeting"), AddBehaviourTemplate)
+                    .And(s => s.Given_Mofichan_is_running())
+                .When(s => s.When_Mofichan_receives_a_message(this.JohnSmithUser, "Hey Mofi"))
+                    .And(s => s.When_Mofichan_receives_a_message(this.JohnSmithUser, "How are you doing?"))
+                    .And(s => s.When_flows_are_driven_by__stepCount__steps(2))
+                .Then(s => s.Then_Mofichan_Should_Have_Sent_A_Wellbeing_Response_To_User(this.JohnSmithUser))
+                .TearDownWith(s => s.TearDown());
+        }
+
+        private void Then_Mofichan_Should_Have_Sent_A_Wellbeing_Response_To_User(IUser recipient)
+        {
+            var pattern = new Regex(@"I'm.*", RegexOptions.IgnoreCase);
+
+            this.SentMessages.ShouldContain(it =>
+                it.Context.To == recipient && pattern.IsMatch(it.Context.Body));
         }
     }
 }

@@ -7,6 +7,12 @@ using Serilog;
 
 namespace Mofichan.Backend
 {
+    /// <summary>
+    /// A type of <see cref="IMofichanBackend"/> that allows interaction with Mofichan
+    /// via a console.
+    /// <para></para>
+    /// This is mainly intended for testing purposes.
+    /// </summary>
     public class ConsoleBackend : BaseBackend
     {
         private readonly CancellationTokenSource cancellationSource;
@@ -14,11 +20,18 @@ namespace Mofichan.Backend
         private Task readFromConsoleTask;
         private IUser consoleUser;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ConsoleBackend"/> class.
+        /// </summary>
+        /// <param name="logger">The logger to use.</param>
         public ConsoleBackend(ILogger logger) : base(logger.ForContext<ConsoleBackend>())
         {
             this.cancellationSource = new CancellationTokenSource();
         }
 
+        /// <summary>
+        /// Initialises the backend.
+        /// </summary>
         public override void Start()
         {
             Console.CancelKeyPress += (s, e) =>
@@ -36,9 +49,12 @@ namespace Mofichan.Backend
 
             Console.Write("> ");
 
-            this.readFromConsoleTask = ReadFromConsoleAsync(this.cancellationSource.Token);
+            this.readFromConsoleTask = this.ReadFromConsoleAsync(this.cancellationSource.Token);
         }
 
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
         public override void Dispose()
         {
             base.Dispose();
@@ -66,11 +82,25 @@ namespace Mofichan.Backend
             }
         }
 
+        /// <summary>
+        /// Tries to retrieve a room by its ID.
+        /// </summary>
+        /// <param name="roomId">The room identifier.</param>
+        /// <returns>
+        /// The room corresponding to the ID, if it exists.
+        /// </returns>
         protected override IRoom GetRoomById(string roomId)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Tries to retrieve a user by its ID.
+        /// </summary>
+        /// <param name="userId">The user identifier.</param>
+        /// <returns>
+        /// The user corresponding to the ID, if it exists.
+        /// </returns>
         protected override IUser GetUserById(string userId)
         {
             throw new NotImplementedException();
@@ -118,7 +148,7 @@ namespace Mofichan.Backend
             {
                 get
                 {
-                    return UserType.NormalUser;
+                    return UserType.Adminstrator;
                 }
             }
 

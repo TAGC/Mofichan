@@ -5,8 +5,9 @@ using System.Linq;
 using System.Text;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
+using Mofichan.Library.Response;
 
-namespace Mofichan.Library.Response
+namespace Mofichan.Library
 {
     internal class ResponseBuilder : IResponseBuilder
     {
@@ -82,22 +83,22 @@ namespace Mofichan.Library.Response
             return this;
         }
 
-        public IResponseBuilder FromTags(IEnumerable<IEnumerable<Tag>> tags)
+        public IResponseBuilder FromTags(params string[] tags)
         {
             return this.FromTags(DefaultPrefix, DefaultChance, tags);
         }
 
-        public IResponseBuilder FromTags(string prefix, IEnumerable<IEnumerable<Tag>> tags)
+        public IResponseBuilder FromTags(string prefix, IEnumerable<string> tags)
         {
             return this.FromTags(prefix, DefaultChance, tags);
         }
 
-        public IResponseBuilder FromTags(double chance, IEnumerable<IEnumerable<Tag>> tags)
+        public IResponseBuilder FromTags(double chance, IEnumerable<string> tags)
         {
             return this.FromTags(DefaultPrefix, chance, tags);
         }
 
-        public IResponseBuilder FromTags(string prefix, double chance, IEnumerable<IEnumerable<Tag>> tags)
+        public IResponseBuilder FromTags(string prefix, double chance, IEnumerable<string> tags)
         {
             var tagRequirement = CreateTagRequirement(tags);
             var validArticles = this.articleFilter.FilterByTagRequirement(tagRequirement);
@@ -129,9 +130,11 @@ namespace Mofichan.Library.Response
             return this.stringBuilder.ToString();
         }
 
-        private static ITagRequirement CreateTagRequirement(IEnumerable<IEnumerable<Tag>> tags)
+        private static ITagRequirement CreateTagRequirement(IEnumerable<string> tags)
         {
-            return TagRequirement.From(tags);
+            var representation = string.Join(";", tags);
+
+            return TagRequirement.Parse(representation);
         }
 
         private string PickAnyOfWithChance(IEnumerable<string> possibilities, double chance)

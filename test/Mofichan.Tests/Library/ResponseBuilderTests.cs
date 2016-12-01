@@ -16,14 +16,14 @@ namespace Mofichan.Tests.Library
         {
             get
             {
-                yield return TaggedMessage.From("this is happy", Tag.Happy);
-                yield return TaggedMessage.From("this is positive", Tag.Positive);
-                yield return TaggedMessage.From("this is cute", Tag.Cute);
-                yield return TaggedMessage.From("this is happy and positive", Tag.Happy, Tag.Positive);
-                yield return TaggedMessage.From("this is happy, positive and cute", Tag.Happy, Tag.Positive, Tag.Cute);
+                yield return TaggedMessage.From("this is foo", "foo");
+                yield return TaggedMessage.From("this is bar", "bar");
+                yield return TaggedMessage.From("this is baz", "baz");
+                yield return TaggedMessage.From("this is foo and bar", "foo", "bar");
+                yield return TaggedMessage.From("this is foo, bar and baz", "foo", "bar", "baz");
                 yield return TaggedMessage.From(
                     "${message.from.name} says ${message.body} to ${message.to.name}",
-                    Tag.Test);
+                    "requires-context");
             }
         }
 
@@ -33,45 +33,45 @@ namespace Mofichan.Tests.Library
             {
                 yield return new object[]
                 {
-                    Tag.Happy.AsGroup(),
+                    new[] { "foo" },
                     new[]
                     {
-                        "this is happy",
-                        "this is happy and positive",
-                        "this is happy, positive and cute"
+                        "this is foo",
+                        "this is foo and bar",
+                        "this is foo, bar and baz"
                     }
                 };
 
                 yield return new object[]
                 {
-                    Tag.Happy.Or(Tag.Positive).AsGroup(),
+                    new[] { "foo", "bar" },
                     new[]
                     {
-                        "this is happy",
-                        "this is positive",
-                        "this is happy and positive",
-                        "this is happy, positive and cute"
+                        "this is foo",
+                        "this is bar",
+                        "this is foo and bar",
+                        "this is foo, bar and baz"
                     }
                 };
 
                 yield return new object[]
                 {
-                    Tag.Happy.And(Tag.Positive).AsGroup(),
+                    new[] { "foo,bar" },
                     new[]
                     {
-                        "this is happy and positive",
-                        "this is happy, positive and cute"
+                        "this is foo and bar",
+                        "this is foo, bar and baz"
                     }
                 };
 
                 yield return new object[]
                 {
-                    Tag.Happy.And(Tag.Positive).Or(Tag.Cute).AsGroup(),
+                    new[] { "foo,bar", "baz" },
                     new[]
                     {
-                        "this is cute",
-                        "this is happy and positive",
-                        "this is happy, positive and cute"
+                        "this is baz",
+                        "this is foo and bar",
+                        "this is foo, bar and baz"
                     }
                 };
             }
@@ -106,7 +106,7 @@ namespace Mofichan.Tests.Library
             this.responseBuilder.UsingContext(messageContext);
 
             // AND we configure the response builder to produce a response requiring a message context.
-            this.responseBuilder.FromTags(prefix: string.Empty, tags: Tag.Test.AsGroup());
+            this.responseBuilder.FromTags(prefix: string.Empty, tags: new[] { "requires-context" });
 
             // AND we build the response.
             var response = this.responseBuilder.Build();
@@ -132,7 +132,7 @@ namespace Mofichan.Tests.Library
         [Theory]
         [MemberData(nameof(ResponseFromTagExamples))]
         public void Response_Builder_Should_Choose_Appropriate_Response_Based_On_Tags(
-            IEnumerable<IEnumerable<Tag>> tags, string[] possibleResponses)
+            string[] tags, string[] possibleResponses)
         {
             // WHEN we configure the response builder to create a response from provided tags.
             this.responseBuilder.FromTags(prefix: string.Empty, tags: tags);
@@ -147,7 +147,7 @@ namespace Mofichan.Tests.Library
         [Theory]
         [MemberData(nameof(ResponseFromTagExamples))]
         public void Response_Builder_Should_Never_Choose_Tagged_Response_With_Zero_Probability(
-            IEnumerable<IEnumerable<Tag>> tags, string[] _)
+            string[] tags, string[] _)
         {
             // WHEN we configure the response builder to create a response from provided tags with zero chance.
             this.responseBuilder.FromTags(chance: 0.0, tags: tags);
@@ -209,7 +209,7 @@ namespace Mofichan.Tests.Library
             this.responseBuilder.FromRaw(rawPart);
 
             // AND we configure the builder to continue the response based on provided tags.
-            this.responseBuilder.FromTags(Tag.Happy.Or(Tag.Cute).AsGroup());
+            this.responseBuilder.FromTags("foo", "baz");
 
             // AND we configure the builder to continue the response with a possible emote.
             var emotes = new[]
@@ -229,10 +229,10 @@ namespace Mofichan.Tests.Library
 
             var possiblePhrases = new[]
             {
-                "this is happy",
-                "this is cute",
-                "this is happy and positive",
-                "this is happy, positive and cute"
+                "this is foo",
+                "this is baz",
+                "this is foo and bar",
+                "this is foo, bar and baz"
             };
 
             var possibleResponses = from phrase in possiblePhrases
