@@ -60,6 +60,7 @@ namespace Mofichan.Runner
                 container.ResolveNamed<IMofichanBehaviour>("delay"),
                 container.ResolveNamed<IMofichanBehaviour>("administration"),
                 container.ResolveNamed<IMofichanBehaviour>("diagnostics"),
+                container.ResolveNamed<IMofichanBehaviour>("attention"),
                 container.ResolveNamed<IMofichanBehaviour>("greeting")
             };
 

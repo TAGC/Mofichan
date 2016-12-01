@@ -172,7 +172,7 @@ namespace Mofichan.Spec.Core.Feature
         {
             get
             {
-                var table = new ExampleTable("wellbeingRequest"); ;
+                var table = new ExampleTable("wellbeingRequest");
                 foreach (var wellbeingRequest in ExampleMessages)
                 {
                     table.Add(wellbeingRequest);

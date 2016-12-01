@@ -151,6 +151,11 @@ namespace Mofichan.Library
         {
             var array = possibilities.ToArray();
 
+            if (!array.Any())
+            {
+                return string.Empty;
+            }
+
             return array[this.random.Next(array.Length)];
         }
     }
