@@ -13,8 +13,7 @@ namespace Mofichan.Behaviour.Base
     /// <seealso cref="IFlow"/>
     public abstract class BaseFlowBehaviour : BaseBehaviour
     {
-        private readonly IFlowDriver flowDriver;
-        private readonly IFlowTransitionSelector flowTransitionSelector;
+        private readonly IFlowManager flowManager;
         private readonly ILogger logger;
         private readonly string startNodeId;
 
@@ -23,22 +22,19 @@ namespace Mofichan.Behaviour.Base
         /// </summary>
         /// <param name="startNodeId">Identifies the starting node in the flow.</param>
         /// <param name="responseBuilderFactory">The response builder factory.</param>
-        /// <param name="flowDriver">The flow driver.</param>
-        /// <param name="flowTransitionSelector">The flow transition selector.</param>
+        /// <param name="flowManager">The flow manager.</param>
         /// <param name="logger">The logger to use.</param>
         /// <param name="passThroughMessages">If set to <c>true</c>, passes through unhandled messages.</param>
         protected BaseFlowBehaviour(
             string startNodeId,
             Func<IResponseBuilder> responseBuilderFactory,
-            IFlowDriver flowDriver,
-            IFlowTransitionSelector flowTransitionSelector,
+            IFlowManager flowManager,
             ILogger logger,
             bool passThroughMessages = true)
             : base(responseBuilderFactory, passThroughMessages)
         {
             this.startNodeId = startNodeId;
-            this.flowDriver = flowDriver;
-            this.flowTransitionSelector = flowTransitionSelector;
+            this.flowManager = flowManager;
             this.logger = logger.ForContext<BaseFlowBehaviour>();
         }
 
@@ -110,8 +106,7 @@ namespace Mofichan.Behaviour.Base
         {
             var baseFlowBuilder = new BasicFlow.Builder()
                 .WithLogger(this.logger)
-                .WithDriver(this.flowDriver)
-                .WithTransitionSelector(this.flowTransitionSelector)
+                .WithManager(this.flowManager)
                 .WithGeneratedResponseHandler(this.SendUpstream)
                 .WithStartNodeId(this.startNodeId);
 

@@ -33,19 +33,16 @@ namespace Mofichan.Behaviour
         private readonly ILogger logger;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="AttentionBehaviour"/> class.
+        /// Initializes a new instance of the <see cref="AttentionBehaviour" /> class.
         /// </summary>
         /// <param name="responseBuilderFactory">The response builder factory.</param>
-        /// <param name="transitionManagerFactory">The transition manager factory.</param>
-        /// <param name="flowDriver">The flow driver.</param>
-        /// <param name="flowTransitionSelector">The flow transition selector.</param>
+        /// <param name="flowManager">The flow manager.</param>
         /// <param name="logger">The logger.</param>
         public AttentionBehaviour(
             Func<IResponseBuilder> responseBuilderFactory,
-            Func<IEnumerable<IFlowTransition>, IFlowTransitionManager> transitionManagerFactory,
-            IFlowDriver flowDriver, IFlowTransitionSelector flowTransitionSelector,
+            IFlowManager flowManager,
             ILogger logger)
-            : base("S0", responseBuilderFactory, transitionManagerFactory, flowDriver, flowTransitionSelector, logger)
+            : base("S0", responseBuilderFactory, flowManager, logger)
         {
             this.logger = logger.ForContext<AttentionBehaviour>();
             this.RegisterSimpleNode("STerm");

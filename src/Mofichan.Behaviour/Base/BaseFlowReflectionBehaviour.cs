@@ -33,22 +33,18 @@ namespace Mofichan.Behaviour.Base
         /// </summary>
         /// <param name="startNodeId">Identifies the starting node in the flow.</param>
         /// <param name="responseBuilderFactory">The response builder factory.</param>
-        /// <param name="transitionManagerFactory">The transition manager factory.</param>
-        /// <param name="flowDriver">The flow driver.</param>
-        /// <param name="flowTransitionSelector">The flow transition selector.</param>
+        /// <param name="flowManager">The flow manager.</param>
         /// <param name="logger">The logger.</param>
         /// <param name="passThroughMessages">If set to <c>true</c>, passes through unhandled messages.</param>
         protected BaseFlowReflectionBehaviour(
             string startNodeId,
             Func<IResponseBuilder> responseBuilderFactory,
-            Func<IEnumerable<IFlowTransition>, IFlowTransitionManager> transitionManagerFactory,
-            IFlowDriver flowDriver,
-            IFlowTransitionSelector flowTransitionSelector,
+            IFlowManager flowManager,
             ILogger logger,
             bool passThroughMessages = true)
-            : base(startNodeId, responseBuilderFactory, flowDriver, flowTransitionSelector, logger, passThroughMessages)
+            : base(startNodeId, responseBuilderFactory, flowManager, logger, passThroughMessages)
         {
-            this.transitionManagerFactory = transitionManagerFactory;
+            this.transitionManagerFactory = flowManager.BuildTransitionManager;
             this.nodes = new HashSet<IFlowNode>();
             this.transitions = new HashSet<IFlowTransition>();
             this.connections = new HashSet<Tuple<string, string, string>>();

@@ -22,9 +22,8 @@ namespace Mofichan.Tests.Behaviour
         #region Mocks
         public class FooBarFlowBehaviour : BaseFlowReflectionBehaviour
         {
-            public FooBarFlowBehaviour(IFlowDriver flowDriver)
-                : base("S0", () => Mock.Of<IResponseBuilder>(), TransitionManagerFactory, flowDriver,
-                      new FairFlowTransitionSelector(), new LoggerConfiguration().CreateLogger())
+            public FooBarFlowBehaviour(IFlowManager manager)
+                : base("S0", () => Mock.Of<IResponseBuilder>(), manager, new LoggerConfiguration().CreateLogger())
             {
                 this.RegisterSimpleTransition("T0,0", from: "S0", to: "S0");
                 this.RegisterSimpleTransition("T0,1", from: "S0", to: "S1");
@@ -66,9 +65,8 @@ namespace Mofichan.Tests.Behaviour
 
         public class WarfareFlowBehaviour : BaseFlowReflectionBehaviour
         {
-            public WarfareFlowBehaviour(IFlowDriver flowDriver)
-                : base("S0", () => Mock.Of<IResponseBuilder>(), TransitionManagerFactory, flowDriver,
-                      new FairFlowTransitionSelector(), new LoggerConfiguration().CreateLogger())
+            public WarfareFlowBehaviour(IFlowManager manager)
+                : base("S0", () => Mock.Of<IResponseBuilder>(), manager, new LoggerConfiguration().CreateLogger())
             {
                 this.RegisterSimpleTransition("T0,0", from: "S0", to: "S0");
                 this.RegisterSimpleTransition("T0,1", from: "S0", to: "S1");
@@ -133,9 +131,10 @@ namespace Mofichan.Tests.Behaviour
         public void Foo_Bar_Flow_Behaviour_Should_Behave_As_Expected()
         {
             // GIVEN a foo bar flow behaviour.
-            var flowDriver = new ControllableFlowDriver();
+            var driver = new ControllableFlowDriver();
             var responses = new List<OutgoingMessage>();
-            var behaviour = new FooBarFlowBehaviour(flowDriver);
+            var manager = new FlowManager(t => new FlowTransitionManager(t), new FairFlowTransitionSelector(), driver);
+            var behaviour = new FooBarFlowBehaviour(manager);
             behaviour.Subscribe<OutgoingMessage>(it => responses.Add(it));
 
             // GIVEN the ID of some particular user.
@@ -144,12 +143,12 @@ namespace Mofichan.Tests.Behaviour
             // EXPECT no response when the behaviour receives an incoming message containing "bar" from this user.
             // Reason: the "bar" transition should not generate any responses when triggered.
             behaviour.OnNext(MessageFromBodyAndSender("Bar bar black sheep", borgUser));
-            flowDriver.StepFlow();
+            driver.StepFlow();
             responses.ShouldBeEmpty();
 
             // EXPECT a response to the user when the behaviour receives a "foo" message from them.
             behaviour.OnNext(MessageFromBodyAndSender("Have you any foo?", borgUser));
-            flowDriver.StepFlow();
+            driver.StepFlow();
             responses.ShouldContain(it => it.Context.Body == "Yes sir, yes sir, three baz full" &&
                                          (it.Context.To as IUser).UserId == borgUser);
         }
@@ -262,14 +261,15 @@ namespace Mofichan.Tests.Behaviour
 
         private static void SetupWarfareTest(
             List<OutgoingMessage> responses,
-            out ControllableFlowDriver flowDriver,
+            out ControllableFlowDriver driver,
             out WarfareFlowBehaviour behaviour,
             out Mock<IUser> johnSmith,
             out Mock<IUser> donaldTrump)
         {
             // GIVEN a warfare flow behaviour.
-            flowDriver = new ControllableFlowDriver();
-            behaviour = new WarfareFlowBehaviour(flowDriver);
+            driver = new ControllableFlowDriver();
+            var manager = new FlowManager(t => new FlowTransitionManager(t), new FairFlowTransitionSelector(), driver);
+            behaviour = new WarfareFlowBehaviour(manager);
             behaviour.Subscribe<OutgoingMessage>(it => responses.Add(it));
 
             // GIVEN a normal user.

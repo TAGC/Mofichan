@@ -21,9 +21,8 @@ namespace Mofichan.Tests.Behaviour
     {
         private class MockFlowBehaviour : BaseFlowBehaviour
         {
-            public MockFlowBehaviour(string startNodeId, IFlowDriver flowDriver)
-                : base(startNodeId, () => Mock.Of<IResponseBuilder>(), flowDriver,
-                      new FairFlowTransitionSelector(), Mock.Of<ILogger>())
+            public MockFlowBehaviour(string startNodeId, IFlowManager flowManager)
+                : base(startNodeId, () => Mock.Of<IResponseBuilder>(), flowManager, Mock.Of<ILogger>())
             {
             }
 
@@ -60,7 +59,8 @@ namespace Mofichan.Tests.Behaviour
             // GIVEN a mock flow behaviour that registers a flow with these nodes.
             var responses = new List<OutgoingMessage>();
             var driver = new ControllableFlowDriver();
-            var mockBehaviour = new MockFlowBehaviour("S0", driver);
+            var manager = new FlowManager(t => new FlowTransitionManager(t), new FairFlowTransitionSelector(), driver);
+            var mockBehaviour = new MockFlowBehaviour("S0", manager);
             mockBehaviour.Subscribe<OutgoingMessage>(it => responses.Add(it));
             mockBehaviour.RegisterFlow(builder => builder
                 .WithLogger(new LoggerConfiguration().CreateLogger())
@@ -102,7 +102,8 @@ namespace Mofichan.Tests.Behaviour
             // GIVEN a mock flow behaviour that registers a flow with this node.
             var responses = new List<OutgoingMessage>();
             var driver = new ControllableFlowDriver();
-            var mockBehaviour = new MockFlowBehaviour("S0", driver);
+            var manager = new FlowManager(t => new FlowTransitionManager(t), new FairFlowTransitionSelector(), driver);
+            var mockBehaviour = new MockFlowBehaviour("S0", manager);
             mockBehaviour.Subscribe<OutgoingMessage>(it => responses.Add(it));
             mockBehaviour.RegisterFlow(builder => builder
                 .WithLogger(new LoggerConfiguration().CreateLogger())
@@ -143,7 +144,8 @@ namespace Mofichan.Tests.Behaviour
             // GIVEN a mock flow behaviour that registers a flow with this node.
             var responses = new List<OutgoingMessage>();
             var driver = new ControllableFlowDriver();
-            var mockBehaviour = new MockFlowBehaviour("S0", driver);
+            var manager = new FlowManager(t => new FlowTransitionManager(t), new FairFlowTransitionSelector(), driver);
+            var mockBehaviour = new MockFlowBehaviour("S0", manager);
             mockBehaviour.Subscribe<OutgoingMessage>(it => responses.Add(it));
             mockBehaviour.RegisterFlow(builder => builder
                 .WithLogger(new LoggerConfiguration().CreateLogger())

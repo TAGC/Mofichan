@@ -31,23 +31,17 @@ namespace Mofichan.Behaviour.Admin
         /// Initializes a new instance of the <see cref="AdministrationBehaviour" /> class.
         /// </summary>
         /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder" />.</param>
-        /// <param name="transitionManagerFactory">The transition manager factory.</param>
-        /// <param name="flowDriver">The flow driver.</param>
-        /// <param name="flowTransitionSelector">The flow transition selector.</param>
+        /// <param name="flowManager">The flow manager.</param>
         /// <param name="chainBuilder">The object to use for composing sub-behaviours into a chain.</param>
         /// <param name="logger">The logger to use.</param>
         public AdministrationBehaviour(
             Func<IResponseBuilder> responseBuilderFactory,
-            Func<IEnumerable<IFlowTransition>, IFlowTransitionManager> transitionManagerFactory,
-            IFlowDriver flowDriver,
-            IFlowTransitionSelector flowTransitionSelector,
+            IFlowManager flowManager,
             IBehaviourChainBuilder chainBuilder,
             ILogger logger)
             : base(chainBuilder,
-            new ToggleEnableBehaviour(responseBuilderFactory, transitionManagerFactory, flowDriver,
-                flowTransitionSelector, logger),
-            new DisplayChainBehaviour(responseBuilderFactory, transitionManagerFactory, flowDriver,
-                flowTransitionSelector, logger))
+            new ToggleEnableBehaviour(responseBuilderFactory, flowManager, logger),
+            new DisplayChainBehaviour(responseBuilderFactory, flowManager, logger))
         {
             this.logger = logger.ForContext<AdministrationBehaviour>();
             this.authExceptionHandler = new AuthorisationFailureHandler(this.TrySendUpstream, logger);

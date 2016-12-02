@@ -110,6 +110,10 @@ namespace Mofichan.Runner
                 .As<IFlowDriver>()
                 .SingleInstance();
 
+            containerBuilder
+                .RegisterType<FlowManager>()
+                .As<IFlowManager>();
+
             // Register library module.
             containerBuilder.RegisterModule<LibraryModule>();
 

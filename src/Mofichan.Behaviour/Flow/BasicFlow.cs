@@ -19,7 +19,7 @@ namespace Mofichan.Behaviour.Flow
         private readonly string startNodeId;
         private readonly IFlowNode[] nodes;
         private readonly IFlowTransition[] transitions;
-        private readonly IFlowDriver driver;
+        private readonly IFlowManager manager;
         private readonly Queue<IncomingMessage> messageQueue;
         private readonly AuthorisationFailureHandler authExceptionHandler;
         private readonly FlowContext baseContext;
@@ -27,16 +27,14 @@ namespace Mofichan.Behaviour.Flow
         private FlowContext latestFlowContext;
 
         private BasicFlow(
-            IFlowDriver driver,
-            IFlowTransitionSelector transitionSelector,
+            IFlowManager manager,
             Action<OutgoingMessage> generatedResponseHandler,
             string startNodeId,
             IEnumerable<IFlowNode> nodes,
             IEnumerable<IFlowTransition> transitions,
             ILogger logger)
         {
-            Raise.ArgumentNullException.IfIsNull(driver, nameof(driver));
-            Raise.ArgumentNullException.IfIsNull(transitionSelector, nameof(transitionSelector));
+            Raise.ArgumentNullException.IfIsNull(manager, nameof(manager));
             Raise.ArgumentNullException.IfIsNull(generatedResponseHandler, nameof(generatedResponseHandler));
             Raise.ArgumentNullException.IfIsNull(nodes, nameof(nodes));
             Raise.ArgumentNullException.IfIsNull(transitions, nameof(transitions));
@@ -45,16 +43,16 @@ namespace Mofichan.Behaviour.Flow
             Raise.ArgumentException.IfNot(nodes.Count(it => it.Id == startNodeId) == 1,
                 "Exactly one node within the provided collection should be the starting node");
 
-            this.driver = driver;
+            this.manager = manager;
             this.startNodeId = startNodeId;
             this.nodes = nodes.ToArray();
             this.transitions = transitions.ToArray();
-            this.baseContext = new FlowContext(transitionSelector, generatedResponseHandler);
+            this.baseContext = new FlowContext(this.manager.TransitionSelector, generatedResponseHandler);
             this.messageQueue = new Queue<IncomingMessage>();
             this.authExceptionHandler = new AuthorisationFailureHandler(generatedResponseHandler, logger);
             this.latestFlowContext = this.baseContext;
 
-            this.driver.OnNextStep += this.NextStep;
+            this.manager.OnNextStep += this.NextStep;
         }
 
         /// <summary>
@@ -72,7 +70,7 @@ namespace Mofichan.Behaviour.Flow
         /// </summary>
         public void Dispose()
         {
-            this.driver.OnNextStep -= this.NextStep;
+            this.manager.OnNextStep -= this.NextStep;
         }
 
         private void Process(IncomingMessage message)
@@ -147,8 +145,7 @@ namespace Mofichan.Behaviour.Flow
             private readonly IList<Tuple<string, string, string>> connections;
 
             private ILogger logger;
-            private IFlowDriver driver;
-            private IFlowTransitionSelector transitionSelector;
+            private IFlowManager manager;
             private Action<OutgoingMessage> generatedResponseHandler;
             private string startNodeId;
             private IEnumerable<IFlowNode> nodes;
@@ -174,24 +171,13 @@ namespace Mofichan.Behaviour.Flow
             }
 
             /// <summary>
-            /// Specifies the <see cref="IFlowDriver"/> for the flow. 
+            /// Specifies the <see cref="IFlowManager"/> for the flow. 
             /// </summary>
-            /// <param name="driver">The flow driver.</param>
+            /// <param name="manager">The flow manager.</param>
             /// <returns>This builder.</returns>
-            public Builder WithDriver(IFlowDriver driver)
+            public Builder WithManager(IFlowManager manager)
             {
-                this.driver = driver;
-                return this;
-            }
-
-            /// <summary>
-            /// Specifies the <see cref="IFlowTransitionSelector"/> for the flow. 
-            /// </summary>
-            /// <param name="transitionSelector">The flow transition selector.</param>
-            /// <returns>This builder.</returns>
-            public Builder WithTransitionSelector(IFlowTransitionSelector transitionSelector)
-            {
-                this.transitionSelector = transitionSelector;
+                this.manager = manager;
                 return this;
             }
 
@@ -260,7 +246,7 @@ namespace Mofichan.Behaviour.Flow
             /// <returns>A <c>BasicFlow</c>.</returns>
             public BasicFlow Build()
             {
-                var flow = new BasicFlow(this.driver, this.transitionSelector, this.generatedResponseHandler,
+                var flow = new BasicFlow(this.manager, this.generatedResponseHandler,
                     this.startNodeId, this.nodes, this.transitions, this.logger);
 
                 foreach (var connection in this.connections)

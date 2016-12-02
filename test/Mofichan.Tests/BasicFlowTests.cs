@@ -21,8 +21,7 @@ namespace Mofichan.Tests
         {
             Assert.Throws<ArgumentNullException>(() => new BasicFlow.Builder()
                 .WithLogger(null)
-                .WithDriver(Mock.Of<IFlowDriver>())
-                .WithTransitionSelector(Mock.Of<IFlowTransitionSelector>())
+                .WithManager(Mock.Of<IFlowManager>())
                 .WithGeneratedResponseHandler(DiscardResponse)
                 .WithStartNodeId("A")
                 .WithNodes(new[] {
@@ -33,34 +32,16 @@ namespace Mofichan.Tests
         }
 
         [Fact]
-        public void Exception_Should_Be_Thrown_If_Flow_Constructed_With_Null_Flow_Driver()
+        public void Exception_Should_Be_Thrown_If_Flow_Constructed_With_Null_Flow_Manager()
         {
             Assert.Throws<ArgumentNullException>(() => new BasicFlow.Builder()
                 .WithLogger(new LoggerConfiguration().CreateLogger())
-                .WithDriver(null)
-                .WithTransitionSelector(Mock.Of<IFlowTransitionSelector>())
+                .WithManager(null)
                 .WithGeneratedResponseHandler(DiscardResponse)
                 .WithStartNodeId("A")
                 .WithNodes(new[] {
                     new FlowNode("A", NullStateAction, TransitionManagerFactory),
                     new FlowNode("B", NullStateAction, TransitionManagerFactory) })
-                .WithTransitions(Enumerable.Empty<IFlowTransition>())
-                .Build());
-        }
-
-        [Fact]
-        public void Exception_Should_Be_Thrown_If_Flow_Constructed_With_Null_Flow_Transition_Selector()
-        {
-            Assert.Throws<ArgumentNullException>(() => new BasicFlow.Builder()
-                .WithLogger(new LoggerConfiguration().CreateLogger())
-                .WithDriver(Mock.Of<IFlowDriver>())
-                .WithTransitionSelector(null)
-                .WithGeneratedResponseHandler(DiscardResponse)
-                .WithStartNodeId("A")
-                .WithNodes(new[] {
-                    new FlowNode("A", NullStateAction, TransitionManagerFactory),
-                    new FlowNode("B", NullStateAction, TransitionManagerFactory)
-                })
                 .WithTransitions(Enumerable.Empty<IFlowTransition>())
                 .Build());
         }
@@ -70,8 +51,7 @@ namespace Mofichan.Tests
         {
             Assert.Throws<ArgumentNullException>(() => new BasicFlow.Builder()
                 .WithLogger(new LoggerConfiguration().CreateLogger())
-                .WithDriver(Mock.Of<IFlowDriver>())
-                .WithTransitionSelector(Mock.Of<IFlowTransitionSelector>())
+                .WithManager(Mock.Of<IFlowManager>())
                 .WithGeneratedResponseHandler(null)
                 .WithStartNodeId("A")
                 .WithNodes(new[] {
@@ -86,8 +66,7 @@ namespace Mofichan.Tests
         {
             Assert.Throws<ArgumentNullException>(() => new BasicFlow.Builder()
                 .WithLogger(new LoggerConfiguration().CreateLogger())
-                .WithDriver(Mock.Of<IFlowDriver>())
-                .WithTransitionSelector(Mock.Of<IFlowTransitionSelector>())
+                .WithManager(Mock.Of<IFlowManager>())
                 .WithGeneratedResponseHandler(DiscardResponse)
                 .WithNodes(null)
                 .WithTransitions(Enumerable.Empty<IFlowTransition>())
@@ -99,8 +78,7 @@ namespace Mofichan.Tests
         {
             Assert.Throws<ArgumentException>(() => new BasicFlow.Builder()
                 .WithLogger(new LoggerConfiguration().CreateLogger())
-                .WithDriver(Mock.Of<IFlowDriver>())
-                .WithTransitionSelector(Mock.Of<IFlowTransitionSelector>())
+                .WithManager(Mock.Of<IFlowManager>())
                 .WithGeneratedResponseHandler(DiscardResponse)
                 .WithNodes(Enumerable.Empty<IFlowNode>())
                 .WithTransitions(Enumerable.Empty<IFlowTransition>())
@@ -112,8 +90,7 @@ namespace Mofichan.Tests
         {
             Assert.Throws<ArgumentNullException>(() => new BasicFlow.Builder()
                 .WithLogger(new LoggerConfiguration().CreateLogger())
-                .WithDriver(Mock.Of<IFlowDriver>())
-                .WithTransitionSelector(Mock.Of<IFlowTransitionSelector>())
+                .WithManager(Mock.Of<IFlowManager>())
                 .WithGeneratedResponseHandler(DiscardResponse)
                 .WithStartNodeId("A")
                 .WithNodes(new[] {
@@ -136,7 +113,7 @@ namespace Mofichan.Tests
                     new FlowTransition("T0,0")
             };
 
-            Assert.Throws<ArgumentException>(() => CreateDefaultFlowBuilder(nodes, transitions)
+            Assert.Throws<ArgumentException>(() => CreateDefaultFlowBuilder(nodes, transitions, Mock.Of<IFlowDriver>())
                 .WithConnection("S0", "<<NON_EXISTENT>>", "T0,0")
                 .Build());
         }
@@ -152,7 +129,7 @@ namespace Mofichan.Tests
 
             var transitions = Enumerable.Empty<IFlowTransition>();
 
-            Assert.Throws<ArgumentException>(() => CreateDefaultFlowBuilder(nodes, transitions)
+            Assert.Throws<ArgumentException>(() => CreateDefaultFlowBuilder(nodes, transitions, Mock.Of<IFlowDriver>())
                 .WithConnection("S0", "S1", "<<NON_EXISTENT>>")
                 .Build());
         }
@@ -180,8 +157,7 @@ namespace Mofichan.Tests
 
             // GIVEN a flow created from these nodes and transitions.
             var driver = new ControllableFlowDriver();
-            var flow = CreateDefaultFlowBuilder(nodes, transitions)
-                .WithDriver(driver)
+            var flow = CreateDefaultFlowBuilder(nodes, transitions, driver)
                 .WithConnection("S0", "S0", "T0,0")
                 .WithConnection("S0", "S1", "T0,1")
                 .Build();
@@ -236,8 +212,7 @@ namespace Mofichan.Tests
 
             // GIVEN a flow created from these nodes and transitions.
             var driver = new ControllableFlowDriver();
-            var flow = CreateDefaultFlowBuilder(nodes, transitions)
-                .WithDriver(driver)
+            var flow = CreateDefaultFlowBuilder(nodes, transitions, driver)
                 .WithConnection("S0", "S0", "T0,0")
                 .WithConnection("S0", "S1", "T0,1")
                 .WithConnection("S1", "S1", "T1,1")
@@ -318,8 +293,7 @@ namespace Mofichan.Tests
             var responses = new List<OutgoingMessage>();
             Action<OutgoingMessage> responseHandler = it => responses.Add(it);
             var driver = new ControllableFlowDriver();
-            var flow = CreateDefaultFlowBuilder(nodes, transitions)
-                .WithDriver(driver)
+            var flow = CreateDefaultFlowBuilder(nodes, transitions, driver)
                 .WithGeneratedResponseHandler(responseHandler)
                 .WithConnection("S0", "S0", "T0,0")
                 .WithConnection("S0", "S1", "T0,1")
@@ -382,8 +356,7 @@ namespace Mofichan.Tests
             var responses = new List<OutgoingMessage>();
             Action<OutgoingMessage> responseHandler = it => responses.Add(it);
             var driver = new ControllableFlowDriver();
-            var flow = CreateDefaultFlowBuilder(nodes, transitions)
-                .WithDriver(driver)
+            var flow = CreateDefaultFlowBuilder(nodes, transitions, driver)
                 .WithGeneratedResponseHandler(responseHandler)
                 .WithConnection("S0", "S1", "T0,1")
                 .WithConnection("S1", "S2", "T1,2")
@@ -450,8 +423,7 @@ namespace Mofichan.Tests
             var responses = new List<OutgoingMessage>();
             Action<OutgoingMessage> responseHandler = it => responses.Add(it);
             var driver = new ControllableFlowDriver();
-            var flow = CreateDefaultFlowBuilder(nodes, transitions)
-                .WithDriver(driver)
+            var flow = CreateDefaultFlowBuilder(nodes, transitions, driver)
                 .WithGeneratedResponseHandler(responseHandler)
                 .WithConnection("S0", "S0", "T0,0")
                 .WithConnection("S0", "S1", "T0,1")
@@ -526,8 +498,7 @@ namespace Mofichan.Tests
             bool responseReceived = false;
             Action<OutgoingMessage> responseHandler = _ => responseReceived = true;
             var driver = new ControllableFlowDriver();
-            var flow = CreateDefaultFlowBuilder(nodes, transitions)
-                .WithDriver(driver)
+            var flow = CreateDefaultFlowBuilder(nodes, transitions, driver)
                 .WithGeneratedResponseHandler(responseHandler)
                 .WithConnection("S0", "S0", "T0,0")
                 .WithConnection("S0", "S1", "T0,1")

@@ -58,6 +58,7 @@ namespace Mofichan.Spec
 
             public event EventHandler OnNextStep;
         }
+
         #region Setup
 
         /// <summary>
@@ -90,6 +91,10 @@ namespace Mofichan.Spec
             containerBuilder
                 .RegisterType<FlowTransitionManager>()
                 .As<IFlowTransitionManager>();
+
+            containerBuilder
+                .RegisterType<FlowManager>()
+                .As<IFlowManager>();
 
             containerBuilder
                 .RegisterInstance(this.flowDriver)

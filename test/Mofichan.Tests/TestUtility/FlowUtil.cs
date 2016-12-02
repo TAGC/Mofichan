@@ -38,12 +38,14 @@ namespace Mofichan.Tests.TestUtility
 
         public static BasicFlow.Builder CreateDefaultFlowBuilder(
             IEnumerable<IFlowNode> nodes,
-            IEnumerable<IFlowTransition> transitions)
+            IEnumerable<IFlowTransition> transitions,
+            IFlowDriver driver)
         {
+            var manager = new FlowManager(null, new FairFlowTransitionSelector(), driver);
+
             return new BasicFlow.Builder()
                 .WithLogger(new LoggerConfiguration().CreateLogger())
-                .WithDriver(Mock.Of<IFlowDriver>())
-                .WithTransitionSelector(new FairFlowTransitionSelector())
+                .WithManager(manager)
                 .WithGeneratedResponseHandler(DiscardResponse)
                 .WithStartNodeId(nodes.First().Id)
                 .WithNodes(nodes)

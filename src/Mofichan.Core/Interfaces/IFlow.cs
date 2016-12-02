@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using Mofichan.Core.Flow;
 
 namespace Mofichan.Core.Interfaces
@@ -104,31 +103,5 @@ namespace Mofichan.Core.Interfaces
         /// The transition weight.
         /// </value>
         double Weight { get; set; }
-    }
-
-    /// <summary>
-    /// Represents an object used to select a flow transition out of
-    /// a collection of possible candidates.
-    /// </summary>
-    public interface IFlowTransitionSelector
-    {
-        /// <summary>
-        /// Selects a flow transition from the given collection.
-        /// </summary>
-        /// <param name="possibleTransitions">The set of possible transitions.</param>
-        /// <returns>One member of the set, based on this instance's selection criteria.</returns>
-        IFlowTransition Select(IEnumerable<IFlowTransition> possibleTransitions);
-    }
-
-    /// <summary>
-    /// Represents an object used to drive a behavioural flow by firing events
-    /// to signal when the next steps in flows should occur.
-    /// </summary>
-    public interface IFlowDriver
-    {
-        /// <summary>
-        /// Occurs when flows should perform their next step.
-        /// </summary>
-        event EventHandler OnNextStep;
     }
 }
