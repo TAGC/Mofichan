@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading.Tasks;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
