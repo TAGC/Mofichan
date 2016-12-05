@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using Mofichan.Core;
-using Mofichan.Library;
-using Mofichan.Library.Analysis;
+using Mofichan.DataAccess;
+using Mofichan.DataAccess.Analysis;
 using Serilog;
 using Shouldly;
 using Xunit;

@@ -3,7 +3,7 @@ using System.Linq;
 using Mofichan.Core.Interfaces;
 using Serilog;
 
-namespace Mofichan.Library.Analysis
+namespace Mofichan.DataAccess.Analysis
 {
     internal class MessageClassifier : IMessageClassifier
     {

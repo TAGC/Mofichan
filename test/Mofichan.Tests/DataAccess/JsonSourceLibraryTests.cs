@@ -2,11 +2,11 @@
 using System.IO;
 using System.Linq;
 using System.Text;
-using Mofichan.Library;
+using Mofichan.DataAccess;
 using Shouldly;
 using Xunit;
 
-namespace Mofichan.Tests.Library
+namespace Mofichan.Tests.DataAccess
 {
     public class JsonSourceLibraryTests
     {

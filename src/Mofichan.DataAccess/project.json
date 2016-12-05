@@ -3,9 +3,9 @@
   "buildOptions": {
     "embed": {
       "include": [
-        "Resources/AnalysisLib/*.txt",
-        "Resources/AnalysisLib/*.json",
-        "Resources/ResponseLib/*.json"
+        "Analysis/Resources/*.txt",
+        "Analysis/Resources/*.json",
+        "Response/Resources/*.json"
       ]
     }
   },

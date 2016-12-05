@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using Mofichan.Library;
+using Mofichan.DataAccess;
 using Shouldly;
 using Xunit;
 
-namespace Mofichan.Tests.Library
+namespace Mofichan.Tests.DataAccess
 {
     public class TagRequirementTests
     {

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 
-namespace Mofichan.Library.Response
+namespace Mofichan.DataAccess.Response
 {
     /// <summary>
     /// Filters instances of <see cref="TaggedMessage"/> based on provided

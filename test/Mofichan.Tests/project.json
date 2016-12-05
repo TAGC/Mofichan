@@ -8,7 +8,7 @@
     "Mofichan.Behaviour": {
       "target": "project"
     },
-    "Mofichan.Library": {
+    "Mofichan.DataAccess": {
       "target": "project"
     },
     "Mofichan.Core": {

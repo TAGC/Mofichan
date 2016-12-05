@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace Mofichan.Library
+namespace Mofichan.DataAccess
 {
     /// <summary>
     /// Represents a tag requirement.

@@ -28,7 +28,7 @@ Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Mofichan.Runner", "src\Mofi
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Mofichan.Tests", "test\Mofichan.Tests\Mofichan.Tests.xproj", "{4FC9190F-9BFA-45AC-8D9C-1DD5E5CDC59B}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Mofichan.Library", "src\Mofichan.Library\Mofichan.Library.xproj", "{E3D73A59-6329-481B-A906-F667965D0C28}"
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Mofichan.DataAccess", "src\Mofichan.DataAccess\Mofichan.DataAccess.xproj", "{E3D73A59-6329-481B-A906-F667965D0C28}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

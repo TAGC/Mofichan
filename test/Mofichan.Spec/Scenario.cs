@@ -8,7 +8,6 @@ using Mofichan.Core;
 using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
 using Mofichan.Core.Utility;
-using Mofichan.Library;
 using Moq;
 using Serilog;
 using Shouldly;
@@ -111,7 +110,10 @@ namespace Mofichan.Spec
                 .RegisterInstance(new LoggerConfiguration().CreateLogger())
                 .As<ILogger>();
 
-            containerBuilder.RegisterModule<LibraryModule>();
+            // Register data access modules.
+            containerBuilder
+                .RegisterModule<DataAccess.Analysis.AnalysisModule>()
+                .RegisterModule<DataAccess.Response.ResponseModule>();
 
             return containerBuilder;
         }

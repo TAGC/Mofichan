@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Dynamic;
-using Mofichan.Library.Response;
+using Mofichan.DataAccess.Response;
 using Shouldly;
 using Xunit;
 
-namespace Mofichan.Tests.Library
+namespace Mofichan.Tests.DataAccess
 {
     internal static class ArticleResolverTestExtensions
     {

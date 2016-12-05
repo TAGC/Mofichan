@@ -4,11 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using Mofichan.Core;
 using Mofichan.Core.Utility;
 using Serilog;
 
-namespace Mofichan.Library.Analysis
+namespace Mofichan.DataAccess.Analysis
 {
     internal class BinaryBayesianClassifier
     {
@@ -51,7 +50,7 @@ namespace Mofichan.Library.Analysis
             get
             {
                 var assembly = typeof(MessageClassifier).GetTypeInfo().Assembly;
-                var resourcePath = "Mofichan.Library.Resources.AnalysisLib.stopwords.txt";
+                var resourcePath = "Mofichan.DataAccess.Analysis.Resources.stopwords.txt";
 
                 using (var stream = assembly.GetManifestResourceStream(resourcePath))
                 using (var reader = new StreamReader(stream))

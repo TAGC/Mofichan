@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 
-namespace Mofichan.Library
+namespace Mofichan.DataAccess
 {
     internal class JsonSourceLibrary : ILibrary
     {

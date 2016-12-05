@@ -1,12 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Mofichan.Library;
-using Mofichan.Library.Response;
+using Mofichan.DataAccess;
+using Mofichan.DataAccess.Response;
 using Moq;
 using Shouldly;
 using Xunit;
 
-namespace Mofichan.Tests.Library
+namespace Mofichan.Tests.DataAccess
 {
     public class ArticleFilterTests
     {

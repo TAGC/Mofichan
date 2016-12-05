@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Mofichan.Library
+namespace Mofichan.DataAccess
 {
     internal struct TaggedMessage
     {

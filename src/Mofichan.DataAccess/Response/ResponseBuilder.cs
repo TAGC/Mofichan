@@ -5,9 +5,9 @@ using System.Linq;
 using System.Text;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
-using Mofichan.Library.Response;
+using Mofichan.DataAccess.Response;
 
-namespace Mofichan.Library
+namespace Mofichan.DataAccess
 {
     internal class ResponseBuilder : IResponseBuilder
     {
