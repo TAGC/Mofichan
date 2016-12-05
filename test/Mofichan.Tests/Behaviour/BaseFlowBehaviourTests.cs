@@ -59,7 +59,8 @@ namespace Mofichan.Tests.Behaviour
             // GIVEN a mock flow behaviour that registers a flow with these nodes.
             var responses = new List<OutgoingMessage>();
             var driver = new ControllableFlowDriver();
-            var manager = new FlowManager(t => new FlowTransitionManager(t), new FairFlowTransitionSelector(), driver);
+            var manager = new FlowManager(t => new FlowTransitionManager(t), AttentionManagerFactory,
+                new FairFlowTransitionSelector(), driver);
             var mockBehaviour = new MockFlowBehaviour("S0", manager);
             mockBehaviour.Subscribe<OutgoingMessage>(it => responses.Add(it));
             mockBehaviour.RegisterFlow(builder => builder
@@ -102,7 +103,8 @@ namespace Mofichan.Tests.Behaviour
             // GIVEN a mock flow behaviour that registers a flow with this node.
             var responses = new List<OutgoingMessage>();
             var driver = new ControllableFlowDriver();
-            var manager = new FlowManager(t => new FlowTransitionManager(t), new FairFlowTransitionSelector(), driver);
+            var manager = new FlowManager(t => new FlowTransitionManager(t), AttentionManagerFactory,
+                new FairFlowTransitionSelector(), driver);
             var mockBehaviour = new MockFlowBehaviour("S0", manager);
             mockBehaviour.Subscribe<OutgoingMessage>(it => responses.Add(it));
             mockBehaviour.RegisterFlow(builder => builder
@@ -144,7 +146,8 @@ namespace Mofichan.Tests.Behaviour
             // GIVEN a mock flow behaviour that registers a flow with this node.
             var responses = new List<OutgoingMessage>();
             var driver = new ControllableFlowDriver();
-            var manager = new FlowManager(t => new FlowTransitionManager(t), new FairFlowTransitionSelector(), driver);
+            var manager = new FlowManager(t => new FlowTransitionManager(t), AttentionManagerFactory,
+                new FairFlowTransitionSelector(), driver);
             var mockBehaviour = new MockFlowBehaviour("S0", manager);
             mockBehaviour.Subscribe<OutgoingMessage>(it => responses.Add(it));
             mockBehaviour.RegisterFlow(builder => builder

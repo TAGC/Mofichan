@@ -89,6 +89,13 @@ namespace Mofichan.Spec
                 .As<IFlowTransitionSelector>();
 
             containerBuilder
+                .RegisterType<FlowDrivenAttentionManager>()
+                .As<IAttentionManager>()
+                .WithParameter("mu", 100)
+                .WithParameter("sigma", 10)
+                .SingleInstance();
+
+            containerBuilder
                 .RegisterType<FlowTransitionManager>()
                 .As<IFlowTransitionManager>();
 

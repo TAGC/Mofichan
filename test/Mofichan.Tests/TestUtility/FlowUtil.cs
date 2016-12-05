@@ -36,12 +36,28 @@ namespace Mofichan.Tests.TestUtility
             }
         }
 
+        public static Func<IFlowDriver, IAttentionManager> AttentionManagerFactory
+        {
+            get
+            {
+                return driver => new FlowDrivenAttentionManager(1000, 20, driver, Logger);
+            }
+        }
+
+        public static ILogger Logger
+        {
+            get
+            {
+                return new LoggerConfiguration().CreateLogger();
+            }
+        }
+
         public static BasicFlow.Builder CreateDefaultFlowBuilder(
             IEnumerable<IFlowNode> nodes,
             IEnumerable<IFlowTransition> transitions,
             IFlowDriver driver)
         {
-            var manager = new FlowManager(null, new FairFlowTransitionSelector(), driver);
+            var manager = new FlowManager(null, AttentionManagerFactory, new FairFlowTransitionSelector(), driver);
 
             return new BasicFlow.Builder()
                 .WithLogger(new LoggerConfiguration().CreateLogger())

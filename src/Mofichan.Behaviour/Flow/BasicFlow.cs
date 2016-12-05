@@ -19,7 +19,7 @@ namespace Mofichan.Behaviour.Flow
         private readonly string startNodeId;
         private readonly IFlowNode[] nodes;
         private readonly IFlowTransition[] transitions;
-        private readonly IFlowManager manager;
+        private readonly IFlowManager flowManager;
         private readonly Queue<IncomingMessage> messageQueue;
         private readonly AuthorisationFailureHandler authExceptionHandler;
         private readonly FlowContext baseContext;
@@ -27,14 +27,14 @@ namespace Mofichan.Behaviour.Flow
         private FlowContext latestFlowContext;
 
         private BasicFlow(
-            IFlowManager manager,
+            IFlowManager flowManager,
             Action<OutgoingMessage> generatedResponseHandler,
             string startNodeId,
             IEnumerable<IFlowNode> nodes,
             IEnumerable<IFlowTransition> transitions,
             ILogger logger)
         {
-            Raise.ArgumentNullException.IfIsNull(manager, nameof(manager));
+            Raise.ArgumentNullException.IfIsNull(flowManager, nameof(flowManager));
             Raise.ArgumentNullException.IfIsNull(generatedResponseHandler, nameof(generatedResponseHandler));
             Raise.ArgumentNullException.IfIsNull(nodes, nameof(nodes));
             Raise.ArgumentNullException.IfIsNull(transitions, nameof(transitions));
@@ -43,16 +43,17 @@ namespace Mofichan.Behaviour.Flow
             Raise.ArgumentException.IfNot(nodes.Count(it => it.Id == startNodeId) == 1,
                 "Exactly one node within the provided collection should be the starting node");
 
-            this.manager = manager;
+            this.flowManager = flowManager;
             this.startNodeId = startNodeId;
             this.nodes = nodes.ToArray();
             this.transitions = transitions.ToArray();
-            this.baseContext = new FlowContext(this.manager.TransitionSelector, generatedResponseHandler);
+            this.baseContext = new FlowContext(this.flowManager.TransitionSelector, this.flowManager.Attention,
+                generatedResponseHandler);
             this.messageQueue = new Queue<IncomingMessage>();
             this.authExceptionHandler = new AuthorisationFailureHandler(generatedResponseHandler, logger);
             this.latestFlowContext = this.baseContext;
 
-            this.manager.OnNextStep += this.NextStep;
+            this.flowManager.OnNextStep += this.NextStep;
         }
 
         /// <summary>
@@ -70,7 +71,7 @@ namespace Mofichan.Behaviour.Flow
         /// </summary>
         public void Dispose()
         {
-            this.manager.OnNextStep -= this.NextStep;
+            this.flowManager.OnNextStep -= this.NextStep;
         }
 
         private void Process(IncomingMessage message)

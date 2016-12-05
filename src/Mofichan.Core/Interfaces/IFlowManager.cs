@@ -22,6 +22,14 @@ namespace Mofichan.Core.Interfaces
         IFlowTransitionSelector TransitionSelector { get; }
 
         /// <summary>
+        /// Gets the flow-driven attention manager.
+        /// </summary>
+        /// <value>
+        /// The attention manager.
+        /// </value>
+        IAttentionManager Attention { get; }
+
+        /// <summary>
         /// Builds instances of <see cref="IFlowTransitionManager"/> that can be used to manage
         /// a provided collection of <see cref="IFlowTransition"/>. 
         /// </summary>

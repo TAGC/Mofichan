@@ -14,9 +14,11 @@ namespace Mofichan.Core.Flow
         /// </summary>
         /// <param name="flowTransitionSelector">The flow transition selector.</param>
         /// <param name="generatedResponseHandler">The callback to handle responses generated within the flow.</param>
-        public FlowContext(IFlowTransitionSelector flowTransitionSelector,
+        public FlowContext(
+            IFlowTransitionSelector flowTransitionSelector,
+            IAttentionManager attentionManager,
             Action<OutgoingMessage> generatedResponseHandler)
-            : this(default(MessageContext), flowTransitionSelector, generatedResponseHandler)
+            : this(default(MessageContext), flowTransitionSelector, attentionManager, generatedResponseHandler)
         {
         }
 
@@ -26,11 +28,15 @@ namespace Mofichan.Core.Flow
         /// <param name="message">The message context to embed within the flow context.</param>
         /// <param name="flowTransitionSelector">The flow transition selector.</param>
         /// <param name="generatedResponseHandler">The callback to handle responses generated within the flow.</param>
-        public FlowContext(MessageContext message, IFlowTransitionSelector flowTransitionSelector,
+        public FlowContext(
+            MessageContext message,
+            IFlowTransitionSelector flowTransitionSelector,
+            IAttentionManager attentionManager,
             Action<OutgoingMessage> generatedResponseHandler)
         {
             this.Message = message;
             this.FlowTransitionSelector = flowTransitionSelector;
+            this.Attention = attentionManager;
             this.GeneratedResponseHandler = generatedResponseHandler;
             this.Extras = new ExpandoObject();
         }
@@ -50,6 +56,14 @@ namespace Mofichan.Core.Flow
         /// The flow transition selector.
         /// </value>
         public IFlowTransitionSelector FlowTransitionSelector { get; }
+
+        /// <summary>
+        /// Gets the flow-driven attention manager.
+        /// </summary>
+        /// <value>
+        /// The attention manager.
+        /// </value>
+        public IAttentionManager Attention { get; }
 
         /// <summary>
         /// Gets the generated response handler.
@@ -75,7 +89,9 @@ namespace Mofichan.Core.Flow
         /// <returns>A new <c>FlowContext</c> instance derived from this.</returns>
         public FlowContext FromMessage(MessageContext message)
         {
-            var newContext = new FlowContext(message, this.FlowTransitionSelector, this.GeneratedResponseHandler);
+            var newContext = new FlowContext(message, this.FlowTransitionSelector, this.Attention,
+                this.GeneratedResponseHandler);
+
             newContext.Extras = this.Extras;
 
             return newContext;

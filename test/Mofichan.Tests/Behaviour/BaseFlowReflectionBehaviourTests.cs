@@ -133,7 +133,8 @@ namespace Mofichan.Tests.Behaviour
             // GIVEN a foo bar flow behaviour.
             var driver = new ControllableFlowDriver();
             var responses = new List<OutgoingMessage>();
-            var manager = new FlowManager(t => new FlowTransitionManager(t), new FairFlowTransitionSelector(), driver);
+            var manager = new FlowManager(t => new FlowTransitionManager(t), AttentionManagerFactory,
+                new FairFlowTransitionSelector(), driver);
             var behaviour = new FooBarFlowBehaviour(manager);
             behaviour.Subscribe<OutgoingMessage>(it => responses.Add(it));
 
@@ -268,7 +269,8 @@ namespace Mofichan.Tests.Behaviour
         {
             // GIVEN a warfare flow behaviour.
             driver = new ControllableFlowDriver();
-            var manager = new FlowManager(t => new FlowTransitionManager(t), new FairFlowTransitionSelector(), driver);
+            var manager = new FlowManager(t => new FlowTransitionManager(t), AttentionManagerFactory,
+                new FairFlowTransitionSelector(), driver);
             behaviour = new WarfareFlowBehaviour(manager);
             behaviour.Subscribe<OutgoingMessage>(it => responses.Add(it));
 

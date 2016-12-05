@@ -1,7 +1,5 @@
 ﻿using Mofichan.Core.Flow;
-using Mofichan.Core.Interfaces;
 using Mofichan.Tests.TestUtility;
-using Moq;
 using Serilog;
 using Shouldly;
 using Xunit;
@@ -13,6 +11,53 @@ namespace Mofichan.Tests
         private static readonly ILogger Log = new LoggerConfiguration().CreateLogger();
 
         [Fact]
+        public void Mofichan_Should_Lose_Attention_To_All_Users_When_Requested()
+        {
+            // GIVEN an attention manager.
+            var flowDriver = new ControllableFlowDriver();
+
+            using (var attentionManager = new FlowDrivenAttentionManager(0, 1, flowDriver, Log))
+            {
+                // GIVEN a collection of users.
+                var tom = new MockUser("Tom", "Tom");
+                var dick = new MockUser("Dick", "Dick");
+                var harry = new MockUser("Harry", "Harry");
+
+                // WHEN Mofichan's attention is renewed towards Tom.
+                attentionManager.RenewAttentionTowardsUser(tom);
+
+                // THEN she should only be paying attention towards Tom.
+                attentionManager.IsPayingAttentionToUser(tom).ShouldBeTrue();
+                attentionManager.IsPayingAttentionToUser(dick).ShouldBeFalse();
+                attentionManager.IsPayingAttentionToUser(harry).ShouldBeFalse();
+
+                // WHEN Mofichan's attention is renewed towards Dick.
+                attentionManager.RenewAttentionTowardsUser(dick);
+
+                // THEN she should be paying attention to Tom and Dick.
+                attentionManager.IsPayingAttentionToUser(tom).ShouldBeTrue();
+                attentionManager.IsPayingAttentionToUser(dick).ShouldBeTrue();
+                attentionManager.IsPayingAttentionToUser(harry).ShouldBeFalse();
+
+                // WHEN Mofichan's attention is renewed towards Harry.
+                attentionManager.RenewAttentionTowardsUser(harry);
+
+                // THEN she should be paying attentio towards Tom, Dick and Harry.
+                attentionManager.IsPayingAttentionToUser(tom).ShouldBeTrue();
+                attentionManager.IsPayingAttentionToUser(dick).ShouldBeTrue();
+                attentionManager.IsPayingAttentionToUser(harry).ShouldBeTrue();
+
+                // WHEN Mofichan is requested to lose attention towards everyone.
+                attentionManager.LoseAttentionToAllUsers();
+
+                // THEN she should not be paying attention towards Tom, Dick or Harry.
+                attentionManager.IsPayingAttentionToUser(tom).ShouldBeFalse();
+                attentionManager.IsPayingAttentionToUser(dick).ShouldBeFalse();
+                attentionManager.IsPayingAttentionToUser(harry).ShouldBeFalse();
+            }
+        }
+
+        [Fact]
         public void Mofichan_Should_Be_Paying_Attention_To_User_After_Attention_Is_Renewed_To_Them()
         {
             // GIVEN an attention manager.
@@ -21,14 +66,13 @@ namespace Mofichan.Tests
             using (var attentionManager = new FlowDrivenAttentionManager(0, 1, flowDriver, Log))
             {
                 // GIVEN a user.
-                var mockUser = new Mock<IUser>();
-                mockUser.SetupGet(it => it.UserId).Returns("John Appleseed");
+                var john = new MockUser("John", "John");
 
                 // WHEN attention is renewed to the user.
-                attentionManager.RenewAttentionTowardsUser(mockUser.Object);
+                attentionManager.RenewAttentionTowardsUser(john);
 
                 // THEN Mofichan should be paying attention to that user.
-                attentionManager.IsPayingAttentionToUser(mockUser.Object).ShouldBeTrue();
+                attentionManager.IsPayingAttentionToUser(john).ShouldBeTrue();
             }
         }
 
@@ -51,11 +95,10 @@ namespace Mofichan.Tests
             {
 
                 // GIVEN a user.
-                var mockUser = new Mock<IUser>();
-                mockUser.SetupGet(it => it.UserId).Returns("John Appleseed");
+                var john = new MockUser("John", "John");
 
                 // WHEN attention is renewed to the user.
-                attentionManager.RenewAttentionTowardsUser(mockUser.Object);
+                attentionManager.RenewAttentionTowardsUser(john);
 
                 // AND we step for [lowStepBound] number of steps.
                 for (; numSteps < lowStepBound; numSteps++)
@@ -65,7 +108,7 @@ namespace Mofichan.Tests
 
                 // THEN given the attention manager works correctly, Mofichan should still be paying attention
                 // to the user with 99.95% probability.
-                attentionManager.IsPayingAttentionToUser(mockUser.Object).ShouldBeTrue();
+                attentionManager.IsPayingAttentionToUser(john).ShouldBeTrue();
 
                 // WHEN we step until [highStepBound] number of steps.
                 for (; numSteps < highStepBound; numSteps++)
@@ -75,7 +118,7 @@ namespace Mofichan.Tests
 
                 // THEN given the attention manager works correctly, Mofichan should not be paying attention
                 // to the user with 99.95% probability.
-                attentionManager.IsPayingAttentionToUser(mockUser.Object).ShouldBeFalse();
+                attentionManager.IsPayingAttentionToUser(john).ShouldBeFalse();
             }
         }
     }

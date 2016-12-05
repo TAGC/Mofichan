@@ -12,20 +12,25 @@ namespace Mofichan.Core.Flow
         private readonly Func<IEnumerable<IFlowTransition>, IFlowTransitionManager> transitionManagerFactory;
         private readonly IFlowDriver flowDriver;
         private readonly IFlowTransitionSelector transitionSelector;
+        private readonly IAttentionManager attentionManager;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FlowManager"/> class.
+        /// Initializes a new instance of the <see cref="FlowManager" /> class.
         /// </summary>
         /// <param name="transitionManagerFactory">The transition manager factory.</param>
+        /// <param name="attentionManagerFactory">A factory to build flow-driven attention managers.</param>
         /// <param name="transitionSelector">The transition selector.</param>
         /// <param name="flowDriver">The flow driver.</param>
-        public FlowManager(Func<IEnumerable<IFlowTransition>, IFlowTransitionManager> transitionManagerFactory,
+        public FlowManager(
+            Func<IEnumerable<IFlowTransition>, IFlowTransitionManager> transitionManagerFactory,
+            Func<IFlowDriver, IAttentionManager> attentionManagerFactory,
             IFlowTransitionSelector transitionSelector,
             IFlowDriver flowDriver)
         {
             this.transitionManagerFactory = transitionManagerFactory;
             this.transitionSelector = transitionSelector;
             this.flowDriver = flowDriver;
+            this.attentionManager = attentionManagerFactory(this.flowDriver);
         }
 
         /// <summary>
@@ -55,6 +60,20 @@ namespace Mofichan.Core.Flow
             get
             {
                 return this.transitionSelector;
+            }
+        }
+
+        /// <summary>
+        /// Gets the flow-driven attention manager.
+        /// </summary>
+        /// <value>
+        /// The attention manager.
+        /// </value>
+        public IAttentionManager Attention
+        {
+            get
+            {
+                return this.attentionManager;
             }
         }
 

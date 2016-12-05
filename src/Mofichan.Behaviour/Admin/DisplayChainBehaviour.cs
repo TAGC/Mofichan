@@ -49,30 +49,12 @@ namespace Mofichan.Behaviour.Admin
             this.logger = logger.ForContext<DisplayChainBehaviour>();
 
             this.RegisterSimpleNode("STerm");
+            this.RegisterAttentionGuardNode("S0", "T0,1", "T0,Term");
+            this.RegisterAttentionGuardTransition("T1,1:wait", "T1,Term", "S1", "S1");
             this.RegisterSimpleTransition("T0,1", from: "S0", to: "S1");
-            this.RegisterSimpleTransition("T1,1", from: "S1", to: "S1");
             this.RegisterSimpleTransition("T0,Term", from: "S0", to: "STerm");
+            this.RegisterSimpleTransition("T1,Term", from: "S1", to: "STerm");
             this.Configure();
-        }
-
-        /// <summary>
-        /// Represents the idle flow state.
-        /// </summary>
-        /// <param name="context">The flow context.</param>
-        /// <param name="manager">The transition manager.</param>
-        [FlowState(id: "S0")]
-        public void Idle(FlowContext context, IFlowTransitionManager manager)
-        {
-            var tags = context.Message.Tags;
-
-            if (tags.Contains("directedAtMofichan"))
-            {
-                manager.MakeTransitionCertain("T0,1");
-            }
-            else
-            {
-                manager.MakeTransitionCertain("T0,Term");
-            }
         }
 
         /// <summary>
@@ -84,36 +66,28 @@ namespace Mofichan.Behaviour.Admin
         public void WithAttention(FlowContext context, IFlowTransitionManager manager)
         {
             var messageBody = context.Message.Body;
-            bool authorised = (context.Message.From as IUser)?.Type == UserType.Adminstrator;
+            var user = context.Message.From as IUser;
+            Debug.Assert(user != null, "The message should be from a user");
+
+            bool authorised = user.Type == UserType.Adminstrator;
             bool displayChainRequest = Regex.IsMatch(messageBody, DisplayChainMatch, RegexOptions.IgnoreCase);
 
-            manager.ClearTransitionWeights();
-            manager["T1,1"] = 0.998;
-            manager["T1,Term:timeout"] = 1 - manager["T1,1"];
+            ConfigureForEventualFlowTermination(manager);
 
             if (displayChainRequest && authorised)
             {
+                context.Attention.RenewAttentionTowardsUser(user);
                 var response = context.Message.Reply("My behaviour chain: " + this.BuildBehaviourChainRepresentation());
                 context.GeneratedResponseHandler(response);
             }
             else if (displayChainRequest)
             {
+                context.Attention.RenewAttentionTowardsUser(user);
+
                 throw new MofichanAuthorisationException(
                     "Non-admin user attempted to display behaviour chain",
                     context.Message);
             }
-        }
-
-        /// <summary>
-        /// Called when a user loses Mofichan's attention.
-        /// </summary>
-        /// <param name="context">The flow context.</param>
-        /// <param name="manager">The transition manager.</param>
-        [FlowTransition(id: "T1,Term:timeout", from: "S1", to: "STerm")]
-        public void OnLostAttention(FlowContext context, IFlowTransitionManager manager)
-        {
-            var user = context.Message.From as IUser;
-            this.logger.Debug("Mofichan stopped paying attention to {User}", user.Name);
         }
 
         /// <summary>
@@ -128,6 +102,12 @@ namespace Mofichan.Behaviour.Admin
         public override void InspectBehaviourStack(IList<IMofichanBehaviour> stack)
         {
             this.behaviourStack = stack;
+        }
+
+        private static void ConfigureForEventualFlowTermination(IFlowTransitionManager manager)
+        {
+            manager.ClearTransitionWeights();
+            manager.MakeTransitionCertain("T1,1:wait");
         }
 
         /// <summary>

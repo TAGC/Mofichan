@@ -50,6 +50,48 @@ namespace Mofichan.Behaviour.Base
             this.connections = new HashSet<Tuple<string, string, string>>();
         }
 
+        #region Common Nodes
+        /// <summary>
+        /// Registers a commonly-used node that will transition using the <see cref="IFlowTransition"/>
+        /// specified by <paramref name="successTransitionId"/> if and only if the user the message
+        /// is from has Mofichan's attention.
+        /// <para></para>
+        /// Otherwise, the transition corresponding to <paramref name="failureTransitionId"/> will be
+        /// used instead.
+        /// </summary>
+        /// <param name="nodeId">The node identifier.</param>
+        /// <param name="successTransitionId">The success transition identifier.</param>
+        /// <param name="failureTransitionId">The failure transition identifier.</param>
+        protected void RegisterAttentionGuardNode(
+            string nodeId,
+            string successTransitionId,
+            string failureTransitionId)
+        {
+            var node = this.CreateNode(nodeId, (context, manager) =>
+            {
+                var tags = context.Message.Tags;
+                var user = context.Message.From as IUser;
+
+                if (user == null)
+                {
+                    manager.MakeTransitionCertain(failureTransitionId);
+                }
+
+                bool isPayingAttentionToUser = context.Attention.IsPayingAttentionToUser(user);
+
+                if (tags.Contains("directedAtMofichan") || isPayingAttentionToUser)
+                {
+                    manager.MakeTransitionCertain(successTransitionId);
+                }
+                else
+                {
+                    manager.MakeTransitionCertain(failureTransitionId);
+                }
+            });
+
+            this.nodes.Add(node);
+        }
+
         /// <summary>
         /// Registers the identifier of a simple <see cref="IFlowNode"/> that has no associated
         /// action and no special properties.
@@ -57,7 +99,43 @@ namespace Mofichan.Behaviour.Base
         /// <param name="nodeId">The node identifier.</param>
         protected void RegisterSimpleNode(string nodeId)
         {
-            this.nodes.Add(new FlowNode(nodeId, (c, m) => { }, this.transitionManagerFactory));
+            var node = this.CreateNode(nodeId, (c, m) => { });
+            this.nodes.Add(node);
+        }
+
+        #endregion Common Nodes
+
+        #region Common Transitions
+        /// <summary>
+        /// Registers and connects a transition that will loop back to itself
+        /// while the user the message is from has Mofichan's attention.
+        /// </summary>
+        /// <param name="transitionId">The transition identifier.</param>
+        /// <param name="onAttentionLossTransitionId">
+        /// The ID of the transition to take when the user loses Mofichan's attention.
+        /// </param>
+        /// <param name="from">The identifier of the node to transition from.</param>
+        /// <param name="to">The identifier of the node to transition to.</param>
+        protected void RegisterAttentionGuardTransition(
+            string transitionId,
+            string onAttentionLossTransitionId,
+            string from,
+            string to)
+        {
+            var transition = new FlowTransition(transitionId, (context, manager) =>
+            {
+                var user = context.Message.From as IUser;
+                Debug.Assert(user != null, "The message should be from a user");
+
+                if (!context.Attention.IsPayingAttentionToUser(user))
+                {
+                    manager.ClearTransitionWeights();
+                    manager.MakeTransitionCertain(onAttentionLossTransitionId);
+                }
+            });
+
+            this.transitions.Add(transition);
+            this.connections.Add(Tuple.Create(from, to, transitionId));
         }
 
         /// <summary>
@@ -72,6 +150,7 @@ namespace Mofichan.Behaviour.Base
             this.transitions.Add(new FlowTransition(transitionId));
             this.connections.Add(Tuple.Create(from, to, transitionId));
         }
+        #endregion
 
         /// <summary>
         /// Configures the <see cref="IFlow"/> for this instance based on both the declared
@@ -126,6 +205,11 @@ namespace Mofichan.Behaviour.Base
 
                 return flowBuilder;
             });
+        }
+
+        private IFlowNode CreateNode(string nodeId, Action<FlowContext, IFlowTransitionManager> nodeAction)
+        {
+            return new FlowNode(nodeId, nodeAction, this.transitionManagerFactory);
         }
 
         private static bool HasValidSignature(MethodInfo methodInfo)

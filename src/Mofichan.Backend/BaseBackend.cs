@@ -208,6 +208,40 @@ namespace Mofichan.Backend
         public abstract void ReceiveMessage(string message);
 
         /// <summary>
+        /// Determines whether the specified <see cref="System.Object" />, is equal to this instance.
+        /// </summary>
+        /// <param name="obj">The <see cref="System.Object" /> to compare with this instance.</param>
+        /// <returns>
+        ///   <c>true</c> if the specified <see cref="System.Object" /> is equal to this instance; otherwise, <c>false</c>.
+        /// </returns>
+        public override bool Equals(object obj)
+        {
+            var other = obj as IUser;
+            
+            if (other == null)
+            {
+                return false;
+            }
+
+            return this.UserId == other.UserId;
+        }
+
+        /// <summary>
+        /// Returns a hash code for this instance.
+        /// </summary>
+        /// <returns>
+        /// A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table. 
+        /// </returns>
+        public override int GetHashCode()
+        {
+            int hashCode = 17;
+
+            hashCode += 31 * this.UserId.GetHashCode();
+
+            return hashCode;
+        }
+
+        /// <summary>
         /// Returns a <see cref="System.String" /> that represents this instance.
         /// </summary>
         /// <returns>
@@ -301,6 +335,36 @@ namespace Mofichan.Backend
         public void ReceiveMessage(string message)
         {
             this.room.ReceiveMessage(message);
+        }
+
+        /// <summary>
+        /// Determines whether the specified <see cref="System.Object" />, is equal to this instance.
+        /// </summary>
+        /// <param name="obj">The <see cref="System.Object" /> to compare with this instance.</param>
+        /// <returns>
+        ///   <c>true</c> if the specified <see cref="System.Object" /> is equal to this instance; otherwise, <c>false</c>.
+        /// </returns>
+        public override bool Equals(object obj)
+        {
+            var other = obj as IRoomOccupant;
+
+            if (other == null)
+            {
+                return false;
+            }
+
+            return this.UserId.Equals(other.UserId);
+        }
+
+        /// <summary>
+        /// Returns a hash code for this instance.
+        /// </summary>
+        /// <returns>
+        /// A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table. 
+        /// </returns>
+        public override int GetHashCode()
+        {
+            return this.user.GetHashCode();
         }
 
         /// <summary>

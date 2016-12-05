@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Mofichan.Core.Interfaces;
 using PommaLabs.Thrower;
@@ -19,7 +20,7 @@ namespace Mofichan.Core.Flow
         private readonly double sigma;
         private readonly IFlowDriver flowDriver;
         private readonly ILogger logger;
-        private readonly IDictionary<string, int> attentionSpans;
+        private readonly IDictionary<IUser, int> attentionSpans;
         private readonly Random random;
 
         /// <summary>
@@ -40,10 +41,12 @@ namespace Mofichan.Core.Flow
             this.sigma = sigma;
             this.flowDriver = flowDriver;
             this.logger = logger.ForContext<FlowDrivenAttentionManager>();
-            this.attentionSpans = new Dictionary<string, int>();
+            this.attentionSpans = new Dictionary<IUser, int>();
             this.random = new Random();
 
             this.flowDriver.OnNextStep += StepAttentionSpan;
+
+            this.logger.Debug("Instantiated flow-driven attention manager with mu={Mu}, sigma={Sigma}", mu, sigma);
         }
 
         /// <summary>
@@ -55,7 +58,7 @@ namespace Mofichan.Core.Flow
         /// </returns>
         public bool IsPayingAttentionToUser(IUser user)
         {
-            return this.attentionSpans.ContainsKey(user.UserId);
+            return this.attentionSpans.ContainsKey(user);
         }
 
         /// <summary>
@@ -63,9 +66,12 @@ namespace Mofichan.Core.Flow
         /// </summary>
         public void LoseAttentionToAllUsers()
         {
-            this.attentionSpans.Clear();
+            foreach (var user in this.attentionSpans.Keys.ToList())
+            {
+                this.LoseAttentionTowardsUser(user);
+            }
 
-            this.logger.Verbose("Stopped paying attention to all users");
+            Debug.Assert(!this.attentionSpans.Any(), "Attention should have been lost to all users");
         }
 
         /// <summary>
@@ -77,9 +83,9 @@ namespace Mofichan.Core.Flow
         /// <param name="user">The user to stop paying attention to.</param>
         public void LoseAttentionTowardsUser(IUser user)
         {
-            this.attentionSpans.Remove(user.UserId);
+            this.attentionSpans.Remove(user);
 
-            this.logger.Verbose("Stopped paying attention to {User}", user.UserId);
+            this.logger.Verbose("Stopped paying attention to {User}", user.Name);
         }
 
         /// <summary>
@@ -97,10 +103,10 @@ namespace Mofichan.Core.Flow
         {
             int attentionDuration = GetRandomAttentionDuration();
 
-            this.attentionSpans[user.UserId] = attentionDuration;
+            this.attentionSpans[user] = attentionDuration;
 
             this.logger.Verbose("Renewed attention to {User} for {Duration} steps",
-                user.UserId, attentionDuration);
+                user.Name, attentionDuration);
         }
 
         /// <summary>
@@ -141,9 +147,9 @@ namespace Mofichan.Core.Flow
                                         where pair.Value == 0
                                         select pair.Key;
 
-            foreach (var userId in stopPayingAttentionTo.ToList())
+            foreach (var user in stopPayingAttentionTo.ToList())
             {
-                this.attentionSpans.Remove(userId);
+                this.LoseAttentionTowardsUser(user);
             }
         }
 

@@ -104,6 +104,13 @@ namespace Mofichan.Runner
                 .As<IFlowTransitionSelector>();
 
             containerBuilder
+                .RegisterType<FlowDrivenAttentionManager>()
+                .As<IAttentionManager>()
+                .WithParameter("mu", 100)
+                .WithParameter("sigma", 10)
+                .SingleInstance();
+
+            containerBuilder
                 .Register(c => new PeriodicFlowDriver(
                     TimeSpan.FromMilliseconds(100),
                     c.Resolve<ILogger>()))
@@ -140,7 +147,7 @@ namespace Mofichan.Runner
             var logPath = Path.Combine(Path.GetDirectoryName(AppContext.BaseDirectory), "logs", "app-{Date}.log");
 
             return new LoggerConfiguration()
-                .MinimumLevel.Debug()
+                .MinimumLevel.Verbose()
                 .Enrich.WithThreadId()
                 .WriteTo.LiterateConsole(outputTemplate: template)
                 .WriteTo.RollingFile(logPath, outputTemplate: template)

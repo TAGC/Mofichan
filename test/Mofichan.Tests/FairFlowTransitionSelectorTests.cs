@@ -40,7 +40,7 @@ namespace Mofichan.Tests
             }
 
             TestHypothesis(selectedTransitions).ShouldBeTrue(
-                "Transition selector is incorrectly implemented with 95% probability");
+                "Transition selector is incorrectly implemented with 99.5% probability");
         }
 
         private bool TestHypothesis(IEnumerable<string> observedSelections)
@@ -48,10 +48,10 @@ namespace Mofichan.Tests
             /*
              * Hypothesis: 30% of selected transitions will be "A", 60% "B" and 10% "C".
              * 
-             * We want to be 95% certain that the transition selector is implemented incorrectly
+             * We want to be 99.5% certain that the transition selector is implemented incorrectly
              * if this test fails.
              */
-            const double criticalValue = 5.991; // 2 degrees of freedom, 0.05 signicance level
+            const double criticalValue = 10.597; // 2 degrees of freedom, 0.005 signicance level
 
             var numObservedSelections = observedSelections.Count();
 

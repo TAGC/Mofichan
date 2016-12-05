@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Mofichan.Behaviour.Base;
 using Mofichan.Behaviour.Flow;
@@ -34,28 +34,12 @@ namespace Mofichan.Behaviour
         {
             this.logger = logger.ForContext<GreetingBehaviour>();
             this.RegisterSimpleNode("STerm");
-            this.RegisterSimpleTransition("T0,Term", from: "S0", to: "STerm");
+            this.RegisterAttentionGuardNode("S0", "T0,1", "T0,Term");
+            this.RegisterAttentionGuardTransition("T1,1:wait", "T1,Term", "S1", "S1");
             this.RegisterSimpleTransition("T0,1", from: "S0", to: "S1");
-            this.RegisterSimpleTransition("T1,1", from: "S1", to: "S1");
+            this.RegisterSimpleTransition("T0,Term", from: "S0", to: "STerm");
+            this.RegisterSimpleTransition("T1,Term", from: "S1", to: "STerm");
             this.Configure();
-        }
-
-        /// <summary>
-        /// Represents the idle flow state.
-        /// </summary>
-        /// <param name="context">The flow context.</param>
-        /// <param name="manager">The transition manager.</param>
-        [FlowState(id: "S0")]
-        public void Idle(FlowContext context, IFlowTransitionManager manager)
-        {
-            if (context.Message.Tags.Contains("directedAtMofichan"))
-            {
-                manager.MakeTransitionCertain("T0,1");
-            }
-            else
-            {
-                manager.MakeTransitionCertain("T0,Term");
-            }
         }
 
         /// <summary>
@@ -67,13 +51,17 @@ namespace Mofichan.Behaviour
         public void WithAttention(FlowContext context, IFlowTransitionManager manager)
         {
             var tags = context.Message.Tags;
+            var user = context.Message.From as IUser;
+            Debug.Assert(user != null, "Message should be from user");
 
             if (tags.Contains("wellbeing"))
             {
+                context.Attention.RenewAttentionTowardsUser(user);
                 manager.MakeTransitionCertain("T1,1:wellbeing");
             }
             else if (tags.Contains("greeting"))
             {
+                context.Attention.RenewAttentionTowardsUser(user);
                 manager.MakeTransitionCertain("T1,1:greeting");
             }
             else
@@ -89,7 +77,7 @@ namespace Mofichan.Behaviour
         /// <param name="manager">The transition manager.</param>
         [FlowTransition(id: "T1,1:greeting", from: "S1", to: "S1")]
         public void OnGreeted(FlowContext context, IFlowTransitionManager manager)
-        {
+        {           
             ConfigureForEventualFlowTermination(manager);
 
             var response = this.ResponseBuilder
@@ -120,23 +108,10 @@ namespace Mofichan.Behaviour
             this.Respond(context, response);
         }
 
-        /// <summary>
-        /// Called when a user loses Mofichan's attention.
-        /// </summary>
-        /// <param name="context">The flow context.</param>
-        /// <param name="manager">The transition manager.</param>
-        [FlowTransition(id: "T1,Term:timeout", from: "S1", to: "STerm")]
-        public void OnLostAttention(FlowContext context, IFlowTransitionManager manager)
-        {
-            var user = context.Message.From as IUser;
-            this.logger.Debug("Mofichan stopped paying attention to {User}", user.Name);
-        }
-
         private static void ConfigureForEventualFlowTermination(IFlowTransitionManager manager)
         {
             manager.ClearTransitionWeights();
-            manager["T1,1"] = 0.998;
-            manager["T1,Term:timeout"] = 1 - manager["T1,1"];
+            manager.MakeTransitionCertain("T1,1:wait");
         }
 
         private void Respond(FlowContext context, string responseBody)
