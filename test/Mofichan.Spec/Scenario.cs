@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Subjects;
 using System.Text.RegularExpressions;
 using Autofac;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
 using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
+using Mofichan.Core.Relevance;
 using Mofichan.Core.Utility;
+using Mofichan.Core.Visitor;
 using Moq;
 using Serilog;
 using Shouldly;
@@ -21,24 +24,25 @@ namespace Mofichan.Spec
         protected const string AddBehaviourTemplate = "Given Mofichan is configured to use behaviour '{0}'";
 
         private readonly string scenarioTitle;
-        private readonly ControllableFlowDriver flowDriver;
 
-        private IObserver<IncomingMessage> backendObserver;
+        private ControllablePulseDriver pulseDriver;
+        private IObserver<MessageContext> backendObserver;
         private ILifetimeScope lifetimeScope;
 
         protected Scenario(string scenarioTitle = null)
         {
 
             this.scenarioTitle = scenarioTitle;
-            this.flowDriver = new ControllableFlowDriver();
+            this.pulseDriver = new ControllablePulseDriver();
             this.MofichanUser = ConstructMockUser("Mofichan", "Mofichan", UserType.Self);
             this.DeveloperUser = ConstructMockUser("ThymineC", "ThymineC", UserType.Adminstrator);
             this.JohnSmithUser = ConstructMockUser("John Smith", "JohnSmith", UserType.NormalUser);
             this.Backend = this.ConstructMockBackend();
             this.Behaviours = new List<IMofichanBehaviour>();
-            this.SentMessages = new List<OutgoingMessage>();
+            this.SentMessages = new List<MessageContext>();
             this.Container = this.CreateContainerBuilder().Build();
             this.lifetimeScope = this.Container.BeginLifetimeScope();
+            this.pulseDriver = this.lifetimeScope.Resolve<ControllablePulseDriver>();
             this.MessageSent += (s, e) => this.SentMessages.Add(e.Message);
         }
 
@@ -48,18 +52,17 @@ namespace Mofichan.Spec
             this.BDDfy(scenarioTitle: this.scenarioTitle);
         }
 
-        private class ControllableFlowDriver : IFlowDriver
+        private class ControllablePulseDriver : IPulseDriver
         {
-            public void StepFlow()
-            {
-                this.OnNextStep?.Invoke(this, EventArgs.Empty);
-            }
+            public event EventHandler PulseOccurred;
 
-            public event EventHandler OnNextStep;
+            public void Pulse()
+            {
+                this.PulseOccurred?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         #region Setup
-
         /// <summary>
         /// Test specifications can override this method to customise the creation
         /// of the test IoC container.
@@ -84,11 +87,7 @@ namespace Mofichan.Spec
                 .As<IBehaviourChainBuilder>();
 
             containerBuilder
-                .RegisterType<FairFlowTransitionSelector>()
-                .As<IFlowTransitionSelector>();
-
-            containerBuilder
-                .RegisterType<FlowDrivenAttentionManager>()
+                .RegisterType<PulseDrivenAttentionManager>()
                 .As<IAttentionManager>()
                 .WithParameter("mu", 100)
                 .WithParameter("sigma", 10)
@@ -103,8 +102,26 @@ namespace Mofichan.Spec
                 .As<IFlowManager>();
 
             containerBuilder
-                .RegisterInstance(this.flowDriver)
-                .As<IFlowDriver>();
+                .RegisterType<BotContext>();
+
+            containerBuilder
+                .RegisterType<ControllablePulseDriver>()
+                .As<IPulseDriver>()
+                .AsSelf()
+                .SingleInstance();
+
+            containerBuilder
+                .RegisterType<BehaviourVisitorFactory>()
+                .As<IBehaviourVisitorFactory>();
+
+            containerBuilder
+                .RegisterType<VectorSimilarityEvaluator>()
+                .As<IRelevanceArgumentEvaluator>();
+
+            containerBuilder
+                .RegisterType<PulseDrivenResponseSelector>()
+                .WithParameter("responseWindow", 2)
+                .As<IResponseSelector>();
 
             containerBuilder
                 .RegisterInstance(new LoggerConfiguration().CreateLogger())
@@ -121,18 +138,18 @@ namespace Mofichan.Spec
         private IMofichanBackend ConstructMockBackend()
         {
             var mock = new Mock<IMofichanBackend>();
-            mock.Setup(it => it.Subscribe(It.IsAny<IObserver<IncomingMessage>>()))
-                .Callback<IObserver<IncomingMessage>>(observer => this.backendObserver = observer);
+            mock.Setup(it => it.Subscribe(It.IsAny<IObserver<MessageContext>>()))
+                .Callback<IObserver<MessageContext>>(observer => this.backendObserver = observer);
 
-            mock.Setup(backend => backend.OnNext(It.IsAny<OutgoingMessage>()))
-                .Callback<OutgoingMessage>(message => this.OnMessageSent(message));
+            mock.Setup(it => it.OnNext(It.IsAny<MessageContext>()))
+                .Callback<MessageContext>(message => this.OnMessageSent(message));
 
             return mock.Object;
         }
         #endregion
 
         protected IContainer Container { get; }
-        protected IList<OutgoingMessage> SentMessages { get; }
+        protected IList<MessageContext> SentMessages { get; }
         protected IList<IMofichanBehaviour> Behaviours { get; }
         protected IMofichanBackend Backend { get; }
         protected IUser MofichanUser { get; }
@@ -153,19 +170,19 @@ namespace Mofichan.Spec
             return mock.Object;
         }
 
-        private void OnMessageSent(OutgoingMessage message)
+        private void OnMessageSent(MessageContext message)
         {
             this.MessageSent?.Invoke(this, new MessageSentEventArgs(message));
         }
 
         public class MessageSentEventArgs : EventArgs
         {
-            public MessageSentEventArgs(OutgoingMessage message)
+            public MessageSentEventArgs(MessageContext message)
             {
                 this.Message = message;
             }
 
-            public OutgoingMessage Message { get; }
+            public MessageContext Message { get; }
         }
 
         protected virtual void TearDown()
@@ -177,6 +194,7 @@ namespace Mofichan.Spec
             this.SentMessages.Clear();
 
             this.lifetimeScope = this.Container.BeginLifetimeScope();
+            this.pulseDriver = this.lifetimeScope.Resolve<ControllablePulseDriver>();
         }
 
         #region Given
@@ -196,7 +214,10 @@ namespace Mofichan.Spec
                 this.Backend,
                 this.Behaviours,
                 this.lifetimeScope.Resolve<IBehaviourChainBuilder>(),
+                this.pulseDriver,
                 this.lifetimeScope.Resolve<IMessageClassifier>(),
+                this.lifetimeScope.Resolve<IBehaviourVisitorFactory>(),
+                this.lifetimeScope.Resolve<IResponseSelector>(),
                 this.lifetimeScope.Resolve<ILogger>());
 
             this.Mofichan.Start();
@@ -206,17 +227,21 @@ namespace Mofichan.Spec
         #region When
         protected void When_Mofichan_receives_a_message(IUser sender, string message)
         {
-            var incomingMessage = new IncomingMessage(
-                new MessageContext(from: sender, to: this.MofichanUser, body: message));
-
+            var incomingMessage = new MessageContext(from: sender, to: this.MofichanUser, body: message);
             this.backendObserver.OnNext(incomingMessage);
         }
 
-        protected void When_flows_are_driven_by__stepCount__steps(int stepCount)
+        protected void When_Mofichan_receives_a_message_with_tags(IUser sender, string message, params string[] tags)
         {
-            for (var i = 0; i < stepCount; i++)
+            var incomingMessage = new MessageContext(from: sender, to: this.MofichanUser, body: message, tags: tags);
+            this.backendObserver.OnNext(incomingMessage);
+        }
+
+        protected void When_behaviours_are_driven_by__pulseCount__pulses(int pulseCount)
+        {
+            for (var i = 0; i < pulseCount; i++)
             {
-                this.flowDriver.StepFlow();
+                this.pulseDriver.Pulse();
             }
         }
         #endregion
@@ -229,21 +254,21 @@ namespace Mofichan.Spec
 
         protected void Then_Mofichan_should_have_sent__body__(string body)
         {
-            this.SentMessages.Select(it => it.Context.Body).ShouldContain(body);
+            this.SentMessages.Select(it => it.Body).ShouldContain(body);
         }
 
         protected void Then_Mofichan_should_have_sent_response_with_pattern(
             string pattern, RegexOptions options)
         {
             Assert.True(this.SentMessages
-                .Select(it => it.Context.Body)
+                .Select(it => it.Body)
                 .Any(it => Regex.Match(it, pattern, options).Success));
         }
 
         protected void Then_Mofichan_should_have_sent_response_containing__substring__(string substring)
         {
             Assert.True(this.SentMessages
-                .Select(it => it.Context.Body)
+                .Select(it => it.Body)
                 .Any(it => it.Contains(substring)));
         }
 

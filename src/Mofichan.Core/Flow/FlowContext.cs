@@ -1,6 +1,5 @@
-﻿using System;
-using System.Dynamic;
-using Mofichan.Core.Interfaces;
+﻿using System.Dynamic;
+using Mofichan.Core.Visitor;
 
 namespace Mofichan.Core.Flow
 {
@@ -10,68 +9,39 @@ namespace Mofichan.Core.Flow
     public class FlowContext
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="FlowContext"/> class.
+        /// Initializes a new instance of the <see cref="FlowContext" /> class.
         /// </summary>
-        /// <param name="flowTransitionSelector">The flow transition selector.</param>
-        /// <param name="generatedResponseHandler">The callback to handle responses generated within the flow.</param>
-        public FlowContext(
-            IFlowTransitionSelector flowTransitionSelector,
-            IAttentionManager attentionManager,
-            Action<OutgoingMessage> generatedResponseHandler)
-            : this(default(MessageContext), flowTransitionSelector, attentionManager, generatedResponseHandler)
+        public FlowContext() : this(default(MessageContext), null)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FlowContext"/> class.
+        /// Initializes a new instance of the <see cref="FlowContext" /> class.
         /// </summary>
-        /// <param name="message">The message context to embed within the flow context.</param>
-        /// <param name="flowTransitionSelector">The flow transition selector.</param>
-        /// <param name="generatedResponseHandler">The callback to handle responses generated within the flow.</param>
-        public FlowContext(
-            MessageContext message,
-            IFlowTransitionSelector flowTransitionSelector,
-            IAttentionManager attentionManager,
-            Action<OutgoingMessage> generatedResponseHandler)
+        /// <param name="message">The message to associate with the flow context.</param>
+        /// <param name="visitor">The visitor to associate with the flow context.</param>
+        public FlowContext(MessageContext message, IBehaviourVisitor visitor)
         {
             this.Message = message;
-            this.FlowTransitionSelector = flowTransitionSelector;
-            this.Attention = attentionManager;
-            this.GeneratedResponseHandler = generatedResponseHandler;
+            this.Visitor = visitor;
             this.Extras = new ExpandoObject();
         }
 
         /// <summary>
-        /// Gets the message context.
+        /// Gets the visitor.
         /// </summary>
         /// <value>
-        /// The message context.
+        /// The visitor.
+        /// </value>
+        public IBehaviourVisitor Visitor { get; }
+
+        /// <summary>
+        /// Gets the message.
+        /// </summary>
+        /// <value>
+        /// The message.
         /// </value>
         public MessageContext Message { get; }
-
-        /// <summary>
-        /// Gets the flow transition selector.
-        /// </summary>
-        /// <value>
-        /// The flow transition selector.
-        /// </value>
-        public IFlowTransitionSelector FlowTransitionSelector { get; }
-
-        /// <summary>
-        /// Gets the flow-driven attention manager.
-        /// </summary>
-        /// <value>
-        /// The attention manager.
-        /// </value>
-        public IAttentionManager Attention { get; }
-
-        /// <summary>
-        /// Gets the generated response handler.
-        /// </summary>
-        /// <value>
-        /// The generated response handler.
-        /// </value>
-        public Action<OutgoingMessage> GeneratedResponseHandler { get; }
 
         /// <summary>
         /// Gets a(n) <see cref="ExpandoObject"/> that can be used to store additional flow context
@@ -83,14 +53,27 @@ namespace Mofichan.Core.Flow
         public dynamic Extras { get; private set; }
 
         /// <summary>
-        /// Derives an instance of <c>FlowContext</c> that embeds the specified <c>MessageContext</c>.
+        /// Derives an instance of <c>FlowContext</c> that includes the specified message.
         /// </summary>
-        /// <param name="message">The message context to embed.</param>
+        /// <param name="message">The message to associate with this context.</param>
         /// <returns>A new <c>FlowContext</c> instance derived from this.</returns>
         public FlowContext FromMessage(MessageContext message)
         {
-            var newContext = new FlowContext(message, this.FlowTransitionSelector, this.Attention,
-                this.GeneratedResponseHandler);
+            var newContext = new FlowContext(message, this.Visitor);
+
+            newContext.Extras = this.Extras;
+
+            return newContext;
+        }
+
+        /// <summary>
+        /// Derives an instance of <c>FlowContext</c> that includes the specified visitor.
+        /// </summary>
+        /// <param name="visitor">The visitor to associate with this context.</param>
+        /// <returns>A new <c>FlowContext</c> instance derived from this.</returns>
+        public FlowContext FromVisitor(IBehaviourVisitor visitor)
+        {
+            var newContext = new FlowContext(this.Message, visitor);
 
             newContext.Extras = this.Extras;
 
@@ -113,11 +96,10 @@ namespace Mofichan.Core.Flow
                 return false;
             }
 
-            bool messagesEqual = this.Message.Equals(other.Message);
-            bool transitionSelectorsEqual = this.FlowTransitionSelector.Equals(other.FlowTransitionSelector);
-            bool responseHandlersEqual = this.GeneratedResponseHandler.Equals(other.GeneratedResponseHandler);
+            bool messagesEqual = (this.Message == null && other.Message == null) || this.Message.Equals(other.Message);
+            bool visitorsEqual = (this.Visitor == null && other.Visitor == null) || this.Visitor.Equals(other.Visitor);
 
-            return messagesEqual && transitionSelectorsEqual && responseHandlersEqual;
+            return messagesEqual && visitorsEqual;
         }
 
         /// <summary>
@@ -130,9 +112,8 @@ namespace Mofichan.Core.Flow
         {
             int hashCode = 17;
 
-            hashCode += 31 * this.Message.GetHashCode();
-            hashCode += 31 * this.FlowTransitionSelector.GetHashCode();
-            hashCode += 31 * this.GeneratedResponseHandler.GetHashCode();
+            hashCode += 31 * this.Message?.GetHashCode() ?? 0;
+            hashCode += 31 * this.Visitor?.GetHashCode() ?? 0;
 
             return hashCode;
         }

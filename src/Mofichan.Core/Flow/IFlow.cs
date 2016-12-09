@@ -1,19 +1,19 @@
 ﻿using System;
-using Mofichan.Core.Flow;
+using Mofichan.Core.Visitor;
 
-namespace Mofichan.Core.Interfaces
+namespace Mofichan.Core.Flow
 {
     /// <summary>
     /// Represents a logical behaviour flow.
     /// </summary>
-    public interface IFlow : IDisposable
+    public interface IFlow
     {
         /// <summary>
-        /// Allows this flow to modify its state based on information
-        /// gained from a provided message.
+        /// Allows this flow to modify its state and potentially generate responses
+        /// using the provided visitor.
         /// </summary>
-        /// <param name="message">The message to accept.</param>
-        void Accept(IncomingMessage message);
+        /// <param name="visitor">The visitor.</param>
+        void Accept(IBehaviourVisitor visitor);
     }
 
     /// <summary>
@@ -30,7 +30,7 @@ namespace Mofichan.Core.Interfaces
         string Id { get; }
 
         /// <summary>
-        /// Gets a value indicating whether this  node is active within the flow.
+        /// Gets a value indicating whether this node is active within the flow.
         /// </summary>
         /// <value>
         ///   <c>true</c> if this instance is active; otherwise, <c>false</c>.
@@ -58,10 +58,10 @@ namespace Mofichan.Core.Interfaces
         void TransitionTo(FlowContext flowContext);
 
         /// <summary>
-        /// Invokes a transition of a flow out of this node, if possible.
+        /// Allows this node to respond to a logical clock tick.
         /// </summary>
         /// <param name="flowContext">The flow context.</param>
-        void TransitionFrom(FlowContext flowContext);
+        void OnTick(FlowContext flowContext);
 
         /// <summary>
         /// Determines whether this is the suitable node to select as "current" for the specified
@@ -96,12 +96,12 @@ namespace Mofichan.Core.Interfaces
         Action<FlowContext, IFlowTransitionManager> Action { get; }
 
         /// <summary>
-        /// Gets or sets the weight of this transition, representing the probability
-        /// that this transition should occur relative to other viable transitions.
+        /// Gets or sets the clock for this transition, representing the number of
+        /// ticks until this transition should occur.
         /// </summary>
         /// <value>
-        /// The transition weight.
+        /// The transition clock.
         /// </value>
-        double Weight { get; set; }
+        int Clock { get; set; }
     }
 }

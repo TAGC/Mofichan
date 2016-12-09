@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Mofichan.Core.Utility
 {
@@ -8,20 +9,17 @@ namespace Mofichan.Core.Utility
     public static class Extensions
     {
         /// <summary>
-        /// Forms an <see cref="OutgoingMessage"/> in response to a(n) <see cref="MessageContext"/>
-        /// with a specified body.
+        /// Forms an outgoing message with a specified body in response to an incoming.
         /// </summary>
-        /// <param name="messageContext">The message context to form a reply to.</param>
+        /// <param name="incomingMessage">The incoming message to form a reply to.</param>
         /// <param name="replyBody">The body of the reply.</param>
         /// <returns>The generated reply.</returns>
-        public static OutgoingMessage Reply(this MessageContext messageContext, string replyBody)
+        public static MessageContext Reply(this MessageContext incomingMessage, string replyBody)
         {
-            var from = messageContext.From;
-            var to = messageContext.To;
+            var from = incomingMessage.From;
+            var to = incomingMessage.To;
 
-            var replyContext = new MessageContext(from: to, to: from, body: replyBody);
-
-            return new OutgoingMessage { Context = replyContext };
+            return new MessageContext(from: to, to: from, body: replyBody);
         }
 
         /// <summary>
@@ -49,6 +47,23 @@ namespace Mofichan.Core.Utility
             {
                 return defaultValue;
             }
+        }
+
+        /// <summary>
+        /// Samples from a Gaussian distribution using a <c>Random</c> object to generate
+        /// samples from a uniform distribution to convert into Gaussian distribution samples.
+        /// </summary>
+        /// <param name="random">The random object.</param>
+        /// <param name="mu">The mean of the normal distribution.</param>
+        /// <param name="sigma">The standard deviation of the normal distribution.</param>
+        /// <returns>The sampled random value.</returns>
+        public static double SampleGaussian(this Random random, double mu, double sigma)
+        {
+            double x1 = 1 - random.NextDouble();
+            double x2 = 1 - random.NextDouble();
+
+            double y1 = Math.Sqrt(-2.0 * Math.Log(x1)) * Math.Cos(2.0 * Math.PI * x2);
+            return (y1 * sigma) + mu;
         }
     }
 }

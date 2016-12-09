@@ -42,7 +42,7 @@ namespace Mofichan.Spec.Core.Feature
             this.Given(s => s.Given_Mofichan_is_configured_with_behaviour("greeting"), AddBehaviourTemplate)
                     .And(s => s.Given_Mofichan_is_running())
                 .When(s => s.When_I_say_greeting(greeting), WhenGreetingTemplate)
-                    .And(s => s.When_flows_are_driven_by__stepCount__steps(2))
+                    .And(s => s.When_behaviours_are_driven_by__pulseCount__pulses(2))
                 .Then(s => s.Then_Mofichan_should_greet_me_back())
                 .WithExamples(this.Examples)
                 .TearDownWith(s => s.TearDown());
@@ -72,8 +72,8 @@ namespace Mofichan.Spec.Core.Feature
         private void Then_Mofichan_should_greet_me_back()
         {
             var message = this.SentMessages.ShouldHaveSingleItem();
-            message.Context.To.ShouldBe(this.DeveloperUser);
-            message.Context.Body.ShouldMatch(this.greetingPattern);
+            message.To.ShouldBe(this.DeveloperUser);
+            message.Body.ShouldMatch(this.greetingPattern);
         }
     }
 
@@ -86,7 +86,7 @@ namespace Mofichan.Spec.Core.Feature
             this.Given(s => s.Given_Mofichan_is_configured_with_behaviour("greeting"), AddBehaviourTemplate)
                     .And(s => s.Given_Mofichan_is_running())
                 .When(s => s.When_I_say_greeting(greeting), WhenGreetingTemplate)
-                    .And(s => s.When_flows_are_driven_by__stepCount__steps(1))
+                    .And(s => s.When_behaviours_are_driven_by__pulseCount__pulses(2))
                 .Then(s => s.Then_Mofichan_should_not_have_said_anything())
                 .WithExamples(this.Examples)
                 .TearDownWith(s => s.TearDown());
@@ -126,12 +126,11 @@ namespace Mofichan.Spec.Core.Feature
     {
         public MofichanGreetingHerself() : base("Mofichan sees a greeting from herself")
         {
-            this.Given(s => s.Given_Mofichan_is_configured_with_behaviour("selfignore"), AddBehaviourTemplate)
-                .Given(s => s.Given_Mofichan_is_configured_with_behaviour("greeting"), AddBehaviourTemplate)
+            this.Given(s => s.Given_Mofichan_is_configured_with_behaviour("greeting"), AddBehaviourTemplate)
                     .And(s => s.Given_Mofichan_is_running())
             .When(s => s.When_Mofichan_receives_a_message(this.MofichanUser, "Hello Mofichan"),
                 "When Mofichan receives message: '{1}'")
-                .And(s => s.When_flows_are_driven_by__stepCount__steps(1))
+                .And(s => s.When_behaviours_are_driven_by__pulseCount__pulses(2))
             .Then(s => s.Then_Mofichan_should_not_have_said_anything());
         }
 
@@ -150,7 +149,7 @@ namespace Mofichan.Spec.Core.Feature
             this.Given(s => s.Given_Mofichan_is_configured_with_behaviour("greeting"), AddBehaviourTemplate)
                     .And(s => s.Given_Mofichan_is_running())
                 .When(s => s.When_Mofichan_receives_a_message(this.JohnSmithUser, wellbeingRequest))
-                    .And(s => s.When_flows_are_driven_by__stepCount__steps(2))
+                    .And(s => s.When_behaviours_are_driven_by__pulseCount__pulses(2))
                 .Then(s => s.Then_Mofichan_should_have_responded())
                 .WithExamples(this.Examples)
                 .TearDownWith(s => s.TearDown());
@@ -192,7 +191,7 @@ namespace Mofichan.Spec.Core.Feature
                     .And(s => s.Given_Mofichan_is_running())
                 .When(s => s.When_Mofichan_receives_a_message(this.JohnSmithUser, "Hey Mofi"))
                     .And(s => s.When_Mofichan_receives_a_message(this.JohnSmithUser, "How are you doing?"))
-                    .And(s => s.When_flows_are_driven_by__stepCount__steps(2))
+                    .And(s => s.When_behaviours_are_driven_by__pulseCount__pulses(4))
                 .Then(s => s.Then_Mofichan_Should_Have_Sent_A_Wellbeing_Response_To_User(this.JohnSmithUser))
                 .TearDownWith(s => s.TearDown());
         }
@@ -202,7 +201,30 @@ namespace Mofichan.Spec.Core.Feature
             var pattern = new Regex(@"I'm.*", RegexOptions.IgnoreCase);
 
             this.SentMessages.ShouldContain(it =>
-                it.Context.To == recipient && pattern.IsMatch(it.Context.Body));
+                it.To.Equals(recipient) && pattern.IsMatch(it.Body));
+        }
+    }
+
+    public class MofiPrioritisesWellbeingRequestOverGreeting : MofichanIsGreeted
+    {
+        public MofiPrioritisesWellbeingRequestOverGreeting()
+            : base("Mofichan receives a message that is both a greeting and wellbeing request, and prioritises the latter")
+        {
+            this.Given(s => s.Given_Mofichan_is_configured_with_behaviour("greeting"), AddBehaviourTemplate)
+                    .And(s => s.Given_Mofichan_is_running())
+                .When(s => s.When_Mofichan_receives_a_message(this.JohnSmithUser, "Hey Mofi, how are you doing?"))
+                    .And(s => s.When_behaviours_are_driven_by__pulseCount__pulses(2))
+                .Then(s => s.Then_Mofichan_Should_Have_Only_Sent_A_Wellbeing_Response_To_User(this.JohnSmithUser))
+                .TearDownWith(s => s.TearDown());
+        }
+
+        private void Then_Mofichan_Should_Have_Only_Sent_A_Wellbeing_Response_To_User(IUser recipient)
+        {
+            var pattern = new Regex(@"I'm.*", RegexOptions.IgnoreCase);
+
+            var message = this.SentMessages.ShouldHaveSingleItem();
+            message.To.ShouldBe(recipient);
+            pattern.IsMatch(message.Body).ShouldBeTrue();
         }
     }
 }

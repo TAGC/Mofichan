@@ -17,7 +17,7 @@ namespace Mofichan.Spec.Diagnostics.Feature
                     .And(s => s.Given_Mofichan_is_running())
                 .When(s => s.When_Mofichan_receives_a_message(new MockUser(), "foo"))
                 .Then(s => s.Then_a_log_should_have_been_created_matching_pattern(
-                        "behaviour \"mock\" offered incoming message \"foo\" from \"Joe Somebody\""));
+                        "behaviour \"mock\" received message visitor.+\"foo\".+\"Joe Somebody\""));
         }
     }
 }

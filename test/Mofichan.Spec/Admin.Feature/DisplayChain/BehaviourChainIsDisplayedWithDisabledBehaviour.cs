@@ -22,7 +22,7 @@ namespace Mofichan.Spec.Admin.Feature.DisplayChain
                     .And(s => s.When_Mofichan_receives_a_message(this.DeveloperUser, "Mofichan, disable mockB behaviour"),
                         "Given that I've requested to disable the 'mockB' behaviour")
                 .When(s => s.When_Mofichan_receives_a_message(this.DeveloperUser, "Mofichan, show your behaviour chain"))
-                    .And(s => s.When_flows_are_driven_by__stepCount__steps(2))
+                    .And(s => s.When_behaviours_are_driven_by__pulseCount__pulses(4))
                 .Then(s => s.Then_Mofichan_should_have_sent_response_containing__substring__(substring));
         }
     }

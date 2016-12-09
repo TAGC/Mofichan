@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
+using Mofichan.Core.Exceptions;
 using Mofichan.Core.Interfaces;
+using Mofichan.Core.Visitor;
 using PommaLabs.Thrower;
 using Serilog;
 
@@ -15,13 +17,19 @@ namespace Mofichan.Core
     /// Instances of this class act as bridges between the configured <see cref="IMofichanBackend"/>
     /// and Mofichan's configured behaviour chain.
     /// </summary>
-    public class Kernel : IDisposable
+    public sealed class Kernel : IDisposable
     {
+        private readonly IPulseDriver pulseDriver;
         private readonly IMessageClassifier messageClassifier;
+        private readonly IBehaviourVisitorFactory visitorFactory;
+        private readonly IResponseSelector responseSelector;
         private readonly IMofichanBackend backend;
+        private readonly IMofichanBehaviour rootBehaviour;
+        private readonly Queue<MessageContext> pendingReceivedMessages;
         private readonly ILogger logger;
 
         private List<IMofichanBehaviour> behaviours;
+        private bool responsePending = false;
         private bool disposedValue = false; // To detect redundant calls
 
         /// <summary>
@@ -30,26 +38,40 @@ namespace Mofichan.Core
         /// <param name="backend">The selected backend.</param>
         /// <param name="behaviours">The collection of behaviours to determine Mofichan's personality.</param>
         /// <param name="chainBuilder">The object to use to compose the provided behaviours into a chain.</param>
+        /// <param name="pulseDriver">The pulse driver.</param>
         /// <param name="messageClassifier">The object used to classify messages Mofichan receives</param>
+        /// <param name="visitorFactory">A factory to produce instances of behaviour visitors</param>
+        /// <param name="responseSelector">The object to use to choose responses obtained by visitors.</param>
         /// <param name="logger">The logger to use.</param>
         public Kernel(
             IMofichanBackend backend,
             IEnumerable<IMofichanBehaviour> behaviours,
             IBehaviourChainBuilder chainBuilder,
+            IPulseDriver pulseDriver,
             IMessageClassifier messageClassifier,
+            IBehaviourVisitorFactory visitorFactory,
+            IResponseSelector responseSelector,
             ILogger logger)
         {
             Raise.ArgumentNullException.IfIsNull(behaviours, nameof(behaviours));
             Raise.ArgumentException.IfNot(behaviours.Any(), nameof(behaviours),
                 "At least one behaviour must be specified for Mofichan");
 
+            this.pulseDriver = pulseDriver;
             this.messageClassifier = messageClassifier;
+            this.visitorFactory = visitorFactory;
+            this.responseSelector = responseSelector;
             this.backend = backend;
+            this.pendingReceivedMessages = new Queue<MessageContext>();
             this.logger = logger.ForContext<Kernel>();
+
             this.logger.Information("Initialising Mofichan with {Backend} and {Behaviours}", backend, behaviours);
 
-            var rootBehaviour = this.BuildBehaviourChain(behaviours, chainBuilder);
-            Bridge(this.backend, rootBehaviour, this.messageClassifier, this.logger);
+            this.responseSelector.ResponseSelected += (s, e) => OnResponseSelected(e.Response);
+            this.responseSelector.ResponseWindowExpired += (s, e) => OnResponseWindowExpired(e.RespondingTo);
+            this.rootBehaviour = this.BuildBehaviourChain(behaviours, chainBuilder);
+
+            this.PairRootBehaviourToBackend();
         }
 
         /// <summary>
@@ -80,7 +102,7 @@ namespace Mofichan.Core
         /// Releases unmanaged and - optionally - managed resources.
         /// </summary>
         /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (!this.disposedValue)
             {
@@ -88,7 +110,7 @@ namespace Mofichan.Core
                 if (disposing)
                 {
                     this.backend.Dispose();
-                    this.behaviours?.ForEach(it => ((IObserver<IncomingMessage>)it).OnCompleted());
+                    this.behaviours?.ForEach(it => it.OnCompleted());
                 }
 
                 this.disposedValue = true;
@@ -96,22 +118,102 @@ namespace Mofichan.Core
         }
         #endregion
 
-        private static void Bridge(IMofichanBackend backend, IMofichanBehaviour rootBehaviour,
-            IMessageClassifier messageClassifier, ILogger logger)
+        private void PairRootBehaviourToBackend()
         {
-            backend.Subscribe(message =>
+            Func<MessageContext, bool> notFromMofi = it => (it.From as IUser)?.Type != UserType.Self;
+
+            this.backend.Where(notFromMofi).Subscribe(message => this.OnReceiveMessage(message));
+
+            this.pulseDriver.PulseOccurred += (s, e) => this.OnPulse();
+        }
+
+        private void OnResponseSelected(Response response)
+        {
+            this.responsePending = false;
+
+            this.logger.Debug("Response selected: {Response}", response);
+
+            try
             {
-                var tags = messageClassifier.Classify(message.Context.Body);
-                var structuredContext = message.Context.FromTags(tags);
-                var structuredMessage = new IncomingMessage(structuredContext);
+                response.Accept();
+            }
+            catch (MofichanAuthorisationException e)
+            {
+                this.HandleAuthorisationException(e);
+            }
 
-                logger.Debug("Classified {MessageBody} with {Tags}",
-                    message.Context.Body, tags);
+            if (response.Message != null)
+            {
+                this.backend.OnNext(response.Message);
+            }
 
-                rootBehaviour.OnNext(structuredMessage);
-            });
+            this.TryProcessNextMessage();
+        }
 
-            rootBehaviour.Subscribe(backend);
+        private void OnResponseWindowExpired(MessageContext respondingTo)
+        {
+            this.responsePending = false;
+
+            this.logger.Debug("Response window expired for {Message}", respondingTo.Body);
+
+            this.TryProcessNextMessage();
+        }
+
+        private void TryProcessNextMessage()
+        {
+            /*
+             * We should wait for a response to be generated for the last received message
+             * (or for the response window to expire) before processing any new messages.
+             */
+            if (this.responsePending || !this.pendingReceivedMessages.Any())
+            {
+                return;
+            }
+
+            var message = this.pendingReceivedMessages.Dequeue();
+
+            var tags = messageClassifier.Classify(message.Body);
+            var structuredMessage = message.FromTags(tags);
+
+            logger.Debug("Classified {MessageBody} with {Tags}", message.Body, tags);
+
+            var visitor = this.visitorFactory.CreateMessageVisitor(structuredMessage);
+
+            this.rootBehaviour.OnNext(visitor);
+            this.responsePending = true;
+            this.responseSelector.InspectVisitor(visitor);
+        }
+
+        private void OnReceiveMessage(MessageContext message)
+        {
+            this.pendingReceivedMessages.Enqueue(message);
+            this.TryProcessNextMessage();
+        }
+
+        private void OnPulse()
+        {
+            var visitor = this.visitorFactory.CreatePulseVisitor();
+
+            this.rootBehaviour.OnNext(visitor);
+            this.responseSelector.InspectVisitor(visitor);
+        }
+
+        private void HandleAuthorisationException(MofichanAuthorisationException e)
+        {
+            var messageContext = e.MessageContext;
+
+            this.logger.Information(e, "Failed to authorise {User} for request: {Request}",
+                messageContext.From, messageContext.Body);
+
+            var sender = messageContext.From as IUser;
+
+            if (sender != null)
+            {
+                var response = new MessageContext(null, sender,
+                    string.Format("I'm afraid you're not authorised to do that, {0}", sender.Name));
+
+                this.backend.OnNext(response);
+            }
         }
 
         /// <summary>

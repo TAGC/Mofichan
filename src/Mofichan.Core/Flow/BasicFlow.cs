@@ -2,14 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
-using Mofichan.Core;
-using Mofichan.Core.Exceptions;
-using Mofichan.Core.Flow;
-using Mofichan.Core.Interfaces;
+using Mofichan.Core.Visitor;
 using PommaLabs.Thrower;
 using Serilog;
 
-namespace Mofichan.Behaviour.Flow
+namespace Mofichan.Core.Flow
 {
     /// <summary>
     /// A basic implementation of <see cref="IFlow"/>. 
@@ -19,23 +16,19 @@ namespace Mofichan.Behaviour.Flow
         private readonly string startNodeId;
         private readonly IFlowNode[] nodes;
         private readonly IFlowTransition[] transitions;
-        private readonly IFlowManager flowManager;
-        private readonly Queue<IncomingMessage> messageQueue;
-        private readonly AuthorisationFailureHandler authExceptionHandler;
+        private readonly Queue<MessageContext> messageQueue;
         private readonly FlowContext baseContext;
 
         private FlowContext latestFlowContext;
 
         private BasicFlow(
             IFlowManager flowManager,
-            Action<OutgoingMessage> generatedResponseHandler,
             string startNodeId,
             IEnumerable<IFlowNode> nodes,
             IEnumerable<IFlowTransition> transitions,
             ILogger logger)
         {
             Raise.ArgumentNullException.IfIsNull(flowManager, nameof(flowManager));
-            Raise.ArgumentNullException.IfIsNull(generatedResponseHandler, nameof(generatedResponseHandler));
             Raise.ArgumentNullException.IfIsNull(nodes, nameof(nodes));
             Raise.ArgumentNullException.IfIsNull(transitions, nameof(transitions));
             Raise.ArgumentNullException.IfIsNull(logger, nameof(logger));
@@ -43,42 +36,55 @@ namespace Mofichan.Behaviour.Flow
             Raise.ArgumentException.IfNot(nodes.Count(it => it.Id == startNodeId) == 1,
                 "Exactly one node within the provided collection should be the starting node");
 
-            this.flowManager = flowManager;
             this.startNodeId = startNodeId;
             this.nodes = nodes.ToArray();
             this.transitions = transitions.ToArray();
-            this.baseContext = new FlowContext(this.flowManager.TransitionSelector, this.flowManager.Attention,
-                generatedResponseHandler);
-            this.messageQueue = new Queue<IncomingMessage>();
-            this.authExceptionHandler = new AuthorisationFailureHandler(generatedResponseHandler, logger);
+            this.baseContext = new FlowContext();
+            this.messageQueue = new Queue<MessageContext>();
             this.latestFlowContext = this.baseContext;
-
-            this.flowManager.OnNextStep += this.NextStep;
         }
 
         /// <summary>
-        /// Allows this flow to modify its state based on information
-        /// gained from a provided message.
+        /// Allows this flow to modify its state and potentially generate responses
+        /// using the provided visitor.
         /// </summary>
-        /// <param name="message">The message to accept.</param>
-        public void Accept(IncomingMessage message)
+        /// <param name="visitor">The visitor.</param>
+        public void Accept(IBehaviourVisitor visitor)
         {
-            this.messageQueue.Enqueue(message);
+            var onMessageVisitor = visitor as OnMessageVisitor;
+            var onPulseVisitor = visitor as OnPulseVisitor;
+
+            this.latestFlowContext = this.latestFlowContext.FromVisitor(visitor);
+
+            if (onMessageVisitor != null)
+            {
+                this.messageQueue.Enqueue(onMessageVisitor.Message);
+            }
+            else if (onPulseVisitor != null)
+            {
+                this.Step(onPulseVisitor);
+            }
         }
 
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        public void Dispose()
+        private void Step(OnPulseVisitor visitor)
         {
-            this.flowManager.OnNextStep -= this.NextStep;
+            if (this.messageQueue.Any())
+            {
+                this.Process(this.messageQueue.Dequeue(), visitor);
+            }
+
+            var activeNodes = this.nodes.Where(it => it.IsActive).ToList();
+
+            foreach (var node in activeNodes)
+            {
+                node.OnTick(this.latestFlowContext);
+            }
         }
 
-        private void Process(IncomingMessage message)
+        private void Process(MessageContext message, OnPulseVisitor visitor)
         {
-            var messageContext = message.Context;
-            var flowContext = this.baseContext.FromMessage(messageContext);
-            var currentNode = this.nodes.FirstOrDefault(it => it.IsCurrentNodeForMessageContext(messageContext));
+            var flowContext = this.baseContext.FromMessage(message).FromVisitor(visitor);
+            var currentNode = this.nodes.FirstOrDefault(it => it.IsCurrentNodeForMessageContext(message));
 
             /*
              * If the user is not yet within the flow, we select the
@@ -91,38 +97,9 @@ namespace Mofichan.Behaviour.Flow
                 currentNode.TransitionTo(flowContext);
             }
 
-            try
-            {
-                currentNode.Accept(flowContext);
-            }
-            catch (MofichanAuthorisationException e)
-            {
-                this.authExceptionHandler.Handle(e);
-            }
+            currentNode.Accept(flowContext);
 
             this.latestFlowContext = flowContext;
-        }
-
-        private void NextStep(object sender, EventArgs e)
-        {
-            if (this.messageQueue.Any())
-            {
-                this.Process(this.messageQueue.Dequeue());
-            }
-
-            var activeNodes = this.nodes.Where(it => it.IsActive).ToList();
-
-            foreach (var node in activeNodes)
-            {
-                try
-                {
-                    node.TransitionFrom(this.latestFlowContext);
-                }
-                catch (MofichanAuthorisationException exception)
-                {
-                    this.authExceptionHandler.Handle(exception);
-                }
-            }
         }
 
         private void Connect(string nodeAId, string nodeBId, string transitionId)
@@ -147,7 +124,6 @@ namespace Mofichan.Behaviour.Flow
 
             private ILogger logger;
             private IFlowManager manager;
-            private Action<OutgoingMessage> generatedResponseHandler;
             private string startNodeId;
             private IEnumerable<IFlowNode> nodes;
             private IEnumerable<IFlowTransition> transitions;
@@ -179,17 +155,6 @@ namespace Mofichan.Behaviour.Flow
             public Builder WithManager(IFlowManager manager)
             {
                 this.manager = manager;
-                return this;
-            }
-
-            /// <summary>
-            /// Specifies the callback to handle responses generated within the flow.
-            /// </summary>
-            /// <param name="generatedResponseHandler">The generated response handler.</param>
-            /// <returns>This builder.</returns>
-            public Builder WithGeneratedResponseHandler(Action<OutgoingMessage> generatedResponseHandler)
-            {
-                this.generatedResponseHandler = generatedResponseHandler;
                 return this;
             }
 
@@ -247,8 +212,7 @@ namespace Mofichan.Behaviour.Flow
             /// <returns>A <c>BasicFlow</c>.</returns>
             public BasicFlow Build()
             {
-                var flow = new BasicFlow(this.manager, this.generatedResponseHandler,
-                    this.startNodeId, this.nodes, this.transitions, this.logger);
+                var flow = new BasicFlow(this.manager, this.startNodeId, this.nodes, this.transitions, this.logger);
 
                 foreach (var connection in this.connections)
                 {

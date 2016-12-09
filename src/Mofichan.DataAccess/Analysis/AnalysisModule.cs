@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -30,14 +31,20 @@ namespace Mofichan.DataAccess.Analysis
                 BuildLibrary("emotive")
             };
 
-            double requiredConfidenceRatio = 0.5;
-            builder.Register(c =>
+            Action<MessageClassifier> trainClassifier = classifier =>
             {
-                var messageClassifier = new MessageClassifier(c.Resolve<ILogger>());
-                messageClassifier.Train(analysisLibraries.SelectMany(it => it.Articles), requiredConfidenceRatio);
+                double requiredConfidenceRatio = 0.5;
+                classifier.Train(analysisLibraries.SelectMany(it => it.Articles), requiredConfidenceRatio);
+            };
 
-                return messageClassifier;
-            }).As<IMessageClassifier>().SingleInstance();
+            builder.RegisterType<MessageClassifier>()
+                .OnActivated(e => trainClassifier(e.Instance))
+                .Named<IMessageClassifier>("classifier")
+                .SingleInstance();
+
+            builder.RegisterDecorator<IMessageClassifier>(
+                (c, inner) => new SentenceFragmentAnalyser(inner, c.Resolve<ILogger>()),
+                fromKey: "classifier");
         }
 
         private static ILibrary BuildLibrary(string resourceName)

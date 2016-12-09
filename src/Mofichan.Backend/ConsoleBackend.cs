@@ -126,12 +126,12 @@ namespace Mofichan.Backend
                     continue;
                 }
 
-                var context = new MessageContext(
+                var messageContext = new MessageContext(
                     from: this.consoleUser,
                     to: null,
                     body: message);
 
-                this.OnReceiveMessage(new IncomingMessage(context));
+                this.OnReceiveMessage(messageContext);
             }
         }
 

@@ -6,17 +6,15 @@ using Xunit;
 
 namespace Mofichan.Tests
 {
-    public class FlowDrivenAttentionManagerTests
+    public class PulseDrivenAttentionManagerTests
     {
-        private static readonly ILogger Log = new LoggerConfiguration().CreateLogger();
-
         [Fact]
         public void Mofichan_Should_Lose_Attention_To_All_Users_When_Requested()
         {
             // GIVEN an attention manager.
-            var flowDriver = new ControllableFlowDriver();
+            var pulseDriver = new ControllablePulseDriver();
 
-            using (var attentionManager = new FlowDrivenAttentionManager(0, 1, flowDriver, Log))
+            using (var attentionManager = new PulseDrivenAttentionManager(0, 1, pulseDriver, MockLogger.Instance))
             {
                 // GIVEN a collection of users.
                 var tom = new MockUser("Tom", "Tom");
@@ -42,7 +40,7 @@ namespace Mofichan.Tests
                 // WHEN Mofichan's attention is renewed towards Harry.
                 attentionManager.RenewAttentionTowardsUser(harry);
 
-                // THEN she should be paying attentio towards Tom, Dick and Harry.
+                // THEN she should be paying attention towards Tom, Dick and Harry.
                 attentionManager.IsPayingAttentionToUser(tom).ShouldBeTrue();
                 attentionManager.IsPayingAttentionToUser(dick).ShouldBeTrue();
                 attentionManager.IsPayingAttentionToUser(harry).ShouldBeTrue();
@@ -61,9 +59,9 @@ namespace Mofichan.Tests
         public void Mofichan_Should_Be_Paying_Attention_To_User_After_Attention_Is_Renewed_To_Them()
         {
             // GIVEN an attention manager.
-            var flowDriver = new ControllableFlowDriver();
+            var pulseDriver = new ControllablePulseDriver();
 
-            using (var attentionManager = new FlowDrivenAttentionManager(0, 1, flowDriver, Log))
+            using (var attentionManager = new PulseDrivenAttentionManager(0, 1, pulseDriver, MockLogger.Instance))
             {
                 // GIVEN a user.
                 var john = new MockUser("John", "John");
@@ -77,9 +75,9 @@ namespace Mofichan.Tests
         }
 
         [Theory]
-        [InlineData(100, 10, 67, 133)]
-        [InlineData(400, 50, 235, 565)]
-        [InlineData(1000, 200, 342, 1658)]
+        [InlineData(100, 10, 60, 140)]
+        [InlineData(400, 50, 200, 600)]
+        [InlineData(1000, 200, 200, 1800)]
         public void Mofichan_Attention_Span_Should_Follow_Gaussian_Distribution(
             double mu,
             double sigma,
@@ -89,35 +87,34 @@ namespace Mofichan.Tests
             int numSteps = 0;
 
             // GIVEN an attention manager specified to sample from a particular gaussian distribution.
-            var flowDriver = new ControllableFlowDriver();
+            var pulseDriver = new ControllablePulseDriver();
 
-            using (var attentionManager = new FlowDrivenAttentionManager(mu, sigma, flowDriver, Log))
+            using (var attentionManager = new PulseDrivenAttentionManager(mu, sigma, pulseDriver, MockLogger.Instance))
             {
-
                 // GIVEN a user.
                 var john = new MockUser("John", "John");
 
                 // WHEN attention is renewed to the user.
                 attentionManager.RenewAttentionTowardsUser(john);
 
-                // AND we step for [lowStepBound] number of steps.
+                // AND we pulse [lowStepBound] number of times.
                 for (; numSteps < lowStepBound; numSteps++)
                 {
-                    flowDriver.StepFlow();
+                    pulseDriver.Pulse();
                 }
 
                 // THEN given the attention manager works correctly, Mofichan should still be paying attention
-                // to the user with 99.95% probability.
+                // to the user with 99.994% (4-sigma) probability.
                 attentionManager.IsPayingAttentionToUser(john).ShouldBeTrue();
 
-                // WHEN we step until [highStepBound] number of steps.
+                // WHEN we pulse until we hit [highStepBound] number of times.
                 for (; numSteps < highStepBound; numSteps++)
                 {
-                    flowDriver.StepFlow();
+                    pulseDriver.Pulse();
                 }
 
                 // THEN given the attention manager works correctly, Mofichan should not be paying attention
-                // to the user with 99.95% probability.
+                // to the user with 99.994% (4-sigma) probability.
                 attentionManager.IsPayingAttentionToUser(john).ShouldBeFalse();
             }
         }

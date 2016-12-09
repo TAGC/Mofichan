@@ -1,10 +1,10 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
 using Mofichan.Core.Utility;
+using Mofichan.Core.Visitor;
 
 namespace Mofichan.Behaviour
 {
@@ -15,56 +15,51 @@ namespace Mofichan.Behaviour
     public sealed class AttentionBehaviour : BaseBehaviour
     {
         private static readonly string AttentionPattern = @"^\s*" + Constants.IdentityMatch + @"[\s?!.]*$";
-        private readonly IFlowManager flowManager;
+        private readonly IAttentionManager attentionManager;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AttentionBehaviour" /> class.
         /// </summary>
-        /// <param name="responseBuilderFactory">The response builder factory.</param>
-        /// <param name="flowManager">The flow manager.</param>
-        public AttentionBehaviour(Func<IResponseBuilder> responseBuilderFactory, IFlowManager flowManager)
-            : base(responseBuilderFactory)
+        /// <param name="attentionManager">The attention manager.</param>
+        public AttentionBehaviour(IAttentionManager attentionManager)
         {
-            this.flowManager = flowManager;
+            this.attentionManager = attentionManager;
         }
 
-        protected override bool CanHandleIncomingMessage(IncomingMessage message)
+        /// <summary>
+        /// Invoked when this behaviour is visited by an <see cref="OnMessageVisitor" />.
+        /// <para></para>
+        /// Subclasses should call the base implementation of this method to pass the
+        /// visitor downstream.
+        /// </summary>
+        /// <param name="visitor">The visitor.</param>
+        protected override void HandleMessageVisitor(OnMessageVisitor visitor)
         {
-            var messageBody = message.Context.Body;
+            if (CanHandleIncomingMessage(visitor.Message))
+            {
+                var sender = visitor.Message.From as IUser;
 
-            bool senderIsUser = message.Context.From is IUser;
+                Debug.Assert(sender != null, "The message sender should be a user");
+
+                visitor.RegisterResponse(rb => rb
+                    .WithMessage(mb => mb
+                        .FromAnyOf("hm?", "yes?", "hi?")
+                        .FromTags("emote,inquisitive"))
+                    .WithSideEffect(() => this.attentionManager.RenewAttentionTowardsUser(sender))
+                    .RelevantBecause(it => it.SuitsMessageTags("directedAtMofichan")));
+            }
+
+            base.HandleMessageVisitor(visitor);
+        }
+
+        private static bool CanHandleIncomingMessage(MessageContext message)
+        {
+            var messageBody = message.Body;
+
+            bool senderIsUser = message.From is IUser;
             bool attentionMatch = Regex.IsMatch(messageBody, AttentionPattern, RegexOptions.IgnoreCase);
 
             return senderIsUser && attentionMatch;
-        }
-
-        protected override bool CanHandleOutgoingMessage(OutgoingMessage message)
-        {
-            return false;
-        }
-
-        protected override void HandleIncomingMessage(IncomingMessage message)
-        {
-            var sender = message.Context.From as IUser;
-
-            Debug.Assert(sender != null, "The message sender should be a user");
-
-            var responseBody = this.ResponseBuilder
-                .UsingContext(message.Context)
-                .FromAnyOf("hm?", "yes?", "hi?")
-                .FromTags("emote,inquisitive")
-                .Build();
-
-            var responseContext = new MessageContext(from: null, to: sender, body: responseBody);
-            var response = new OutgoingMessage { Context = responseContext };
-
-            this.SendUpstream(response);
-            this.flowManager.Attention.RenewAttentionTowardsUser(sender);
-        }
-
-        protected override void HandleOutgoingMessage(OutgoingMessage message)
-        {
-            throw new NotImplementedException();
         }
     }
 }

@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Mofichan.Tests.DataAccess
 {
-    public class ResponseBuilderTests
+    public class ResponseBodyBuilderTests
     {
         private static IEnumerable<TaggedMessage> ExampleArticles
         {
@@ -77,16 +77,16 @@ namespace Mofichan.Tests.DataAccess
             }
         }
 
-        private readonly IResponseBuilder responseBuilder;
+        private readonly IResponseBodyBuilder responseBuilder;
 
-        public ResponseBuilderTests()
+        public ResponseBodyBuilderTests()
         {
             var mockLibrary = new Mock<ILibrary>();
             mockLibrary.SetupGet(it => it.Articles).Returns(ExampleArticles);
 
             var articleFilter = new ArticleFilter(new[] { mockLibrary.Object });
             var articleResolver = new ArticleResolver();
-            this.responseBuilder = new ResponseBuilder(articleFilter, articleResolver);
+            this.responseBuilder = new ResponseBodyBuilder(articleFilter, articleResolver);
         }
 
         [Fact]

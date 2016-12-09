@@ -1,10 +1,12 @@
 ﻿using System;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
-using Mofichan.Core.Interfaces;
+using Mofichan.Core.Visitor;
+using Mofichan.Tests.TestUtility;
 using Moq;
 using Shouldly;
 using Xunit;
+using static Mofichan.Tests.TestUtility.MessageUtil;
 
 namespace Mofichan.Tests.Behaviour
 {
@@ -12,34 +14,17 @@ namespace Mofichan.Tests.Behaviour
     {
         private class MockBehaviour : BaseBehaviour
         {
-            public MockBehaviour(bool passThroughMessages = true) :
-                base(() => Mock.Of<IResponseBuilder>(), passThroughMessages)
-            {
-            }
+            public bool SimulateCanHandleMessage { get; set; }
+            public MessageContext HandledMessage { get; private set; }
 
-            public bool SimulateCanHandleIncomingMessage { get; set; }
-            public bool SimulateCanHandleOutgoingMessage { get; set; }
-            public IncomingMessage? HandledIncomingMessage { get; private set; }
-            public OutgoingMessage? HandledOutgoingMessage { get; private set; }
-
-            protected override bool CanHandleIncomingMessage(IncomingMessage message)
+            protected override void HandleMessageVisitor(OnMessageVisitor visitor)
             {
-                return this.SimulateCanHandleIncomingMessage;
-            }
+                if (this.SimulateCanHandleMessage)
+                {
+                    this.HandledMessage = visitor.Message;
+                }
 
-            protected override bool CanHandleOutgoingMessage(OutgoingMessage message)
-            {
-                return this.SimulateCanHandleOutgoingMessage;
-            }
-
-            protected override void HandleIncomingMessage(IncomingMessage message)
-            {
-                this.HandledIncomingMessage = message;
-            }
-
-            protected override void HandleOutgoingMessage(OutgoingMessage message)
-            {
-                this.HandledOutgoingMessage = message;
+                base.HandleMessageVisitor(visitor);
             }
         }
 
@@ -47,52 +32,27 @@ namespace Mofichan.Tests.Behaviour
         public void Behaviour_Should_Pass_Unhandled_Incoming_Message_To_Downstream_Observer()
         {
             // GIVEN a mock behaviour.
-            var behaviour = new MockBehaviour(true);
+            var behaviour = new MockBehaviour();
 
             // GIVEN a downstream observer for incoming messages.
-            var downstreamObserver = new Mock<IObserver<IncomingMessage>>();
-            downstreamObserver.Setup(it => it.OnNext(It.IsAny<IncomingMessage>()));
+            var downstreamObserver = new Mock<IObserver<IBehaviourVisitor>>();
+            downstreamObserver.Setup(it => it.OnNext(It.IsAny<IBehaviourVisitor>()));
 
             // GIVEN the observer is subscribed to the behaviour.
             behaviour.Subscribe(downstreamObserver.Object);
 
             // GIVEN an incoming message to pass.
-            var message = default(IncomingMessage);
+            var message = new MessageContext();
 
             // GIVEN the behaviour cannot handle the incoming message.
-            behaviour.SimulateCanHandleIncomingMessage = false;
+            behaviour.SimulateCanHandleMessage = false;
 
-            // WHEN the behaviour is offered the message.
-            behaviour.OnNext(message);
+            // WHEN the behaviour is visited.
+            var visitor = new OnMessageVisitor(message, MockBotContext.Instance, CreateSimpleMessageBuilder);
+            behaviour.OnNext(visitor);
 
-            // THEN the downstream observer should have been offered the message.
-            downstreamObserver.Verify(it => it.OnNext(message), Times.Once);
-        }
-
-        [Fact]
-        public void Behaviour_Should_Pass_Unhandled_Outgoing_Message_To_Upstream_Observer()
-        {
-            // GIVEN a mock behaviour.
-            var behaviour = new MockBehaviour();
-
-            // GIVEN an upstream observer for outgoing messages.
-            var upstreamObserver = new Mock<IObserver<OutgoingMessage>>();
-            upstreamObserver.Setup(it => it.OnNext(It.IsAny<OutgoingMessage>()));
-
-            // GIVEN the observer is subscribed to the behaviour.
-            behaviour.Subscribe(upstreamObserver.Object);
-
-            // GIVEN an outgoing message to pass.
-            var message = default(OutgoingMessage);
-
-            // GIVEN the behaviour cannot handle the outgoing message.
-            behaviour.SimulateCanHandleOutgoingMessage = false;
-
-            // WHEN the behaviour is offered the message.
-            behaviour.OnNext(message);
-
-            // THEN the upstream observer should have been offered the message.
-            upstreamObserver.Verify(it => it.OnNext(message), Times.Once);
+            // THEN the downstream observer should also have been visited.
+            downstreamObserver.Verify(it => it.OnNext(visitor), Times.Once);
         }
 
         [Fact]
@@ -100,59 +60,28 @@ namespace Mofichan.Tests.Behaviour
         {
             // GIVEN a mock behaviour.
             var behaviour = new MockBehaviour();
-            behaviour.HandledIncomingMessage.ShouldBeNull();
-            behaviour.HandledOutgoingMessage.ShouldBeNull();
+            behaviour.HandledMessage.ShouldBeNull();
 
             // GIVEN a mock incoming message.
-            var message = default(IncomingMessage);
+            var message = new MessageContext();
 
             // WHEN the mock behaviour is not able to handle a message.
-            behaviour.SimulateCanHandleIncomingMessage = false;
+            behaviour.SimulateCanHandleMessage = false;
 
-            // AND the behaviour is offered the message.
-            behaviour.OnNext(message);
-
-            // THEN the behaviour should not have tried to handle the message.
-            behaviour.HandledIncomingMessage.ShouldBeNull();
-
-            // WHEN the mock behaviour is able to handle the message.
-            behaviour.SimulateCanHandleIncomingMessage = true;
-
-            // AND the behaviour is offered the message.
-            behaviour.OnNext(message);
-
-            // THEN the behaviour should have tried to handle the message.
-            behaviour.HandledIncomingMessage.ShouldBe(message);
-        }
-
-        [Fact]
-        public void Behaviour_Should_Attempt_To_Handle_Outgoing_Message_If_And_Only_If_It_Can_Handle_Outgoing_Message()
-        {
-            // GIVEN a mock behaviour.
-            var behaviour = new MockBehaviour();
-            behaviour.HandledIncomingMessage.ShouldBeNull();
-            behaviour.HandledOutgoingMessage.ShouldBeNull();
-
-            // GIVEN a mock outgoing message.
-            var message = default(OutgoingMessage);
-
-            // WHEN the mock behaviour is not able to handle a message.
-            behaviour.SimulateCanHandleOutgoingMessage = false;
-
-            // AND the behaviour is offered the message.
-            behaviour.OnNext(message);
+            // AND the behaviour is offered a visitor carrying the message.
+            behaviour.OnNext(new OnMessageVisitor(message, MockBotContext.Instance, CreateSimpleMessageBuilder));
 
             // THEN the behaviour should not have tried to handle the message.
-            behaviour.HandledOutgoingMessage.ShouldBeNull();
+            behaviour.HandledMessage.ShouldBeNull();
 
             // WHEN the mock behaviour is able to handle the message.
-            behaviour.SimulateCanHandleOutgoingMessage = true;
+            behaviour.SimulateCanHandleMessage = true;
 
-            // AND the behaviour is offered the message.
-            behaviour.OnNext(message);
+            // AND the behaviour is again offered a visitor carrying the message.
+            behaviour.OnNext(new OnMessageVisitor(message, MockBotContext.Instance, CreateSimpleMessageBuilder));
 
             // THEN the behaviour should have tried to handle the message.
-            behaviour.HandledOutgoingMessage.ShouldBe(message);
+            behaviour.HandledMessage.ShouldBe(message);
         }
     }
 }

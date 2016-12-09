@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Mofichan.Backend;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
+using Mofichan.Tests.TestUtility;
 using Moq;
 using Serilog;
 using Shouldly;
@@ -27,7 +28,7 @@ namespace Mofichan.Tests
                 this.OnStartCalled = true;
             }
 
-            public void SimulateReceivingMessage(IncomingMessage message)
+            public void SimulateReceivingMessage(MessageContext message)
             {
                 this.OnReceiveMessage(message);
             }
@@ -56,7 +57,7 @@ namespace Mofichan.Tests
         public void Backend_Should_Try_To_Get_Room_Id_When_Join_Requested()
         {
             // GIVEN a mock backend.
-            var backend = new MockBackend(Mock.Of<ILogger>());
+            var backend = new MockBackend(MockLogger.Instance);
 
             // GIVEN a room ID.
             var roomId = "foo";
@@ -72,7 +73,7 @@ namespace Mofichan.Tests
         public void Backend_Should_Try_To_Get_Room_Id_When_Leave_Requested()
         {
             // GIVEN a mock backend.
-            var backend = new MockBackend(Mock.Of<ILogger>());
+            var backend = new MockBackend(MockLogger.Instance);
 
             // GIVEN a room ID.
             var roomId = "foo";
@@ -88,7 +89,7 @@ namespace Mofichan.Tests
         public void Room_Should_Try_To_Send_Message_When_Receiving_Message_For_Room_Occupant()
         {
             // GIVEN a mock backend.
-            var backend = new MockBackend(Mock.Of<ILogger>());
+            var backend = new MockBackend(MockLogger.Instance);
 
             // GIVEN a mock room occupant.
             var mockOccupant = new Mock<IRoomOccupant>();
@@ -96,8 +97,7 @@ namespace Mofichan.Tests
 
             // GIVEN an outgoing message directed at the room occupant.
             var messageBody = "hello";
-            var messageContext = new MessageContext(Mock.Of<IMessageTarget>(), mockOccupant.Object, messageBody);
-            var message = new OutgoingMessage { Context = messageContext };
+            var message = new MessageContext(Mock.Of<IMessageTarget>(), mockOccupant.Object, messageBody);
 
             // WHEN the backend receives the message
             backend.OnNext(message);
@@ -132,7 +132,7 @@ namespace Mofichan.Tests
             var tcs = new TaskCompletionSource<string>();
 
             // GIVEN a mock backend.
-            var backend = new MockBackend(Mock.Of<ILogger>());
+            var backend = new MockBackend(MockLogger.Instance);
 
             // GIVEN a mock recipient.
             var recipient = new Mock<IMessageTarget>();
@@ -143,8 +143,7 @@ namespace Mofichan.Tests
             // GIVEN an outgoing message with an associated non-zero delay.
             var messageBody = "hello";
             var delay = TimeSpan.FromMilliseconds(1000);
-            var messageContext = new MessageContext(Mock.Of<IMessageTarget>(), recipient.Object, messageBody, delay);
-            var message = new OutgoingMessage { Context = messageContext };
+            var message = new MessageContext(Mock.Of<IMessageTarget>(), recipient.Object, messageBody, delay);
 
             // WHEN the backend receives the message.
             backend.OnNext(message);
@@ -160,16 +159,15 @@ namespace Mofichan.Tests
         public void Backend_Should_Send_Received_Messages_To_Subscribed_Observer()
         {
             // GIVEN a mock backend.
-            var backend = new MockBackend(Mock.Of<ILogger>());
+            var backend = new MockBackend(MockLogger.Instance);
 
             // GIVEN an incoming message observer.
-            var observer = new Mock<IObserver<IncomingMessage>>();
-            observer.Setup(it => it.OnNext(It.IsAny<IncomingMessage>()));
+            var observer = new Mock<IObserver<MessageContext>>();
+            observer.Setup(it => it.OnNext(It.IsAny<MessageContext>()));
 
             // GIVEN an incoming message.
             var messageBody = "what's up?";
-            var messageContext = new MessageContext(Mock.Of<IMessageTarget>(), Mock.Of<IMessageTarget>(), messageBody);
-            var message = new IncomingMessage(messageContext);
+            var message = new MessageContext(Mock.Of<IMessageTarget>(), Mock.Of<IMessageTarget>(), messageBody);
 
             // WHEN the mock backend receives the message.
             backend.SimulateReceivingMessage(message);

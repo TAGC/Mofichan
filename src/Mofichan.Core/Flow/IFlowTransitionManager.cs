@@ -1,4 +1,4 @@
-﻿namespace Mofichan.Core.Interfaces
+﻿namespace Mofichan.Core.Flow
 {
     /// <summary>
     /// Represents an object used to help instance <see cref="IFlowNode"/> manage
@@ -9,22 +9,23 @@
     public interface IFlowTransitionManager
     {
         /// <summary>
-        /// Gets or sets the weight of the transition with the specified identifier.
+        /// Gets or sets the clock of the transition with the specified identifier.
         /// </summary>
         /// <value>
-        /// The transition weight.
+        /// The transition clock.
         /// </value>
         /// <param name="transitionId">The transition identifier.</param>
-        /// <returns>The currently stored transition weight.</returns>
-        double this[string transitionId] { get; set; }
+        /// <returns>The currently stored transition clock.</returns>
+        int this[string transitionId] { get; set; }
 
         /// <summary>
-        /// Clears the weights of all managed transitions.
+        /// Makes all transitions impossible by setting their clocks to a negative value.
         /// </summary>
-        void ClearTransitionWeights();
+        void MakeTransitionsImpossible();
 
         /// <summary>
-        /// Makes a transition certain by assigning zero weight to all other managed transitions.
+        /// Makes a transition certain by setting its associated clock to 0 ticks and
+        /// making all other transitions impossible.
         /// </summary>
         /// <param name="transitionId">The identifier of the transition to make certain.</param>
         void MakeTransitionCertain(string transitionId);
