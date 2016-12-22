@@ -6,8 +6,7 @@
       "target": "project"
     },
     "NETStandard.Library": "1.6.1",
-    "Serilog": "2.4.0-dev-00746"
-  },
+    "Serilog": "2.4.0-dev-00767"  },
 
   "frameworks": {
     "netstandard1.6": {

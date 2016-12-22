@@ -6,10 +6,11 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Mofichan.Behaviour.Base;
 using Mofichan.Behaviour.Flow;
+using Mofichan.Core;
 using Mofichan.Core.Exceptions;
 using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
-using Mofichan.Core.Utility;
+using Mofichan.Core.Visitor;
 using Serilog;
 
 namespace Mofichan.Behaviour.Admin
@@ -30,24 +31,17 @@ namespace Mofichan.Behaviour.Admin
 
         private static readonly string DisplayChainMatch = @"(display|show( your)?) behaviour chain";
 
-        private readonly ILogger logger;
-
         private IList<IMofichanBehaviour> behaviourStack;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DisplayChainBehaviour" /> class.
         /// </summary>
-        /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder" />.</param>
+        /// <param name="botContext">The bot context.</param>
         /// <param name="flowManager">The flow manager.</param>
         /// <param name="logger">The logger to use.</param>
-        public DisplayChainBehaviour(
-            Func<IResponseBuilder> responseBuilderFactory,
-            IFlowManager flowManager,
-            ILogger logger)
-            : base("S0", responseBuilderFactory, flowManager, logger)
+        public DisplayChainBehaviour(BotContext botContext, IFlowManager flowManager, ILogger logger)
+            : base("S0", botContext, flowManager, logger)
         {
-            this.logger = logger.ForContext<DisplayChainBehaviour>();
-
             this.RegisterSimpleNode("STerm");
             this.RegisterAttentionGuardNode("S0", "T0,1", "T0,Term");
             this.RegisterAttentionGuardTransition("T1,1:wait", "T1,Term", "S1", "S1");
@@ -62,6 +56,9 @@ namespace Mofichan.Behaviour.Admin
         /// </summary>
         /// <param name="context">The flow context.</param>
         /// <param name="manager">The transition manager.</param>
+        /// <exception cref="MofichanAuthorisationException">
+        /// Thrown if non-admin user attempts to display behaviour chain
+        /// </exception>
         [FlowState(id: "S1", distinctUntilChanged: true)]
         public void WithAttention(FlowContext context, IFlowTransitionManager manager)
         {
@@ -72,21 +69,24 @@ namespace Mofichan.Behaviour.Admin
             bool authorised = user.Type == UserType.Adminstrator;
             bool displayChainRequest = Regex.IsMatch(messageBody, DisplayChainMatch, RegexOptions.IgnoreCase);
 
-            ConfigureForEventualFlowTermination(manager);
+            manager.MakeTransitionCertain("T1,Term");
 
             if (displayChainRequest && authorised)
             {
-                context.Attention.RenewAttentionTowardsUser(user);
-                var response = context.Message.Reply("My behaviour chain: " + this.BuildBehaviourChainRepresentation());
-                context.GeneratedResponseHandler(response);
+                context.Visitor.RegisterResponse(rb => rb
+                    .WithMessage(mb => mb
+                        .FromRaw("My behaviour chain: " + this.BuildBehaviourChainRepresentation()))
+                    .WithBotContextChange(ctx => ctx.Attention.RenewAttentionTowardsUser(user))
+                    .RelevantBecause(it => it.GuaranteesRelevance()));
             }
             else if (displayChainRequest)
             {
-                context.Attention.RenewAttentionTowardsUser(user);
+                var exception = new MofichanAuthorisationException(
+                    "Non-admin user attempted to display behaviour chain", context.Message);
 
-                throw new MofichanAuthorisationException(
-                    "Non-admin user attempted to display behaviour chain",
-                    context.Message);
+                context.Visitor.RegisterResponse(rb => rb
+                    .WithBotContextChange(ctx => ctx.Attention.RenewAttentionTowardsUser(user))
+                    .WithSideEffect(() => { throw exception; }));
             }
         }
 
@@ -102,12 +102,6 @@ namespace Mofichan.Behaviour.Admin
         public override void InspectBehaviourStack(IList<IMofichanBehaviour> stack)
         {
             this.behaviourStack = stack;
-        }
-
-        private static void ConfigureForEventualFlowTermination(IFlowTransitionManager manager)
-        {
-            manager.ClearTransitionWeights();
-            manager.MakeTransitionCertain("T1,1:wait");
         }
 
         /// <summary>

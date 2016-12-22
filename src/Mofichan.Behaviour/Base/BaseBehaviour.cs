@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
-using Mofichan.Core;
-using Mofichan.Core.Exceptions;
 using Mofichan.Core.Interfaces;
+using Mofichan.Core.Visitor;
 
 namespace Mofichan.Behaviour.Base
 {
@@ -12,24 +11,14 @@ namespace Mofichan.Behaviour.Base
     /// </summary>
     public abstract class BaseBehaviour : IMofichanBehaviour
     {
-        private readonly Func<IResponseBuilder> responseBuilderFactory;
-        private readonly bool passThroughMessages;
-
-        private IObserver<IncomingMessage> downstreamObserver;
-        private IObserver<OutgoingMessage> upstreamObserver;
+        private IObserver<IBehaviourVisitor> observer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BaseBehaviour" /> class.
         /// </summary>
-        /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder"/>.</param>
-        /// <param name="passThroughMessages">
-        /// If set to <c>true</c>, unhandled messages will automatically
-        /// be passed downstream and upstream.
-        /// </param>
-        protected BaseBehaviour(Func<IResponseBuilder> responseBuilderFactory, bool passThroughMessages = true)
+        /// <param name="responseBuilderFactory">A factory for instances of <see cref="Response.Builder"/>.</param>
+        protected BaseBehaviour()
         {
-            this.responseBuilderFactory = responseBuilderFactory;
-            this.passThroughMessages = passThroughMessages;
         }
 
         /// <summary>
@@ -44,20 +33,6 @@ namespace Mofichan.Behaviour.Base
             {
                 return this.GetType().GetTypeInfo().Name.Replace("Behaviour", string.Empty)
                     .ToLowerInvariant();
-            }
-        }
-
-        /// <summary>
-        /// Gets the response builder.
-        /// </summary>
-        /// <value>
-        /// The response builder.
-        /// </value>
-        protected IResponseBuilder ResponseBuilder
-        {
-            get
-            {
-                return this.responseBuilderFactory();
             }
         }
 
@@ -107,54 +82,25 @@ namespace Mofichan.Behaviour.Base
         /// <returns>
         /// A reference to an interface that allows observers to stop receiving notifications before the provider has finished sending them.
         /// </returns>
-        public IDisposable Subscribe(IObserver<IncomingMessage> observer)
+        public IDisposable Subscribe(IObserver<IBehaviourVisitor> observer)
         {
-            this.downstreamObserver = observer;
+            this.observer = observer;
             return null;
         }
 
         /// <summary>
-        /// Notifies the provider that an observer is to receive notifications.
+        /// Called to notify this observer of an incoming visitor.
         /// </summary>
-        /// <param name="observer">The object that is to receive notifications.</param>
-        /// <returns>
-        /// A reference to an interface that allows observers to stop receiving notifications before the provider has finished sending them.
-        /// </returns>
-        public IDisposable Subscribe(IObserver<OutgoingMessage> observer)
+        /// <param name="visitor">The incoming visitor.</param>
+        public void OnNext(IBehaviourVisitor visitor)
         {
-            this.upstreamObserver = observer;
-            return null;
-        }
-
-        /// <summary>
-        /// Called to notify this observer of an incoming message.
-        /// </summary>
-        /// <param name="message">The incoming message.</param>
-        public void OnNext(IncomingMessage message)
-        {
-            if (this.CanHandleIncomingMessage(message))
+            if (visitor is OnMessageVisitor)
             {
-                this.HandleIncomingMessage(message);
+                this.HandleMessageVisitor((OnMessageVisitor)visitor);
             }
-            else if (this.passThroughMessages && this.downstreamObserver != null)
+            else if (visitor is OnPulseVisitor)
             {
-                this.downstreamObserver.OnNext(message);
-            }
-        }
-
-        /// <summary>
-        /// Called to notify this observer of an outgoing message.
-        /// </summary>
-        /// <param name="message">The outgoing message.</param>
-        public void OnNext(OutgoingMessage message)
-        {
-            if (this.CanHandleOutgoingMessage(message))
-            {
-                this.HandleOutgoingMessage(message);
-            }
-            else if (this.passThroughMessages && this.upstreamObserver != null)
-            {
-                this.upstreamObserver.OnNext(message);
+                this.HandlePulseVisitor((OnPulseVisitor)visitor);
             }
         }
 
@@ -170,55 +116,27 @@ namespace Mofichan.Behaviour.Base
         }
 
         /// <summary>
-        /// Determines whether this instance can process the specified incoming message.
-        /// </summary>
-        /// <param name="message">The message to check can be handled.</param>
-        /// <returns>
-        ///   <c>true</c> if this instance can process the incoming message; otherwise, <c>false</c>.
-        /// </returns>
-        protected abstract bool CanHandleIncomingMessage(IncomingMessage message);
-
-        /// <summary>
-        /// Determines whether this instance can process the specified outgoing message.
-        /// </summary>
-        /// <param name="message">The message to check can be handled.</param>
-        /// <returns>
-        ///   <c>true</c> if this instance can process the outgoing messagee; otherwise, <c>false</c>.
-        /// </returns>
-        protected abstract bool CanHandleOutgoingMessage(OutgoingMessage message);
-
-        /// <summary>
-        /// Handles the incoming message.
+        /// Invoked when this behaviour is visited by an <see cref="OnMessageVisitor"/>.
         /// <para></para>
-        /// This method will only be invoked if <c>CanHandleIncomingMessage(message)</c> is <c>true</c>.
+        /// Subclasses should call the base implementation of this method to pass the
+        /// visitor downstream.
         /// </summary>
-        /// <param name="message">The message to process.</param>
-        protected abstract void HandleIncomingMessage(IncomingMessage message);
-
-        /// <summary>
-        /// Handles the outgoing message.
-        /// <para></para>
-        /// This method will only be invoked if <c>CanHandleOutgoingMessage(message)</c> is <c>true</c>.
-        /// </summary>
-        /// <param name="message">The message to process.</param>
-        protected abstract void HandleOutgoingMessage(OutgoingMessage message);
-
-        /// <summary>
-        /// Sends an incoming message to the downstream observer, if it exists.
-        /// </summary>
-        /// <param name="message">The message to send.</param>
-        protected void SendDownstream(IncomingMessage message)
+        /// <param name="visitor">The visitor.</param>
+        protected virtual void HandleMessageVisitor(OnMessageVisitor visitor)
         {
-            this.downstreamObserver?.OnNext(message);
+            this.observer?.OnNext(visitor);
         }
 
         /// <summary>
-        /// Sends an outgoing message to the upstream observer, if it exists.
+        /// Invoked when this behaviour is visited by an <see cref="OnPulseVisitor"/>.
+        /// <para></para>
+        /// Subclasses should call the base implementation of this method to pass the
+        /// visitor downstream.
         /// </summary>
-        /// <param name="message">The message to send.</param>
-        protected void SendUpstream(OutgoingMessage message)
+        /// <param name="visitor">The visitor.</param>
+        protected virtual void HandlePulseVisitor(OnPulseVisitor visitor)
         {
-            this.upstreamObserver?.OnNext(message);
+            this.observer?.OnNext(visitor);
         }
     }
 }

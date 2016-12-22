@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using Mofichan.Core;
 using Mofichan.Core.Interfaces;
+using Mofichan.Core.Visitor;
 
 namespace Mofichan.Behaviour.Base
 {
@@ -60,7 +60,7 @@ namespace Mofichan.Behaviour.Base
         /// </summary>
         public virtual void OnCompleted()
         {
-            ((IObserver<IncomingMessage>)this.DelegateBehaviour).OnCompleted();
+            this.DelegateBehaviour.OnCompleted();
         }
 
         /// <summary>
@@ -69,25 +69,16 @@ namespace Mofichan.Behaviour.Base
         /// <param name="error">An object that provides additional information about the error.</param>
         public virtual void OnError(Exception error)
         {
-            ((IObserver<IncomingMessage>)this.DelegateBehaviour).OnError(error);
+            this.DelegateBehaviour.OnError(error);
         }
 
         /// <summary>
-        /// Provides the observer with new data.
+        /// Called to notify this observer of an incoming visitor.
         /// </summary>
-        /// <param name="value">The current notification information.</param>
-        public virtual void OnNext(OutgoingMessage value)
+        /// <param name="visitor">The incoming visitor.</param>
+        public virtual void OnNext(IBehaviourVisitor visitor)
         {
-            this.DelegateBehaviour.OnNext(value);
-        }
-
-        /// <summary>
-        /// Provides the observer with new data.
-        /// </summary>
-        /// <param name="value">The current notification information.</param>
-        public virtual void OnNext(IncomingMessage value)
-        {
-            this.DelegateBehaviour.OnNext(value);
+            this.DelegateBehaviour.OnNext(visitor);
         }
 
         /// <summary>
@@ -105,19 +96,7 @@ namespace Mofichan.Behaviour.Base
         /// <returns>
         /// A reference to an interface that allows observers to stop receiving notifications before the provider has finished sending them.
         /// </returns>
-        public virtual IDisposable Subscribe(IObserver<OutgoingMessage> observer)
-        {
-            return this.DelegateBehaviour.Subscribe(observer);
-        }
-
-        /// <summary>
-        /// Notifies the provider that an observer is to receive notifications.
-        /// </summary>
-        /// <param name="observer">The object that is to receive notifications.</param>
-        /// <returns>
-        /// A reference to an interface that allows observers to stop receiving notifications before the provider has finished sending them.
-        /// </returns>
-        public virtual IDisposable Subscribe(IObserver<IncomingMessage> observer)
+        public virtual IDisposable Subscribe(IObserver<IBehaviourVisitor> observer)
         {
             return this.DelegateBehaviour.Subscribe(observer);
         }

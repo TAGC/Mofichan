@@ -1,7 +1,8 @@
 ﻿using System;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
-using Mofichan.Core.Interfaces;
+using Mofichan.Core.Utility;
+using Mofichan.Core.Visitor;
 
 namespace Mofichan.Behaviour
 {
@@ -21,78 +22,60 @@ namespace Mofichan.Behaviour
         private readonly Random random;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DelayBehaviour"/> class.
+        /// Initializes a new instance of the <see cref="DelayBehaviour" /> class.
         /// </summary>
-        /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder"/>.</param>
-        public DelayBehaviour(Func<IResponseBuilder> responseBuilderFactory) : base(responseBuilderFactory)
+        public DelayBehaviour()
         {
             this.random = new Random();
         }
 
         /// <summary>
-        /// Determines whether this instance can process the specified outgoing message.
-        /// </summary>
-        /// <param name="message">The message to check can be handled.</param>
-        /// <returns>
-        ///   <c>true</c> if this instance can process the outgoing messagee; otherwise, <c>false</c>.
-        /// </returns>
-        protected override bool CanHandleOutgoingMessage(OutgoingMessage message)
-        {
-            return true;
-        }
-
-        /// <summary>
-        /// Handles the outgoing message.
+        /// Invoked when this behaviour is visited by an <see cref="OnMessageVisitor" />.
         /// <para></para>
-        /// This method will only be invoked if <c>CanHandleOutgoingMessage(message)</c> is <c>true</c>.
+        /// Subclasses should call the base implementation of this method to pass the
+        /// visitor downstream.
         /// </summary>
-        /// <param name="message">The message to process.</param>
-        protected override void HandleOutgoingMessage(OutgoingMessage message)
+        /// <param name="visitor">The visitor.</param>
+        protected override void HandleMessageVisitor(OnMessageVisitor visitor)
         {
-            var context = message.Context;
-            TimeSpan delay = this.CalculateDelayForMessage(message.Context.Body);
-            var newMessageContext = new MessageContext(context.From, context.To, context.Body, delay);
-            var newMessage = new OutgoingMessage { Context = newMessageContext };
-
-            this.SendUpstream(newMessage);
+            base.HandleMessageVisitor(visitor);
+            this.DelayResponses(visitor);
         }
 
         /// <summary>
-        /// Determines whether this instance can process the specified incoming message.
-        /// </summary>
-        /// <param name="message">The message to check can be handled.</param>
-        /// <returns>
-        ///   <c>true</c> if this instance can process the incoming message; otherwise, <c>false</c>.
-        /// </returns>
-        protected override bool CanHandleIncomingMessage(IncomingMessage message)
-        {
-            return false;
-        }
-
-        /// <summary>
-        /// Handles the incoming message.
+        /// Invoked when this behaviour is visited by an <see cref="OnPulseVisitor" />.
         /// <para></para>
-        /// This method will only be invoked if <c>CanHandleIncomingMessage(message)</c> is <c>true</c>.
+        /// Subclasses should call the base implementation of this method to pass the
+        /// visitor downstream.
         /// </summary>
-        /// <param name="message">The message to process.</param>
-        protected override void HandleIncomingMessage(IncomingMessage message)
+        /// <param name="visitor">The visitor.</param>
+        protected override void HandlePulseVisitor(OnPulseVisitor visitor)
         {
-            throw new NotImplementedException();
+            base.HandlePulseVisitor(visitor);
+            this.DelayResponses(visitor);
         }
 
         private static int CountWordsInString(string input)
         {
-            char[] delimiters = new char[] { ' ', '\r', '\n' };
+            char[] delimiters = new[] { ' ', '\r', '\n' };
             return input.Split(delimiters, StringSplitOptions.RemoveEmptyEntries).Length;
         }
 
-        private static double SampleGaussian(Random random, double mean, double standardDeviation)
+        private void DelayResponses(IBehaviourVisitor visitor)
         {
-            double x1 = 1 - random.NextDouble();
-            double x2 = 1 - random.NextDouble();
+            visitor.ModifyResponses(response =>
+            {
+                if (response.Message == null)
+                {
+                    return response;
+                }
 
-            double y1 = Math.Sqrt(-2.0 * Math.Log(x1)) * Math.Cos(2.0 * Math.PI * x2);
-            return (y1 * standardDeviation) + mean;
+                var message = response.Message;
+                TimeSpan delay = this.CalculateDelayForMessage(message.Body);
+                var delayedMessage = new MessageContext(message.From, message.To, message.Body, delay);
+
+                return response.DeriveFromNewMessage(delayedMessage);
+            });
         }
 
         private TimeSpan CalculateDelayForMessage(string messageBody)
@@ -102,7 +85,7 @@ namespace Mofichan.Behaviour
             double fixedDelay = FixedDelay.Milliseconds;
             double variableDelay = TimeSpan.FromMinutes(numWords / WordsPerMinute).TotalMilliseconds;
 
-            double delay = SampleGaussian(this.random, fixedDelay + variableDelay, DelayStandardDeviation);
+            double delay = this.random.SampleGaussian(fixedDelay + variableDelay, DelayStandardDeviation);
 
             return TimeSpan.FromMilliseconds(delay);
         }

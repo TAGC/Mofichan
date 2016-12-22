@@ -1,7 +1,7 @@
 ﻿using System;
 using Mofichan.Behaviour.Flow;
-using Mofichan.Core;
-using Mofichan.Core.Interfaces;
+using Mofichan.Core.Flow;
+using Mofichan.Core.Visitor;
 using Serilog;
 
 namespace Mofichan.Behaviour.Base
@@ -21,17 +21,12 @@ namespace Mofichan.Behaviour.Base
         /// Initializes a new instance of the <see cref="BaseFlowBehaviour" /> class.
         /// </summary>
         /// <param name="startNodeId">Identifies the starting node in the flow.</param>
-        /// <param name="responseBuilderFactory">The response builder factory.</param>
         /// <param name="flowManager">The flow manager.</param>
         /// <param name="logger">The logger to use.</param>
-        /// <param name="passThroughMessages">If set to <c>true</c>, passes through unhandled messages.</param>
         protected BaseFlowBehaviour(
             string startNodeId,
-            Func<IResponseBuilder> responseBuilderFactory,
             IFlowManager flowManager,
-            ILogger logger,
-            bool passThroughMessages = true)
-            : base(responseBuilderFactory, passThroughMessages)
+            ILogger logger)
         {
             this.startNodeId = startNodeId;
             this.flowManager = flowManager;
@@ -41,59 +36,29 @@ namespace Mofichan.Behaviour.Base
         private IFlow Flow { get; set; }
 
         /// <summary>
-        /// Notifies the observer that the provider has finished sending push-based notifications.
-        /// </summary>
-        public override void OnCompleted()
-        {
-            base.OnCompleted();
-            this.Flow?.Dispose();
-        }
-
-        /// <summary>
-        /// Determines whether this instance can process the specified incoming message.
-        /// </summary>
-        /// <param name="message">The message to check can be handled.</param>
-        /// <returns>
-        ///   <c>true</c> if this instance can process the incoming message; otherwise, <c>false</c>.
-        /// </returns>
-        protected override bool CanHandleIncomingMessage(IncomingMessage message)
-        {
-            return this.Flow != null;
-        }
-
-        /// <summary>
-        /// Determines whether this instance can process the specified outgoing message.
-        /// </summary>
-        /// <param name="message">The message to check can be handled.</param>
-        /// <returns>
-        ///   <c>true</c> if this instance can process the outgoing messagee; otherwise, <c>false</c>.
-        /// </returns>
-        protected override bool CanHandleOutgoingMessage(OutgoingMessage message)
-        {
-            return false;
-        }
-
-        /// <summary>
-        /// Handles the incoming message.
+        /// Invoked when this behaviour is visited by an <see cref="OnMessageVisitor" />.
         /// <para></para>
-        /// This method will only be invoked if <c>CanHandleIncomingMessage(message)</c> is <c>true</c>.
+        /// Subclasses should call the base implementation of this method to pass the
+        /// visitor downstream.
         /// </summary>
-        /// <param name="message">The message to process.</param>
-        protected override void HandleIncomingMessage(IncomingMessage message)
+        /// <param name="visitor">The visitor.</param>
+        protected override void HandleMessageVisitor(OnMessageVisitor visitor)
         {
-            this.Flow.Accept(message);
-            this.SendDownstream(message);
+            this.Flow.Accept(visitor);
+            base.HandleMessageVisitor(visitor);
         }
 
         /// <summary>
-        /// Handles the outgoing message.
+        /// Invoked when this behaviour is visited by an <see cref="OnPulseVisitor" />.
         /// <para></para>
-        /// This method will only be invoked if <c>CanHandleOutgoingMessage(message)</c> is <c>true</c>.
+        /// Subclasses should call the base implementation of this method to pass the
+        /// visitor downstream.
         /// </summary>
-        /// <param name="message">The message to process.</param>
-        protected override void HandleOutgoingMessage(OutgoingMessage message)
+        /// <param name="visitor">The visitor.</param>
+        protected override void HandlePulseVisitor(OnPulseVisitor visitor)
         {
-            throw new NotImplementedException();
+            this.Flow.Accept(visitor);
+            base.HandlePulseVisitor(visitor);
         }
 
         /// <summary>
@@ -107,7 +72,6 @@ namespace Mofichan.Behaviour.Base
             var baseFlowBuilder = new BasicFlow.Builder()
                 .WithLogger(this.logger)
                 .WithManager(this.flowManager)
-                .WithGeneratedResponseHandler(this.SendUpstream)
                 .WithStartNodeId(this.startNodeId);
 
             this.Flow = flowBuilderFunction(baseFlowBuilder).Build();

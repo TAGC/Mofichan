@@ -8,7 +8,7 @@ using Mofichan.Core;
 using Mofichan.Core.Exceptions;
 using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
-using Mofichan.Core.Utility;
+using Mofichan.Core.Visitor;
 using Serilog;
 
 namespace Mofichan.Behaviour.Admin
@@ -28,22 +28,17 @@ namespace Mofichan.Behaviour.Admin
         private static readonly string EnableMatch = @"enable (?<behaviour>\w+) behaviour";
         private static readonly string DisableMatch = @"disable (?<behaviour>\w+) behaviour";
 
-        private readonly ILogger logger;
         private readonly IDictionary<string, EnableableBehaviourDecorator> behaviourMap;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ToggleEnableBehaviour" /> class.
         /// </summary>
-        /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder" />.</param>
         /// <param name="flowManager">The flow manager.</param>
+        /// <param name="botContext">The bot context.</param>
         /// <param name="logger">The logger to use.</param>
-        public ToggleEnableBehaviour(
-            Func<IResponseBuilder> responseBuilderFactory,
-            IFlowManager flowManager,
-            ILogger logger)
-            : base("S0", responseBuilderFactory, flowManager, logger)
+        public ToggleEnableBehaviour(BotContext botContext, IFlowManager flowManager, ILogger logger)
+            : base("S0", botContext, flowManager, logger)
         {
-            this.logger = logger.ForContext<ToggleEnableBehaviour>();
             this.behaviourMap = new Dictionary<string, EnableableBehaviourDecorator>();
 
             this.RegisterSimpleNode("STerm");
@@ -60,6 +55,11 @@ namespace Mofichan.Behaviour.Admin
         /// </summary>
         /// <param name="context">The flow context.</param>
         /// <param name="manager">The transition manager.</param>
+        /// <exception cref="MofichanAuthorisationException">
+        /// Non-admin user attempted to enable behaviour
+        /// or
+        /// Non-admin user attempted to disable behaviour
+        /// </exception>
         [FlowState(id: "S1", distinctUntilChanged: true)]
         public void WithAttention(FlowContext context, IFlowTransitionManager manager)
         {
@@ -69,40 +69,28 @@ namespace Mofichan.Behaviour.Admin
             Debug.Assert(user != null, "The message should be from a user");
 
             bool authorised = (context.Message.From as IUser)?.Type == UserType.Adminstrator;
-            bool enableRequest = Regex.IsMatch(messageBody, EnableMatch);
-            bool disableRequest = Regex.IsMatch(messageBody, DisableMatch);
+            bool enableRequest = Regex.IsMatch(messageBody, EnableMatch, RegexOptions.IgnoreCase);
+            bool disableRequest = Regex.IsMatch(messageBody, DisableMatch, RegexOptions.IgnoreCase);
 
-            ConfigureForEventualFlowTermination(manager);
+            manager.MakeTransitionCertain("T1,Term");
 
             if (enableRequest && authorised)
             {
-                context.Attention.RenewAttentionTowardsUser(user);
-
-                var response = this.ChangeBehaviourEnableState(context.Message, EnableMatch, "enabled", true);
-                context.GeneratedResponseHandler(response);
+                this.ChangeBehaviourEnableState(context.Visitor, context.Message, EnableMatch, "enabled", true);
             }
             else if (disableRequest && authorised)
             {
-                context.Attention.RenewAttentionTowardsUser(user);
-
-                var response = this.ChangeBehaviourEnableState(context.Message, DisableMatch, "disabled", false);
-                context.GeneratedResponseHandler(response);
+                this.ChangeBehaviourEnableState(context.Visitor, context.Message, DisableMatch, "disabled", false);
             }
             else if (enableRequest && !authorised)
             {
-                context.Attention.RenewAttentionTowardsUser(user);
-
-                throw new MofichanAuthorisationException(
-                    "Non-admin user attempted to enable behaviour",
-                    context.Message);
+                HandleAuthorisationFailure(context.Visitor, context.Message,
+                    "Non-admin user attempted to enable behaviour");
             }
             else if (disableRequest && !authorised)
             {
-                context.Attention.RenewAttentionTowardsUser(user);
-
-                throw new MofichanAuthorisationException(
-                    "Non-admin user attempted to disable behaviour",
-                    context.Message);
+                HandleAuthorisationFailure(context.Visitor, context.Message,
+                    "Non-admin user attempted to disable behaviour");
             }
         }
 
@@ -140,34 +128,47 @@ namespace Mofichan.Behaviour.Admin
             }
         }
 
-        private static void ConfigureForEventualFlowTermination(IFlowTransitionManager manager)
+        private static void HandleAuthorisationFailure(IBehaviourVisitor visitor, MessageContext incomingMessage,
+            string exceptionMessage)
         {
-            manager.ClearTransitionWeights();
-            manager.MakeTransitionCertain("T1,1:wait");
+            var exception = new MofichanAuthorisationException(exceptionMessage, incomingMessage);
+            var user = incomingMessage.From as IUser;
+            Debug.Assert(user != null, "The message sender should be a user");
+
+            visitor.RegisterResponse(rb => rb
+                .WithBotContextChange(ctx => ctx.Attention.RenewAttentionTowardsUser(user))
+                .WithSideEffect(() => { throw exception; }));
         }
 
-        private static OutgoingMessage HandleNonExistentBehaviour(string behaviour, string action, MessageContext messageContext)
+        private static void HandleNonExistentBehaviour(IBehaviourVisitor visitor, MessageContext incomingMessage,
+            string behaviour, string action)
         {
-            var from = messageContext.From as IUser;
-            Debug.Assert(from != null, "The message sender should be a user");
+            var user = incomingMessage.From as IUser;
+            Debug.Assert(user != null, "The message sender should be a user");
 
             var reply = string.Format("I'm afraid behaviour '{0}' doesn't exist or can't be {1}, {2}",
-                behaviour, action, from.Name);
+                behaviour, action, user.Name);
 
-            return messageContext.Reply(reply);
+            visitor.RegisterResponse(rb => rb
+                .WithMessage(mb => mb.FromRaw(reply))
+                .WithBotContextChange(ctx => ctx.Attention.RenewAttentionTowardsUser(user))
+                .RelevantBecause(it => it.GuaranteesRelevance()));
         }
 
-        private OutgoingMessage ChangeBehaviourEnableState(
-            MessageContext messageContext, string pattern, string enableStateName, bool enableState)
+        private void ChangeBehaviourEnableState(IBehaviourVisitor visitor, MessageContext incomingMessage,
+            string pattern, string enableStateName, bool enableState)
         {
-            var match = Regex.Match(messageContext.Body, pattern, RegexOptions.IgnoreCase);
-
+            var user = incomingMessage.From as IUser;
+            var match = Regex.Match(incomingMessage.Body, pattern, RegexOptions.IgnoreCase);
             string behaviour = match.Groups["behaviour"].Value;
-
             EnableableBehaviourDecorator decoratedBehaviour;
+
+            Debug.Assert(user != null, "The message should be from a user");
+
             if (this.behaviourMap.TryGetValue(behaviour, out decoratedBehaviour))
             {
                 string reply;
+                Action enableStateChange = () => { };
 
                 if (decoratedBehaviour.Enabled == enableState)
                 {
@@ -175,15 +176,19 @@ namespace Mofichan.Behaviour.Admin
                 }
                 else
                 {
-                    decoratedBehaviour.Enabled = enableState;
+                    enableStateChange = () => decoratedBehaviour.Enabled = enableState;
                     reply = string.Format("'{0}' behaviour is now {1}", behaviour, enableStateName);
                 }
 
-                return messageContext.Reply(reply);
+                visitor.RegisterResponse(rb => rb
+                    .WithMessage(mb => mb.FromRaw(reply))
+                    .WithSideEffect(enableStateChange)
+                    .WithBotContextChange(ctx => ctx.Attention.RenewAttentionTowardsUser(user))
+                    .RelevantBecause(it => it.GuaranteesRelevance()));
             }
             else
             {
-                return HandleNonExistentBehaviour(behaviour, enableStateName, messageContext);
+                HandleNonExistentBehaviour(visitor, incomingMessage, behaviour, enableStateName);
             }
         }
 
@@ -192,8 +197,7 @@ namespace Mofichan.Behaviour.Admin
             private const string Tick = "✓";
             private const string Cross = "⨉";
 
-            private IObserver<IncomingMessage> downstreamObserver;
-            private IObserver<OutgoingMessage> upstreamObserver;
+            private IObserver<IBehaviourVisitor> observer;
 
             public EnableableBehaviourDecorator(IMofichanBehaviour delegateBehaviour)
                 : base(delegateBehaviour)
@@ -203,39 +207,21 @@ namespace Mofichan.Behaviour.Admin
 
             public bool Enabled { get; set; }
 
-            public override IDisposable Subscribe(IObserver<IncomingMessage> observer)
+            public override IDisposable Subscribe(IObserver<IBehaviourVisitor> observer)
             {
-                this.downstreamObserver = observer;
+                this.observer = observer;
                 return base.Subscribe(observer);
             }
 
-            public override IDisposable Subscribe(IObserver<OutgoingMessage> observer)
-            {
-                this.upstreamObserver = observer;
-                return base.Subscribe(observer);
-            }
-
-            public override void OnNext(IncomingMessage message)
+            public override void OnNext(IBehaviourVisitor visitor)
             {
                 if (this.Enabled)
                 {
-                    base.OnNext(message);
+                    base.OnNext(visitor);
                 }
-                else if (this.downstreamObserver != null)
+                else if (this.observer != null)
                 {
-                    this.downstreamObserver.OnNext(message);
-                }
-            }
-
-            public override void OnNext(OutgoingMessage message)
-            {
-                if (this.Enabled)
-                {
-                    base.OnNext(message);
-                }
-                else if (this.downstreamObserver != null)
-                {
-                    this.upstreamObserver.OnNext(message);
+                    this.observer.OnNext(visitor);
                 }
             }
 

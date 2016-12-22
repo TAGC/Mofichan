@@ -9,7 +9,7 @@ using Mofichan.DataAccess.Response;
 
 namespace Mofichan.DataAccess
 {
-    internal class ResponseBuilder : IResponseBuilder
+    internal class ResponseBodyBuilder : IResponseBodyBuilder
     {
         private static readonly double DefaultChance = 1.0;
         private static readonly string DefaultPrefix = " ";
@@ -20,7 +20,7 @@ namespace Mofichan.DataAccess
         private readonly Random random;
         private readonly dynamic context;
 
-        public ResponseBuilder(IArticleFilter articleFilter, IArticleResolver articleResolver)
+        public ResponseBodyBuilder(IArticleFilter articleFilter, IArticleResolver articleResolver)
         {
             this.articleFilter = articleFilter;
             this.articleResolver = articleResolver;
@@ -29,7 +29,7 @@ namespace Mofichan.DataAccess
             this.context = new ExpandoObject();
         }
 
-        public IResponseBuilder UsingContext(MessageContext messageContext)
+        public IResponseBodyBuilder UsingContext(MessageContext messageContext)
         {
             var fromUser = messageContext.From as IUser;
             var toUser = messageContext.To as IUser;
@@ -53,28 +53,28 @@ namespace Mofichan.DataAccess
             return this;
         }
 
-        public IResponseBuilder FromRaw(string rawString)
+        public IResponseBodyBuilder FromRaw(string rawString)
         {
             this.stringBuilder.Append(rawString);
             return this;
         }
 
-        public IResponseBuilder FromAnyOf(params string[] phrases)
+        public IResponseBodyBuilder FromAnyOf(params string[] phrases)
         {
             return this.FromAnyOf(DefaultPrefix, DefaultChance, phrases);
         }
 
-        public IResponseBuilder FromAnyOf(string prefix, IEnumerable<string> phrases)
+        public IResponseBodyBuilder FromAnyOf(string prefix, IEnumerable<string> phrases)
         {
             return this.FromAnyOf(prefix, DefaultChance, phrases);
         }
 
-        public IResponseBuilder FromAnyOf(double chance, IEnumerable<string> phrases)
+        public IResponseBodyBuilder FromAnyOf(double chance, IEnumerable<string> phrases)
         {
             return this.FromAnyOf(DefaultPrefix, chance, phrases);
         }
 
-        public IResponseBuilder FromAnyOf(string prefix, double chance, IEnumerable<string> phrases)
+        public IResponseBodyBuilder FromAnyOf(string prefix, double chance, IEnumerable<string> phrases)
         {
             var possibilities = phrases.Select(it => prefix + it);
             var part = this.PickAnyOfWithChance(possibilities, chance);
@@ -83,22 +83,22 @@ namespace Mofichan.DataAccess
             return this;
         }
 
-        public IResponseBuilder FromTags(params string[] tags)
+        public IResponseBodyBuilder FromTags(params string[] tags)
         {
             return this.FromTags(DefaultPrefix, DefaultChance, tags);
         }
 
-        public IResponseBuilder FromTags(string prefix, IEnumerable<string> tags)
+        public IResponseBodyBuilder FromTags(string prefix, IEnumerable<string> tags)
         {
             return this.FromTags(prefix, DefaultChance, tags);
         }
 
-        public IResponseBuilder FromTags(double chance, IEnumerable<string> tags)
+        public IResponseBodyBuilder FromTags(double chance, IEnumerable<string> tags)
         {
             return this.FromTags(DefaultPrefix, chance, tags);
         }
 
-        public IResponseBuilder FromTags(string prefix, double chance, IEnumerable<string> tags)
+        public IResponseBodyBuilder FromTags(string prefix, double chance, IEnumerable<string> tags)
         {
             var tagRequirement = CreateTagRequirement(tags);
             var validArticles = this.articleFilter.FilterByTagRequirement(tagRequirement);

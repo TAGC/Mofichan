@@ -1,19 +1,21 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Text.RegularExpressions;
 using Mofichan.Behaviour.Base;
 using Mofichan.Behaviour.Flow;
 using Mofichan.Core;
 using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
+using Mofichan.Core.Utility;
+using Mofichan.Core.Visitor;
 using Mofichan.Tests.TestUtility;
 using Moq;
+using Serilog;
 using Shouldly;
 using Xunit;
-using static Mofichan.Tests.TestUtility.MessageUtil;
 using static Mofichan.Tests.TestUtility.FlowUtil;
-using Serilog;
+using static Mofichan.Tests.TestUtility.MessageUtil;
 
 namespace Mofichan.Tests.Behaviour
 {
@@ -23,7 +25,7 @@ namespace Mofichan.Tests.Behaviour
         public class FooBarFlowBehaviour : BaseFlowReflectionBehaviour
         {
             public FooBarFlowBehaviour(IFlowManager manager)
-                : base("S0", () => Mock.Of<IResponseBuilder>(), manager, new LoggerConfiguration().CreateLogger())
+                : base("S0", MockBotContext.Instance, manager, MockLogger.Instance)
             {
                 this.RegisterSimpleTransition("T0,0", from: "S0", to: "S0");
                 this.RegisterSimpleTransition("T0,1", from: "S0", to: "S1");
@@ -35,7 +37,7 @@ namespace Mofichan.Tests.Behaviour
             [FlowState(id: "S0")]
             public void WaitOnBar(FlowContext context, IFlowTransitionManager manager)
             {
-                DecideTransitionFromMatch("bar", "T0,1", "T0,0")(context, manager);
+                DecideTransitionFromMatch("bar", "T0,1")(context, manager);
             }
 
             [FlowState(id: "S1")]
@@ -49,8 +51,8 @@ namespace Mofichan.Tests.Behaviour
                 }
                 else
                 {
-                    manager["T1,1"] = 0.7;
-                    manager["T1,0:timeout"] = 0.3;
+                    manager.MakeTransitionsImpossible();
+                    manager["T1,0:timeout"] = (int)new Random().SampleGaussian(100, 10);
                 }
             }
 
@@ -58,15 +60,16 @@ namespace Mofichan.Tests.Behaviour
             public void OnFoo(FlowContext context, IFlowTransitionManager manager)
             {
                 var response = "Yes sir, yes sir, three baz full";
-                var outgoingMessage = RespondTo(context.Message, response);
-                context.GeneratedResponseHandler(outgoingMessage);
+
+                context.Visitor.RegisterResponse(rb => rb
+                    .WithMessage(mb => mb.FromRaw(response)));
             }
         }
 
         public class WarfareFlowBehaviour : BaseFlowReflectionBehaviour
         {
             public WarfareFlowBehaviour(IFlowManager manager)
-                : base("S0", () => Mock.Of<IResponseBuilder>(), manager, new LoggerConfiguration().CreateLogger())
+                : base("S0", MockBotContext.Instance, manager, MockLogger.Instance)
             {
                 this.RegisterSimpleTransition("T0,0", from: "S0", to: "S0");
                 this.RegisterSimpleTransition("T0,1", from: "S0", to: "S1");
@@ -104,8 +107,8 @@ namespace Mofichan.Tests.Behaviour
                 }
                 else
                 {
-                    manager["T1,1"] = 0.7;
-                    manager["T1,0:timeout"] = 0.3;
+                    manager.MakeTransitionsImpossible();
+                    manager["T1,0:timeout"] = (int)new Random().SampleGaussian(100, 10);
                 }
             }
 
@@ -113,16 +116,18 @@ namespace Mofichan.Tests.Behaviour
             public void OnAuthorisedRequest(FlowContext context, IFlowTransitionManager manager)
             {
                 var response = "Launching all warheads in T-10...";
-                var outgoingMessage = RespondTo(context.Message, response);
-                context.GeneratedResponseHandler(outgoingMessage);
+
+                context.Visitor.RegisterResponse(rb => rb
+                    .WithMessage(mb => mb.FromRaw(response)));
             }
 
             [FlowTransition(id: "T1,0:failure", from: "S1", to: "S0")]
             public void OnUnauthorisedRequest(FlowContext context, IFlowTransitionManager manager)
             {
                 var response = "Sorry - you do not have permission to destroy the world.";
-                var outgoingMessage = RespondTo(context.Message, response);
-                context.GeneratedResponseHandler(outgoingMessage);
+
+                context.Visitor.RegisterResponse(rb => rb
+                    .WithMessage(mb => mb.FromRaw(response)));
             }
         }
         #endregion
@@ -131,148 +136,141 @@ namespace Mofichan.Tests.Behaviour
         public void Foo_Bar_Flow_Behaviour_Should_Behave_As_Expected()
         {
             // GIVEN a foo bar flow behaviour.
-            var driver = new ControllableFlowDriver();
-            var responses = new List<OutgoingMessage>();
-            var manager = new FlowManager(t => new FlowTransitionManager(t), AttentionManagerFactory,
-                new FairFlowTransitionSelector(), driver);
+            var manager = new FlowManager(t => new FlowTransitionManager(t));
             var behaviour = new FooBarFlowBehaviour(manager);
-            behaviour.Subscribe<OutgoingMessage>(it => responses.Add(it));
 
             // GIVEN the ID of some particular user.
             var borgUser = "borg-7.9";
 
             // EXPECT no response when the behaviour receives an incoming message containing "bar" from this user.
             // Reason: the "bar" transition should not generate any responses when triggered.
-            behaviour.OnNext(MessageFromBodyAndSender("Bar bar black sheep", borgUser));
-            driver.StepFlow();
-            responses.ShouldBeEmpty();
+            var visitorFactory = new BehaviourVisitorFactory(MockBotContext.Instance, CreateSimpleMessageBuilder);
+            behaviour.OnNext(visitorFactory.CreateMessageVisitor(
+                MessageFromBodyAndSender("Bar bar black sheep", borgUser)));
+
+            behaviour.OnNext(visitorFactory.CreatePulseVisitor());
+            visitorFactory.Responses.ShouldBeEmpty();
 
             // EXPECT a response to the user when the behaviour receives a "foo" message from them.
-            behaviour.OnNext(MessageFromBodyAndSender("Have you any foo?", borgUser));
-            driver.StepFlow();
-            responses.ShouldContain(it => it.Context.Body == "Yes sir, yes sir, three baz full" &&
-                                         (it.Context.To as IUser).UserId == borgUser);
+            behaviour.OnNext(visitorFactory.CreateMessageVisitor(
+                MessageFromBodyAndSender("Have you any foo?", borgUser)));
+
+            behaviour.OnNext(visitorFactory.CreatePulseVisitor());
+            var response = visitorFactory.Responses.ShouldHaveSingleItem().Message;
+            response.Body.ShouldBe("Yes sir, yes sir, three baz full");
+            (response.To as IUser).UserId.ShouldBe(borgUser);
         }
 
         [Fact]
         public void Warfare_Flow_Behaviour_Should_Ignore_Normal_User_If_He_Hasnt_Got_Mofi_Attention()
         {
-            var responses = new List<OutgoingMessage>();
             WarfareFlowBehaviour behaviour;
-            ControllableFlowDriver flowDriver;
             Mock<IUser> johnSmith, _;
-            SetupWarfareTest(responses, out flowDriver, out behaviour, out johnSmith, out _);
+            SetupWarfareTest(out behaviour, out johnSmith, out _);
 
             // WHEN the normal user requests to launch warheads without getting Mofi's attention.
-            behaviour.OnNext(new IncomingMessage(new MessageContext(
+            var visitorFactory = new BehaviourVisitorFactory(MockBotContext.Instance, CreateSimpleMessageBuilder);
+            behaviour.OnNext(visitorFactory.CreateMessageVisitor(new MessageContext(
                 from: johnSmith.Object,
                 to: Mock.Of<IUser>(),
                 body: "Launch all the nuclear warheads!")));
 
-            flowDriver.StepFlow();
+            behaviour.OnNext(visitorFactory.CreatePulseVisitor());
 
             // THEN no responses should have been generated.
-            responses.ShouldBeEmpty();
+            visitorFactory.Responses.ShouldBeEmpty();
         }
 
         [Fact]
         public void Warfare_Flow_Behaviour_Should_Ignore_Admin_User_If_He_Hasnt_Got_Mofi_Attention()
         {
-            var responses = new List<OutgoingMessage>();
             WarfareFlowBehaviour behaviour;
-            ControllableFlowDriver flowDriver;
             Mock<IUser> _, donaldTrump;
-            SetupWarfareTest(responses, out flowDriver, out behaviour, out _, out donaldTrump);
+            SetupWarfareTest(out behaviour, out _, out donaldTrump);
 
             // WHEN the administrator requests to launch warheads without getting Mofi's attention.
-            behaviour.OnNext(new IncomingMessage(new MessageContext(
+            var visitorFactory = new BehaviourVisitorFactory(MockBotContext.Instance, CreateSimpleMessageBuilder);
+            behaviour.OnNext(visitorFactory.CreateMessageVisitor(new MessageContext(
                 from: donaldTrump.Object,
                 to: Mock.Of<IUser>(),
                 body: "Launch all the nuclear warheads!")));
 
-            flowDriver.StepFlow();
+            behaviour.OnNext(visitorFactory.CreatePulseVisitor());
 
             // THEN no responses should have been generated.
-            responses.ShouldBeEmpty();
+            visitorFactory.Responses.ShouldBeEmpty();
         }
 
         [Fact]
         public void Warfare_Flow_Behaviour_Should_Reject_Warhead_Launch_Request_From_Normal_User()
         {
-            var responses = new List<OutgoingMessage>();
             WarfareFlowBehaviour behaviour;
-            ControllableFlowDriver flowDriver;
             Mock<IUser> johnSmith, _;
-            SetupWarfareTest(responses, out flowDriver, out behaviour, out johnSmith, out _);
+            SetupWarfareTest(out behaviour, out johnSmith, out _);
 
             // WHEN the normal user gets Mofi's attention.
-            behaviour.OnNext(new IncomingMessage(new MessageContext(
+            var visitorFactory = new BehaviourVisitorFactory(MockBotContext.Instance, CreateSimpleMessageBuilder);
+            behaviour.OnNext(visitorFactory.CreateMessageVisitor(new MessageContext(
                 from: johnSmith.Object,
                 to: Mock.Of<IUser>(),
                 body: "Hey!",
                 tags: new[] { "directedAtMofichan" })));
 
-            flowDriver.StepFlow();
+            behaviour.OnNext(visitorFactory.CreatePulseVisitor());
 
             // AND requests Mofi to launch all warheads.
-            behaviour.OnNext(new IncomingMessage(new MessageContext(
+            behaviour.OnNext(visitorFactory.CreateMessageVisitor(new MessageContext(
                 from: johnSmith.Object,
                 to: Mock.Of<IUser>(),
                 body: "Launch all the nuclear warheads!")));
 
-            flowDriver.StepFlow();
+            behaviour.OnNext(visitorFactory.CreatePulseVisitor());
 
             // THEN mofi should refuse.
-            Predicate<MessageContext> responseToJohn = it => it.To == johnSmith.Object;
+            Predicate<MessageContext> responseToJohn = it => it.To.Equals(johnSmith.Object);
             Predicate<MessageContext> requestRejection = it => it.Body == "Sorry - you do not have permission to destroy the world.";
-            responses.Select(it => it.Context).ShouldContain(it => responseToJohn(it) && requestRejection(it));
+            visitorFactory.Responses.Select(it => it.Message).ShouldContain(it => responseToJohn(it) && requestRejection(it));
         }
 
         [Fact]
         public void Warfare_Flow_Behaviour_Should_Accept_Warhead_Launch_Request_From_Admin_User()
         {
-            var responses = new List<OutgoingMessage>();
             WarfareFlowBehaviour behaviour;
-            ControllableFlowDriver flowDriver;
             Mock<IUser> _, donaldTrump;
-            SetupWarfareTest(responses, out flowDriver, out behaviour, out _, out donaldTrump);
+            SetupWarfareTest(out behaviour, out _, out donaldTrump);
 
             // WHEN the administrator gets Mofi's attention.
-            behaviour.OnNext(new IncomingMessage(new MessageContext(
+            var visitorFactory = new BehaviourVisitorFactory(MockBotContext.Instance, CreateSimpleMessageBuilder);
+            behaviour.OnNext(visitorFactory.CreateMessageVisitor(new MessageContext(
                 from: donaldTrump.Object,
                 to: Mock.Of<IUser>(),
                 body: "Hey!",
                 tags: new[] { "directedAtMofichan" })));
 
-            flowDriver.StepFlow();
+            behaviour.OnNext(visitorFactory.CreatePulseVisitor());
 
             // AND requests Mofi to launch all warheads.
-            behaviour.OnNext(new IncomingMessage(new MessageContext(
+            behaviour.OnNext(visitorFactory.CreateMessageVisitor(new MessageContext(
                 from: donaldTrump.Object,
                 to: Mock.Of<IUser>(),
                 body: "Launch all the nuclear warheads!")));
 
-            flowDriver.StepFlow();
+            behaviour.OnNext(visitorFactory.CreatePulseVisitor());
 
             // THEN Mofichan should comply.
-            Predicate<MessageContext> responseToTrump = it => it.To == donaldTrump.Object;
+            Predicate<MessageContext> responseToTrump = it => it.To.Equals(donaldTrump.Object);
             Predicate<MessageContext> requestAcceptance = it => it.Body == "Launching all warheads in T-10...";
-            responses.Select(it => it.Context).ShouldContain(it => responseToTrump(it) && requestAcceptance(it));
+            visitorFactory.Responses.Select(it => it.Message).ShouldContain(it => responseToTrump(it) && requestAcceptance(it));
         }
 
         private static void SetupWarfareTest(
-            List<OutgoingMessage> responses,
-            out ControllableFlowDriver driver,
             out WarfareFlowBehaviour behaviour,
             out Mock<IUser> johnSmith,
             out Mock<IUser> donaldTrump)
         {
             // GIVEN a warfare flow behaviour.
-            driver = new ControllableFlowDriver();
-            var manager = new FlowManager(t => new FlowTransitionManager(t), AttentionManagerFactory,
-                new FairFlowTransitionSelector(), driver);
+            var manager = new FlowManager(t => new FlowTransitionManager(t));
             behaviour = new WarfareFlowBehaviour(manager);
-            behaviour.Subscribe<OutgoingMessage>(it => responses.Add(it));
 
             // GIVEN a normal user.
             johnSmith = new Mock<IUser>();

@@ -3,9 +3,9 @@
 namespace Mofichan.Core.Interfaces
 {
     /// <summary>
-    /// Represents a builder that facilitates constructing responses to other users.
+    /// Represents a builder that facilitates constructing the bodies of responses to other users.
     /// </summary>
-    public interface IResponseBuilder
+    public interface IResponseBodyBuilder
     {
         /// <summary>
         /// Provides the response builder with information about the message context
@@ -13,14 +13,14 @@ namespace Mofichan.Core.Interfaces
         /// </summary>
         /// <param name="messageContext">The message context.</param>
         /// <returns>This builder.</returns>
-        IResponseBuilder UsingContext(MessageContext messageContext);
+        IResponseBodyBuilder UsingContext(MessageContext messageContext);
 
         /// <summary>
         /// Specifies part of a response to be constructed from a raw string.
         /// </summary>
         /// <param name="rawString">A string to use in the response as-is.</param>
         /// <returns>This builder.</returns>
-        IResponseBuilder FromRaw(string rawString);
+        IResponseBodyBuilder FromRaw(string rawString);
 
         /// <summary>
         /// Specifies part of a response to be constructed using an article (snippet)
@@ -44,7 +44,7 @@ namespace Mofichan.Core.Interfaces
         ///     <item>"baz"</item>
         /// </list>
         /// </example>
-        IResponseBuilder FromTags(params string[] tags);
+        IResponseBodyBuilder FromTags(params string[] tags);
 
         /// <summary>
         /// Specifies part of a response to be constructed using an article (snippet)
@@ -78,7 +78,7 @@ namespace Mofichan.Core.Interfaces
         /// There is a 50% chance that one of all discovered viable articles will be appended to the response,
         /// and 50% chance that no article will be appended to the response.
         /// </example>
-        IResponseBuilder FromTags(double chance, IEnumerable<string> tags);
+        IResponseBodyBuilder FromTags(double chance, IEnumerable<string> tags);
 
         /// <summary>
         /// Specifies part of a response to be constructed using an article (snippet)
@@ -106,7 +106,7 @@ namespace Mofichan.Core.Interfaces
         /// </list>
         /// "I say: <c>{chosen article}</c>" will be appended to  the response.
         /// </example>
-        IResponseBuilder FromTags(string prefix, IEnumerable<string> tags);
+        IResponseBodyBuilder FromTags(string prefix, IEnumerable<string> tags);
 
         /// <summary>
         /// Specifies part of a response to be constructed using an article (snippet)
@@ -145,7 +145,7 @@ namespace Mofichan.Core.Interfaces
         /// There is a 50% chance that "I say: <c>{chosen article}</c>" will be appended to the response,
         /// and 50% chance that no article will be appended to the response.
         /// </example>
-        IResponseBuilder FromTags(string prefix, double chance, IEnumerable<string> tags);
+        IResponseBodyBuilder FromTags(string prefix, double chance, IEnumerable<string> tags);
 
         /// <summary>
         /// Specifies part of a response to be constructed using one of a provided
@@ -153,7 +153,7 @@ namespace Mofichan.Core.Interfaces
         /// </summary>
         /// <param name="phrases">The phrases to choose from.</param>
         /// <returns>This builder.</returns>
-        IResponseBuilder FromAnyOf(params string[] phrases);
+        IResponseBodyBuilder FromAnyOf(params string[] phrases);
 
         /// <summary>
         /// Specifies part of a response to be constructed using one of a provided
@@ -169,7 +169,7 @@ namespace Mofichan.Core.Interfaces
         /// <returns>
         /// This builder.
         /// </returns>
-        IResponseBuilder FromAnyOf(double chance, IEnumerable<string> phrases);
+        IResponseBodyBuilder FromAnyOf(double chance, IEnumerable<string> phrases);
 
         /// <summary>
         /// Specifies part of a response to be constructed using one of a provided
@@ -180,7 +180,7 @@ namespace Mofichan.Core.Interfaces
         /// <returns>
         /// This builder.
         /// </returns>
-        IResponseBuilder FromAnyOf(string prefix, IEnumerable<string> phrases);
+        IResponseBodyBuilder FromAnyOf(string prefix, IEnumerable<string> phrases);
 
         /// <summary>
         /// Specifies part of a response to be constructed using one of a provided
@@ -199,7 +199,7 @@ namespace Mofichan.Core.Interfaces
         /// </param>
         /// <param name="phrases">The phrases to choose from.</param>
         /// <returns>This builder.</returns>
-        IResponseBuilder FromAnyOf(string prefix, double chance, IEnumerable<string> phrases);
+        IResponseBodyBuilder FromAnyOf(string prefix, double chance, IEnumerable<string> phrases);
 
         /// <summary>
         /// Constructs a response based on the configured state of this builder.

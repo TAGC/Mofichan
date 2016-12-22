@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using Mofichan.Behaviour.Base;
-using Mofichan.Behaviour.Flow;
 using Mofichan.Core;
 using Mofichan.Core.Exceptions;
 using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
+using Mofichan.Core.Visitor;
 using Mofichan.Tests.TestUtility;
 using Moq;
 using Serilog;
@@ -22,7 +21,7 @@ namespace Mofichan.Tests.Behaviour
         private class MockFlowBehaviour : BaseFlowBehaviour
         {
             public MockFlowBehaviour(string startNodeId, IFlowManager flowManager)
-                : base(startNodeId, () => Mock.Of<IResponseBuilder>(), flowManager, Mock.Of<ILogger>())
+                : base(startNodeId, flowManager, MockLogger.Instance)
             {
             }
 
@@ -40,8 +39,8 @@ namespace Mofichan.Tests.Behaviour
             //  - S1 -> S0 occurs if "foo" is received
             var nodes = new[]
             {
-                new FlowNode("S0", DecideTransitionFromMatch("bar", "T0,1", "T0,0"), TransitionManagerFactory),
-                new FlowNode("S1", DecideTransitionFromMatch("foo", "T1,0", "T1,1"), TransitionManagerFactory),
+                new FlowNode("S0", DecideTransitionFromMatch("bar", "T0,1"), TransitionManagerFactory),
+                new FlowNode("S1", DecideTransitionFromMatch("foo", "T1,0"), TransitionManagerFactory),
             };
 
             // GIVEN transitions T0,0, T0,1, T1,0 and T1,1 where T1,0 will generate a response.
@@ -50,21 +49,15 @@ namespace Mofichan.Tests.Behaviour
                 new FlowTransition("T0,0"),
                 new FlowTransition("T0,1"),
                 new FlowTransition("T1,1"),
-                new FlowTransition("T1,0", (context, _) => context.GeneratedResponseHandler(
-                    ResponseFromBodyAndRecipient(
-                        body: "Yes sir, yes sir, three baz full",
-                        recipientId: (context.Message.From as IUser).UserId)))
+                new FlowTransition("T1,0", (context, _) => context.Visitor.RegisterResponse(rb => rb
+                    .WithMessage(mb => mb.FromRaw("Yes sir, yes sir, three baz full"))))
             };
 
             // GIVEN a mock flow behaviour that registers a flow with these nodes.
-            var responses = new List<OutgoingMessage>();
-            var driver = new ControllableFlowDriver();
-            var manager = new FlowManager(t => new FlowTransitionManager(t), AttentionManagerFactory,
-                new FairFlowTransitionSelector(), driver);
+            var manager = new FlowManager(t => new FlowTransitionManager(t));
             var mockBehaviour = new MockFlowBehaviour("S0", manager);
-            mockBehaviour.Subscribe<OutgoingMessage>(it => responses.Add(it));
             mockBehaviour.RegisterFlow(builder => builder
-                .WithLogger(new LoggerConfiguration().CreateLogger())
+                .WithLogger(MockLogger.Instance)
                 .WithNodes(nodes)
                 .WithTransitions(transitions)
                 .WithConnection("S0", "S0", "T0,0")
@@ -77,19 +70,26 @@ namespace Mofichan.Tests.Behaviour
 
             // EXPECT no response when the behaviour receives an incoming message containing "bar" from this user.
             // Reason: the "bar" transition should not generate any responses when triggered.
-            mockBehaviour.OnNext(MessageFromBodyAndSender("Bar bar black sheep", borgUser));
-            driver.StepFlow();
-            responses.ShouldBeEmpty();
+            var visitorFactory = new BehaviourVisitorFactory(MockBotContext.Instance, CreateSimpleMessageBuilder);
+            mockBehaviour.OnNext(visitorFactory.CreateMessageVisitor(
+                MessageFromBodyAndSender("Bar bar black sheep", borgUser)));
+
+            mockBehaviour.OnNext(visitorFactory.CreatePulseVisitor());
+            visitorFactory.Responses.ShouldBeEmpty();
 
             // EXPECT a response to the user when the behaviour receives a "foo" message from them.
-            mockBehaviour.OnNext(MessageFromBodyAndSender("Have you any foo?", borgUser));
-            driver.StepFlow();
-            responses.ShouldContain(it => it.Context.Body == "Yes sir, yes sir, three baz full" &&
-                                         (it.Context.To as IUser).UserId == borgUser);
+            mockBehaviour.OnNext(visitorFactory.CreateMessageVisitor(
+                MessageFromBodyAndSender("Have you any foo?", borgUser)));
+
+            mockBehaviour.OnNext(visitorFactory.CreatePulseVisitor());
+
+            var response = visitorFactory.Responses.ShouldHaveSingleItem().Message;
+            response.Body.ShouldBe("Yes sir, yes sir, three baz full");
+            (response.To as IUser).UserId.ShouldBe(borgUser);
         }
 
         [Fact]
-        public void Flow_Behaviour_Should_Catch_And_Handle_Authorisation_Exceptions_Thrown_By_Nodes()
+        public void Flow_Behaviour_Nodes_Should_Throw_Authorisation_Exceptions_If_Necessary()
         {
             // GIVEN a node that throws an authorisation exception on accepting messages.
             var nodes = new[]
@@ -101,14 +101,10 @@ namespace Mofichan.Tests.Behaviour
             var transitions = Enumerable.Empty<IFlowTransition>();
 
             // GIVEN a mock flow behaviour that registers a flow with this node.
-            var responses = new List<OutgoingMessage>();
-            var driver = new ControllableFlowDriver();
-            var manager = new FlowManager(t => new FlowTransitionManager(t), AttentionManagerFactory,
-                new FairFlowTransitionSelector(), driver);
+            var manager = new FlowManager(t => new FlowTransitionManager(t));
             var mockBehaviour = new MockFlowBehaviour("S0", manager);
-            mockBehaviour.Subscribe<OutgoingMessage>(it => responses.Add(it));
             mockBehaviour.RegisterFlow(builder => builder
-                .WithLogger(new LoggerConfiguration().CreateLogger())
+                .WithLogger(MockLogger.Instance)
                 .WithNodes(nodes)
                 .WithTransitions(transitions)
                 .WithStartNodeId("S0"));
@@ -118,14 +114,16 @@ namespace Mofichan.Tests.Behaviour
             janeway.SetupGet(it => it.UserId).Returns("Janeway");
             janeway.SetupGet(it => it.Name).Returns("Janeway");
 
-            // WHEN a message is received by the behaviour frm the user.
-            var messageContext = new MessageContext(from: janeway.Object, to: Mock.Of<IUser>(), body: "foo");
-            mockBehaviour.OnNext(new IncomingMessage(messageContext));
-            driver.StepFlow();
+            // EXPECT an exception is thrown when a message is received by the behaviour from the user.
+            var visitorFactory = new BehaviourVisitorFactory(MockBotContext.Instance, CreateSimpleMessageBuilder);
 
-            // THEN an appropriate response should have been returned.
-            var response = responses.ShouldHaveSingleItem();
-            response.Context.Body.ShouldMatch("not authorised");
+            Assert.Throws<MofichanAuthorisationException>(() =>
+            {
+                mockBehaviour.OnNext(visitorFactory.CreateMessageVisitor(
+                    new MessageContext(from: janeway.Object, to: Mock.Of<IUser>(), body: "foo")));
+
+                mockBehaviour.OnNext(visitorFactory.CreatePulseVisitor());
+            });
         }
 
         [Fact]
@@ -144,14 +142,10 @@ namespace Mofichan.Tests.Behaviour
             };
 
             // GIVEN a mock flow behaviour that registers a flow with this node.
-            var responses = new List<OutgoingMessage>();
-            var driver = new ControllableFlowDriver();
-            var manager = new FlowManager(t => new FlowTransitionManager(t), AttentionManagerFactory,
-                new FairFlowTransitionSelector(), driver);
+            var manager = new FlowManager(t => new FlowTransitionManager(t));
             var mockBehaviour = new MockFlowBehaviour("S0", manager);
-            mockBehaviour.Subscribe<OutgoingMessage>(it => responses.Add(it));
             mockBehaviour.RegisterFlow(builder => builder
-                .WithLogger(new LoggerConfiguration().CreateLogger())
+                .WithLogger(MockLogger.Instance)
                 .WithNodes(nodes)
                 .WithTransitions(transitions)
                 .WithConnection("S0", "S1", "T0,1")
@@ -162,15 +156,17 @@ namespace Mofichan.Tests.Behaviour
             janeway.SetupGet(it => it.UserId).Returns("Janeway");
             janeway.SetupGet(it => it.Name).Returns("Janeway");
 
-            // WHEN a message is received by the behaviour frm the user.
-            var messageContext = new MessageContext(from: janeway.Object, to: Mock.Of<IUser>(), body: "foo");
-            mockBehaviour.OnNext(new IncomingMessage(messageContext));
-            driver.StepFlow();
-            driver.StepFlow();
+            // EXPECT an exception is thrown when a message is received by the behaviour from the user.
+            var visitorFactory = new BehaviourVisitorFactory(MockBotContext.Instance, CreateSimpleMessageBuilder);
 
-            // THEN an appropriate response should have been returned.
-            var response = responses.ShouldHaveSingleItem();
-            response.Context.Body.ShouldMatch("not authorised");
+            Assert.Throws<MofichanAuthorisationException>(() =>
+            {
+                mockBehaviour.OnNext(visitorFactory.CreateMessageVisitor(
+                new MessageContext(from: janeway.Object, to: Mock.Of<IUser>(), body: "foo")));
+
+                mockBehaviour.OnNext(visitorFactory.CreatePulseVisitor());
+                mockBehaviour.OnNext(visitorFactory.CreatePulseVisitor());
+            });
         }
     }
 }

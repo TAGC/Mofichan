@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using Mofichan.Behaviour.Flow;
+using Mofichan.Core;
 using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
 using PommaLabs.Thrower;
@@ -32,23 +33,30 @@ namespace Mofichan.Behaviour.Base
         /// Initializes a new instance of the <see cref="BaseFlowReflectionBehaviour" /> class.
         /// </summary>
         /// <param name="startNodeId">Identifies the starting node in the flow.</param>
-        /// <param name="responseBuilderFactory">The response builder factory.</param>
+        /// <param name="botContext">The bot context.</param>
         /// <param name="flowManager">The flow manager.</param>
         /// <param name="logger">The logger.</param>
-        /// <param name="passThroughMessages">If set to <c>true</c>, passes through unhandled messages.</param>
         protected BaseFlowReflectionBehaviour(
             string startNodeId,
-            Func<IResponseBuilder> responseBuilderFactory,
+            BotContext botContext,
             IFlowManager flowManager,
-            ILogger logger,
-            bool passThroughMessages = true)
-            : base(startNodeId, responseBuilderFactory, flowManager, logger, passThroughMessages)
+            ILogger logger)
+            : base(startNodeId, flowManager, logger)
         {
+            this.BotContext = botContext;
             this.transitionManagerFactory = flowManager.BuildTransitionManager;
             this.nodes = new HashSet<IFlowNode>();
             this.transitions = new HashSet<IFlowTransition>();
             this.connections = new HashSet<Tuple<string, string, string>>();
         }
+
+        /// <summary>
+        /// Gets the bot context.
+        /// </summary>
+        /// <value>
+        /// The bot context.
+        /// </value>
+        protected BotContext BotContext { get; }
 
         #region Common Nodes
         /// <summary>
@@ -77,7 +85,7 @@ namespace Mofichan.Behaviour.Base
                     manager.MakeTransitionCertain(failureTransitionId);
                 }
 
-                bool isPayingAttentionToUser = context.Attention.IsPayingAttentionToUser(user);
+                bool isPayingAttentionToUser = this.BotContext.Attention.IsPayingAttentionToUser(user);
 
                 if (tags.Contains("directedAtMofichan") || isPayingAttentionToUser)
                 {
@@ -127,9 +135,9 @@ namespace Mofichan.Behaviour.Base
                 var user = context.Message.From as IUser;
                 Debug.Assert(user != null, "The message should be from a user");
 
-                if (!context.Attention.IsPayingAttentionToUser(user))
+                if (!this.BotContext.Attention.IsPayingAttentionToUser(user))
                 {
-                    manager.ClearTransitionWeights();
+                    manager.MakeTransitionsImpossible();
                     manager.MakeTransitionCertain(onAttentionLossTransitionId);
                 }
             });
@@ -207,11 +215,6 @@ namespace Mofichan.Behaviour.Base
             });
         }
 
-        private IFlowNode CreateNode(string nodeId, Action<FlowContext, IFlowTransitionManager> nodeAction)
-        {
-            return new FlowNode(nodeId, nodeAction, this.transitionManagerFactory);
-        }
-
         private static bool HasValidSignature(MethodInfo methodInfo)
         {
             Func<bool> hasTwoParameters =
@@ -228,7 +231,13 @@ namespace Mofichan.Behaviour.Base
                 && secondParamIsFlowTransitionManager();
         }
 
-        private Action<FlowContext, IFlowTransitionManager> CreateStateAction(MethodInfo methodInfo, bool distinctUntilChanged)
+        private IFlowNode CreateNode(string nodeId, Action<FlowContext, IFlowTransitionManager> nodeAction)
+        {
+            return new FlowNode(nodeId, nodeAction, this.transitionManagerFactory);
+        }
+
+        private Action<FlowContext, IFlowTransitionManager> CreateStateAction(
+            MethodInfo methodInfo, bool distinctUntilChanged)
         {
             Debug.Assert(HasValidSignature(methodInfo), "The method should have a valid signature");
 
@@ -259,7 +268,8 @@ namespace Mofichan.Behaviour.Base
             };
         }
 
-        private Action<FlowContext, IFlowTransitionManager> CreateTransitionAction(MethodInfo methodInfo)
+        private Action<FlowContext, IFlowTransitionManager> CreateTransitionAction(
+            MethodInfo methodInfo)
         {
             Debug.Assert(HasValidSignature(methodInfo), "The method should have a valid signature");
 

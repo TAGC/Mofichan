@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reactive.Subjects;
 
 namespace Mofichan.Core.Interfaces
 {
@@ -27,7 +28,7 @@ namespace Mofichan.Core.Interfaces
     /// Represents an object that provides backend support for Mofichan. This includes connection management
     /// as well as sending and receiving messages using a particular platform.
     /// </summary>
-    public interface IMofichanBackend : IObservable<IncomingMessage>, IObserver<OutgoingMessage>, IDisposable
+    public interface IMofichanBackend : ISubject<MessageContext>, IDisposable
     {
         /// <summary>
         /// Initialises the backend.

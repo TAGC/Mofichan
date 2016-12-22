@@ -1,8 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Linq;
 using Mofichan.Behaviour.Base;
-using Mofichan.Core;
 using Mofichan.Core.Interfaces;
+using Mofichan.Core.Visitor;
 using Serilog;
 
 namespace Mofichan.Behaviour.Diagnostics
@@ -19,12 +19,10 @@ namespace Mofichan.Behaviour.Diagnostics
         private readonly ILogger logger;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DiagnosticsBehaviour"/> class.
+        /// Initializes a new instance of the <see cref="DiagnosticsBehaviour" /> class.
         /// </summary>
-        /// <param name="responseBuilderFactory">A factory for instances of <see cref="IResponseBuilder"/>.</param>
         /// <param name="logger">The logger to use.</param>
-        public DiagnosticsBehaviour(Func<IResponseBuilder> responseBuilderFactory, ILogger logger)
-            : base(responseBuilderFactory)
+        public DiagnosticsBehaviour(ILogger logger)
         {
             this.logger = logger;
         }
@@ -54,52 +52,6 @@ namespace Mofichan.Behaviour.Diagnostics
             }
         }
 
-        /// <summary>
-        /// Determines whether this instance can process the specified incoming message.
-        /// </summary>
-        /// <param name="message">The message to check can be handled.</param>
-        /// <returns>
-        ///   <c>true</c> if this instance can process the incoming message; otherwise, <c>false</c>.
-        /// </returns>
-        protected override bool CanHandleIncomingMessage(IncomingMessage message)
-        {
-            return false;
-        }
-
-        /// <summary>
-        /// Determines whether this instance can process the specified outgoing message.
-        /// </summary>
-        /// <param name="message">The message to check can be handled.</param>
-        /// <returns>
-        ///   <c>true</c> if this instance can process the outgoing messagee; otherwise, <c>false</c>.
-        /// </returns>
-        protected override bool CanHandleOutgoingMessage(OutgoingMessage message)
-        {
-            return false;
-        }
-
-        /// <summary>
-        /// Handles the incoming message.
-        /// <para></para>
-        /// This method will only be invoked if <c>CanHandleIncomingMessage(message)</c> is <c>true</c>.
-        /// </summary>
-        /// <param name="message">The message to process.</param>
-        protected override void HandleIncomingMessage(IncomingMessage message)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Handles the outgoing message.
-        /// <para></para>
-        /// This method will only be invoked if <c>CanHandleOutgoingMessage(message)</c> is <c>true</c>.
-        /// </summary>
-        /// <param name="message">The message to process.</param>
-        protected override void HandleOutgoingMessage(OutgoingMessage message)
-        {
-            throw new NotImplementedException();
-        }
-
         private class LoggingBehaviourDecorator : BaseBehaviourDecorator
         {
             private const string Pencil = "✐";
@@ -108,29 +60,23 @@ namespace Mofichan.Behaviour.Diagnostics
 
             public LoggingBehaviourDecorator(IMofichanBehaviour delegateBehaviour, ILogger logger) : base(delegateBehaviour)
             {
-                this.logger = logger;
+                this.logger = logger.ForContext<LoggingBehaviourDecorator>();
             }
 
-            public override void OnNext(IncomingMessage message)
+            public override void OnNext(IBehaviourVisitor visitor)
             {
-                var body = message.Context.Body;
-                var sender = message.Context.From;
+                var onMessageVisitor = visitor as OnMessageVisitor;
 
-                this.logger.Verbose("Behaviour {BehaviourId} offered incoming message {MessageBody} from {Sender}",
-                    this.DelegateBehaviour.Id, body, sender);
+                if (onMessageVisitor != null)
+                {
+                    var body = onMessageVisitor.Message.Body;
+                    var sender = onMessageVisitor.Message.From;
 
-                base.OnNext(message);
-            }
+                    this.logger.Verbose("Behaviour {BehaviourId} received message visitor (message={MessageBody}) " +
+                        "(sender={Sender})", this.DelegateBehaviour.Id, body, sender);
+                }
 
-            public override void OnNext(OutgoingMessage message)
-            {
-                var body = message.Context.Body;
-                var sender = message.Context.From;
-
-                this.logger.Verbose("Behaviour {BehaviourId} offered outgoing message {MessageBody} from {Sender}",
-                    this.DelegateBehaviour.Id, body, sender);
-
-                base.OnNext(message);
+                base.OnNext(visitor);
             }
 
             public override string ToString()

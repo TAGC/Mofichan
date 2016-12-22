@@ -8,8 +8,11 @@ using Mofichan.Behaviour.Base;
 using Mofichan.Core;
 using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
+using Mofichan.Core.Relevance;
 using Mofichan.Core.Utility;
+using Mofichan.Core.Visitor;
 using Serilog;
+using Serilog.Events;
 
 namespace Mofichan.Runner
 {
@@ -55,7 +58,6 @@ namespace Mofichan.Runner
             // TODO: refactor behaviour bootstrapping logic.
             var behaviours = new[]
             {
-                container.ResolveNamed<IMofichanBehaviour>("selfignore"),
                 container.ResolveNamed<IMofichanBehaviour>("delay"),
                 container.ResolveNamed<IMofichanBehaviour>("administration"),
                 container.ResolveNamed<IMofichanBehaviour>("diagnostics"),
@@ -64,10 +66,14 @@ namespace Mofichan.Runner
             };
 
             var chainBuilder = container.Resolve<IBehaviourChainBuilder>();
+            var pulseDriver = container.Resolve<IPulseDriver>();
             var messageClassifier = container.Resolve<IMessageClassifier>();
+            var visitorFactory = container.Resolve<IBehaviourVisitorFactory>();
+            var responseSelector = container.Resolve<IResponseSelector>();
             var rootLogger = container.Resolve<ILogger>();
 
-            var mofichan = new Kernel(backend, behaviours, chainBuilder, messageClassifier, rootLogger);
+            var mofichan = new Kernel(backend, behaviours, chainBuilder, pulseDriver, messageClassifier,
+                visitorFactory, responseSelector, rootLogger);
 
             return mofichan;
         }
@@ -99,26 +105,36 @@ namespace Mofichan.Runner
                 .As<IFlowTransitionManager>();
 
             containerBuilder
-                .RegisterType<FairFlowTransitionSelector>()
-                .As<IFlowTransitionSelector>();
-
-            containerBuilder
-                .RegisterType<FlowDrivenAttentionManager>()
+                .RegisterType<PulseDrivenAttentionManager>()
                 .As<IAttentionManager>()
                 .WithParameter("mu", 100)
                 .WithParameter("sigma", 10)
                 .SingleInstance();
 
             containerBuilder
-                .Register(c => new PeriodicFlowDriver(
-                    TimeSpan.FromMilliseconds(100),
-                    c.Resolve<ILogger>()))
-                .As<IFlowDriver>()
+                .Register(c => new Heart(c.Resolve<ILogger>()) { Rate = TimeSpan.FromMilliseconds(100) })
+                .As<IPulseDriver>()
                 .SingleInstance();
 
             containerBuilder
                 .RegisterType<FlowManager>()
                 .As<IFlowManager>();
+
+            containerBuilder
+                .RegisterType<BotContext>();
+
+            containerBuilder
+                .RegisterType<BehaviourVisitorFactory>()
+                .As<IBehaviourVisitorFactory>();
+
+            containerBuilder
+                .RegisterType<VectorSimilarityEvaluator>()
+                .As<IRelevanceArgumentEvaluator>();
+
+            containerBuilder
+                .RegisterType<PulseDrivenResponseSelector>()
+                .WithParameter("responseWindow", 2)
+                .As<IResponseSelector>();
 
             // Register data access modules.
             containerBuilder
@@ -150,8 +166,9 @@ namespace Mofichan.Runner
             return new LoggerConfiguration()
                 .MinimumLevel.Verbose()
                 .Enrich.WithThreadId()
-                .WriteTo.LiterateConsole(outputTemplate: template)
-                .WriteTo.RollingFile(logPath, outputTemplate: template)
+                .WriteTo.LiterateConsole(restrictedToMinimumLevel: LogEventLevel.Debug, outputTemplate: template)
+                .WriteTo.RollingFile(logPath, restrictedToMinimumLevel: LogEventLevel.Debug, outputTemplate: template)
+                .WriteTo.Elasticsearch("http://elk:9200")
                 .CreateLogger();
         }
     }

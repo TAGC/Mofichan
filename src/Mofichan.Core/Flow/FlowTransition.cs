@@ -1,8 +1,6 @@
 ﻿using System;
-using Mofichan.Core.Flow;
-using Mofichan.Core.Interfaces;
 
-namespace Mofichan.Behaviour.Flow
+namespace Mofichan.Core.Flow
 {
     /// <summary>
     /// A basic implementation of <see cref="IFlowTransition"/>. 
@@ -46,13 +44,13 @@ namespace Mofichan.Behaviour.Flow
         public Action<FlowContext, IFlowTransitionManager> Action { get; }
 
         /// <summary>
-        /// Gets or sets the weight of this transition, representing the probability
-        /// that this transition should occur relative to other viable transitions.
+        /// Gets or sets the clock for this transition, representing the number of
+        /// ticks until this transition should occur.
         /// </summary>
         /// <value>
-        /// The transition weight.
+        /// The transition clock.
         /// </value>
-        public double Weight { get; set; }
+        public int Clock { get; set; }
 
         /// <summary>
         /// Determines whether the specified <see cref="System.Object" />, is equal to this instance.

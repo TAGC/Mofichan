@@ -2,11 +2,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using Mofichan.Core;
-using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
 
-namespace Mofichan.Behaviour.Flow
+namespace Mofichan.Core.Flow
 {
     /// <summary>
     /// A basic implementation of <see cref="IFlowNode"/>. 
@@ -92,32 +90,46 @@ namespace Mofichan.Behaviour.Flow
         }
 
         /// <summary>
-        /// Invokes a transition of a flow out of this node, if possible.
+        /// Allows this node to respond to a logical clock tick.
         /// </summary>
         /// <param name="flowContext">The flow context.</param>
-        public void TransitionFrom(FlowContext flowContext)
+        public void OnTick(FlowContext flowContext)
         {
-            var transitioningContexts = this.userFlowContexts.Values.ToList();
-            this.userFlowContexts.Clear();
+            var transitions = this.transitionMap.Select(it => it.Key);
 
             /*
              * This flow ends if there are no valid transitions out of this state.
              */
-            if (!this.transitionMap.Any())
+            if (!transitions.Any())
             {
+                this.userFlowContexts.Clear();
                 return;
             }
 
-            foreach (var transitioningContext in transitioningContexts)
+            /*
+             * Decrement all transition clocks with a positive value.
+             */
+            transitions.Where(it => it.Clock > 0).ToList().ForEach(it => --it.Clock);
+
+            /*
+             * A transition becomes available when the associated clock reaches 0.
+             */
+            var selectedTransition = transitions.FirstOrDefault(it => it.Clock == 0);
+
+            if (selectedTransition != null)
             {
-                var transitionSelector = flowContext.FlowTransitionSelector;
-                var possibleTransitions = this.transitionMap.Select(it => it.Key);
-                var selectedTransition = transitionSelector.Select(possibleTransitions);
                 var targetNode = this.transitionMap[selectedTransition];
+                var transitioningContexts = this.userFlowContexts.Values.ToList();
 
                 selectedTransition.Action?.Invoke(flowContext, this.TransitionManager);
-                targetNode.TransitionTo(transitioningContext);
-                targetNode.Accept(transitioningContext);
+
+                foreach (var transitioningContext in transitioningContexts)
+                {
+                    targetNode.TransitionTo(transitioningContext);
+                    targetNode.Accept(transitioningContext);
+                }
+
+                this.userFlowContexts.Clear();
             }
         }
 

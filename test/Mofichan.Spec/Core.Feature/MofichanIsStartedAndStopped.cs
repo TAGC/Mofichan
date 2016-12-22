@@ -48,7 +48,7 @@ namespace Mofichan.Spec.Core.Feature
 
         private class PropagationTestingBehaviour : BaseBehaviour
         {
-            public PropagationTestingBehaviour(int id) : base(() => Mock.Of<IResponseBuilder>())
+            public PropagationTestingBehaviour(int id)
             {
                 this.Id = "Propagation behaviour " + id;
             }
@@ -71,26 +71,6 @@ namespace Mofichan.Spec.Core.Feature
                 base.OnCompleted();
 
                 this.Completed = true;
-            }
-
-            protected override bool CanHandleIncomingMessage(IncomingMessage message)
-            {
-                return false;
-            }
-
-            protected override bool CanHandleOutgoingMessage(OutgoingMessage message)
-            {
-                return false;
-            }
-
-            protected override void HandleIncomingMessage(IncomingMessage message)
-            {
-                throw new NotImplementedException();
-            }
-
-            protected override void HandleOutgoingMessage(OutgoingMessage message)
-            {
-                throw new NotImplementedException();
             }
         }
     }

@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Linq;
-using System.Reactive;
+using System.Reactive.Linq;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
 using Mofichan.Core.Utility;
+using Mofichan.Core.Visitor;
+using Mofichan.Tests.TestUtility;
 using Moq;
 using Shouldly;
 using Xunit;
+using static Mofichan.Tests.TestUtility.MessageUtil;
 
 namespace Mofichan.Tests.Behaviour
 {
@@ -18,35 +21,19 @@ namespace Mofichan.Tests.Behaviour
         {
             private readonly string suffix;
 
-            public MockBehaviour(string toAppend) : base(() => Mock.Of<IResponseBuilder>())
+            public MockBehaviour(string toAppend)
             {
                 this.suffix = toAppend;
             }
 
-            protected override bool CanHandleIncomingMessage(IncomingMessage message)
+            protected override void HandleMessageVisitor(OnMessageVisitor visitor)
             {
-                return true;
-            }
+                visitor.RegisterResponse(rb => rb
+                    .WithMessage(mb => mb
+                        .FromRaw(visitor.Responses.Count() + " : ")
+                        .FromRaw(visitor.Message.Body + suffix)));
 
-            protected override bool CanHandleOutgoingMessage(OutgoingMessage message)
-            {
-                return false;
-            }
-
-            protected override void HandleIncomingMessage(IncomingMessage message)
-            {
-                var newBody = message.Context.Body + suffix;
-
-                var oldContext = message.Context;
-                var newContext = new MessageContext(oldContext.From, oldContext.To, newBody, oldContext.Delay);
-                var newMessage = new IncomingMessage(newContext, message.PotentialReply);
-
-                this.SendDownstream(newMessage);
-            }
-
-            protected override void HandleOutgoingMessage(OutgoingMessage message)
-            {
-                throw new NotImplementedException();
+                base.HandleMessageVisitor(visitor);
             }
         }
         #endregion
@@ -96,23 +83,23 @@ namespace Mofichan.Tests.Behaviour
                 new MockBehaviour(" baz")
             };
 
-            // GIVEN an incoming message.
-            var messageContext = new MessageContext(Mock.Of<IMessageTarget>(), Mock.Of<IMessageTarget>(), "test,");
-            var message = new IncomingMessage(messageContext);
-
-            // GIVEN we are subscribed to the last behaviour in the chain.
-            string receivedMessageBody = null;
-            var observer = Observer.Create<IncomingMessage>(it => receivedMessageBody = it.Context.Body);
-            mockBehaviours.Last().Subscribe(observer);
+            // GIVEN an incoming message visitor.
+            var message = new MessageContext(Mock.Of<IMessageTarget>(), Mock.Of<IMessageTarget>(), "test,");
+            var visitor = new OnMessageVisitor(message, MockBotContext.Instance, CreateSimpleMessageBuilder);
 
             // WHEN we build a chain from the behaviours.
             var root = this.chainBuilder.BuildChain(mockBehaviours);
 
-            // WHEN we pass the incoming message to the root of the chain.
-            root.OnNext(message);
+            // AND we pass the visitor to the root of the chain.
+            root.OnNext(visitor);
 
-            // THEN the expected message body should have been produced at the tail of the chain.
-            receivedMessageBody.ShouldBe("test, foo bar baz");
+            // THEN the visitor should have visited the behaviours in the expected order.
+            var responses = visitor.Responses.Select(it => it.Message.Body).ToArray();
+
+            responses.Length.ShouldBe(3);
+            responses.ShouldContain("0 : test, foo");
+            responses.ShouldContain("1 : test, bar");
+            responses.ShouldContain("2 : test, baz");
         }
     }
 }

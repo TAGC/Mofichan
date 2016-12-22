@@ -20,18 +20,19 @@
     "Mofichan.Core": {
       "target": "project"
     },
-    "Autofac": "4.2.0",
-    "Serilog": "2.4.0-dev-00746",
+    "Autofac": "4.2.1",
+    "Serilog": "2.4.0-dev-00767",
     "Serilog.Sinks.Literate": "2.1.0-dev-00034",
     "Serilog.Enrichers.Thread": "3.0.0",
-    "Serilog.Sinks.RollingFile": "3.2.0",
-    "Microsoft.Extensions.Configuration": "1.1.0-preview1-final",
-    "Microsoft.Extensions.Configuration.EnvironmentVariables": "1.1.0-preview1-final",
-    "Microsoft.Extensions.Configuration.Json": "1.1.0-preview1-final",
+    "Serilog.Sinks.RollingFile": "3.3.0-dev-00758",
+    "Microsoft.Extensions.Configuration": "1.1.0",
+    "Microsoft.Extensions.Configuration.EnvironmentVariables": "1.1.0",
+    "Microsoft.Extensions.Configuration.Json": "1.1.0",
     "Microsoft.NETCore.App": {
       "type": "platform",
       "version": "1.1.0"
-    }
+    },
+    "Serilog.Sinks.Elasticsearch": "4.1.1"
   },
 
   "frameworks": {

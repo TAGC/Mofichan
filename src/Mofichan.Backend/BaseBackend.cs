@@ -11,7 +11,7 @@ namespace Mofichan.Backend
     /// </summary>
     public abstract class BaseBackend : IMofichanBackend
     {
-        private IObserver<IncomingMessage> observer;
+        private IObserver<MessageContext> observer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BaseBackend"/> class.
@@ -70,7 +70,7 @@ namespace Mofichan.Backend
         /// <returns>
         /// A reference to an interface that allows observers to stop receiving notifications before the provider has finished sending them.
         /// </returns>
-        public IDisposable Subscribe(IObserver<IncomingMessage> observer)
+        public IDisposable Subscribe(IObserver<MessageContext> observer)
         {
             this.observer = observer;
             return null;
@@ -97,9 +97,9 @@ namespace Mofichan.Backend
         /// Called to notify this backend of an outgoing message that should be sent.
         /// </summary>
         /// <param name="message">The message to send.</param>
-        public void OnNext(OutgoingMessage message)
+        public void OnNext(MessageContext message)
         {
-            this.SendMessage(message.Context);
+            this.SendMessage(message);
         }
 
         /// <summary>
@@ -141,20 +141,18 @@ namespace Mofichan.Backend
         /// Called when a message is received by this backend.
         /// </summary>
         /// <param name="message">The received message.</param>
-        protected void OnReceiveMessage(IncomingMessage message)
+        protected void OnReceiveMessage(MessageContext message)
         {
-            var fromSelf = message.Context.From is IUser
-                && (message.Context.From as IUser).Type == UserType.Self;
+            var fromSelf = message.From is IUser
+                && (message.From as IUser).Type == UserType.Self;
 
             if (fromSelf)
             {
-                this.Logger.Verbose("Received {MessageBody} from Mofichan herself",
-                    message.Context.Body);
+                this.Logger.Verbose("Received {MessageBody} from Mofichan herself", message.Body);
             }
             else
             {
-                this.Logger.Debug("Received {MessageBody} from {Sender}",
-                    message.Context.Body, message.Context.From);
+                this.Logger.Debug("Received {MessageBody} from {Sender}", message.Body, message.From);
             }
 
             this.observer?.OnNext(message);

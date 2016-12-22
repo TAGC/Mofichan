@@ -219,9 +219,7 @@ namespace Mofichan.Backend
             var to = room;
             var body = message.Content;
 
-            var context = new MessageContext(from, to, body);
-            var incomingMessage = new IncomingMessage(context);
-
+            var incomingMessage = new MessageContext(from, to, body);
             this.OnReceiveMessage(incomingMessage);
 
             return Task.CompletedTask;

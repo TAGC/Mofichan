@@ -38,8 +38,7 @@ namespace Mofichan.Core.Utility
                 var upstreamBehaviour = behaviourList[i];
                 var downstreamBehaviour = behaviourList[i + 1];
 
-                upstreamBehaviour.Subscribe<IncomingMessage>(downstreamBehaviour.OnNext);
-                downstreamBehaviour.Subscribe<OutgoingMessage>(upstreamBehaviour.OnNext);
+                upstreamBehaviour.Subscribe(downstreamBehaviour);
             }
 
             return behaviourList[0];

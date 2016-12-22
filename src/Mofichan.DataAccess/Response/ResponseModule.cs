@@ -27,7 +27,7 @@ namespace Mofichan.DataAccess.Response
 
             builder.RegisterType<ArticleFilter>().As<IArticleFilter>();
             builder.RegisterType<ArticleResolver>().As<IArticleResolver>();
-            builder.RegisterType<ResponseBuilder>().As<IResponseBuilder>();
+            builder.RegisterType<ResponseBodyBuilder>().As<IResponseBodyBuilder>();
         }
 
         private static ILibrary BuildLibrary(string resourceName)
