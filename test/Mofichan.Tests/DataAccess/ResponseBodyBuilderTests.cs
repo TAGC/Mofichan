@@ -85,7 +85,7 @@ namespace Mofichan.Tests.DataAccess
             var mockLibrary = new Mock<ILibrary>();
             mockLibrary.SetupGet(it => it.Articles).Returns(ExampleArticles);
 
-            var articleFilter = new ArticleFilter(new[] { mockLibrary.Object });
+            var articleFilter = new ArticleFilter(mockLibrary.Object.Articles);
             var articleResolver = new ArticleResolver();
             this.responseBuilder = new ResponseBodyBuilder(articleFilter, articleResolver);
         }

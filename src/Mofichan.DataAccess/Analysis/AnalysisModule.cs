@@ -1,10 +1,5 @@
 ﻿using System;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Reflection;
 using Autofac;
-using Mofichan.Core.BotState;
 using Mofichan.Core.Interfaces;
 using Serilog;
 
@@ -26,12 +21,6 @@ namespace Mofichan.DataAccess.Analysis
         /// </remarks>
         protected override void Load(ContainerBuilder builder)
         {
-            var analysisLibraries = new[]
-            {
-                BuildLibrary("greetings"),
-                BuildLibrary("emotive")
-            };
-
             Action<MessageClassifier, IComponentContext> trainClassifier = (classifier, context) =>
             {
                 var requiredConfidenceRatio = 0.5;
@@ -47,19 +36,6 @@ namespace Mofichan.DataAccess.Analysis
             builder.RegisterDecorator<IMessageClassifier>(
                 (c, inner) => new SentenceFragmentAnalyser(inner, c.Resolve<ILogger>()),
                 fromKey: "classifier");
-        }
-
-        private static ILibrary BuildLibrary(string resourceName)
-        {
-            var assembly = typeof(AnalysisModule).GetTypeInfo().Assembly;
-            var resourcePath = string.Format("Mofichan.DataAccess.Analysis.Resources.{0}.json", resourceName);
-
-            using (var resourceStream = assembly.GetManifestResourceStream(resourcePath))
-            {
-                Debug.Assert(resourceStream != null, "The resource should exist");
-
-                return new JsonSourceLibrary(new StreamReader(resourceStream));
-            }
         }
     }
 }

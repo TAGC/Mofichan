@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Mofichan.DataAccess.Domain;
 
@@ -16,6 +17,11 @@ namespace Mofichan.DataAccess.Database
         public IEnumerable<TaggedMessage> LoadAnalyses()
         {
             return this.repository.All<AnalysisArticle>().Select(it => it.Article);
+        }
+
+        public IEnumerable<TaggedMessage> LoadResponses()
+        {
+            return this.repository.All<ResponseArticle>().Select(it => it.Article);
         }
 
         public void SaveAnalysis(string message, IEnumerable<string> classifications)

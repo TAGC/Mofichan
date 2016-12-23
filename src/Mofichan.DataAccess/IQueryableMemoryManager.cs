@@ -7,5 +7,7 @@ namespace Mofichan.DataAccess
     internal interface IQueryableMemoryManager : IMemoryManager
     {
         IEnumerable<TaggedMessage> LoadAnalyses();
+
+        IEnumerable<TaggedMessage> LoadResponses();
     }
 }
