@@ -20,7 +20,9 @@ namespace Mofichan.Tests
             this.mockAttentionManager = new Mock<IAttentionManager>();
             mockAttentionManager.Setup(it => it.RenewAttentionTowardsUser(It.IsAny<IUser>()));
 
-            this.botContext = new BotContext(this.mockAttentionManager.Object);
+            var mockMemoryManager = Mock.Of<IMemoryManager>();
+
+            this.botContext = new BotContext(this.mockAttentionManager.Object, mockMemoryManager);
             this.messageBuilderFactory = () => Mock.Of<IResponseBodyBuilder>();
         }
 

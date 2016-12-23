@@ -61,7 +61,7 @@ namespace Mofichan.Behaviour.Admin
         /// or
         /// Non-admin user attempted to disable behaviour
         /// </exception>
-        [FlowState(id: "S1", distinctUntilChanged: true)]
+        [FlowState(id: "S1")]
         public void WithAttention(FlowContext context, IFlowTransitionManager manager)
         {
             var messageBody = context.Message.Body;

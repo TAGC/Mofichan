@@ -57,7 +57,7 @@ namespace Mofichan.Behaviour.Admin
         /// <exception cref="MofichanAuthorisationException">
         /// Thrown if non-admin user attempts to display behaviour chain
         /// </exception>
-        [FlowState(id: "S1", distinctUntilChanged: true)]
+        [FlowState(id: "S1")]
         public void WithAttention(FlowContext context, IFlowTransitionManager manager)
         {
             var messageBody = context.Message.Body;

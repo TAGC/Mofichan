@@ -39,7 +39,7 @@ namespace Mofichan.Behaviour
         /// </summary>
         /// <param name="context">The flow context.</param>
         /// <param name="manager">The transition manager.</param>
-        [FlowState(id: "S1", distinctUntilChanged: true)]
+        [FlowState(id: "S1")]
         public void WithAttention(FlowContext context, IFlowTransitionManager manager)
         {
             var tags = context.Message.Tags;

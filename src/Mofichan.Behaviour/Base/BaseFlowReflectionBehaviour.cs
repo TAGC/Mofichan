@@ -175,8 +175,7 @@ namespace Mofichan.Behaviour.Base
                                 let stateAttr = methodInfo.GetCustomAttribute<FlowStateAttribute>()
                                 where stateAttr != null
                                 let stateId = stateAttr.Id
-                                let distinctUntilChanged = stateAttr.DistinctUntilChanged
-                                let stateAction = this.CreateStateAction(methodInfo, distinctUntilChanged)
+                                let stateAction = this.CreateStateAction(methodInfo)
                                 select new FlowNode(stateId, stateAction, this.transitionManagerFactory);
 
             var declaredConnections = from methodInfo in candidateMethods
@@ -237,26 +236,12 @@ namespace Mofichan.Behaviour.Base
         }
 
         private Action<FlowContext, IFlowTransitionManager> CreateStateAction(
-            MethodInfo methodInfo, bool distinctUntilChanged)
+            MethodInfo methodInfo)
         {
             Debug.Assert(HasValidSignature(methodInfo), "The method should have a valid signature");
 
-            var distinctContexts = new HashSet<FlowContext>();
-
             return (c, m) =>
             {
-                if (distinctUntilChanged && !distinctContexts.Add(c))
-                {
-                    return;
-                }
-                else if (distinctUntilChanged)
-                {
-                    distinctContexts.Clear();
-                    bool added = distinctContexts.Add(c);
-
-                    Debug.Assert(added, "The first element of the flow context set should always be added");
-                }
-
                 try
                 {
                     methodInfo.Invoke(this, new object[] { c, m });

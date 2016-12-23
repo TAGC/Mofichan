@@ -4,7 +4,7 @@ using Serilog;
 
 namespace Mofichan.DataAccess.Database
 {
-    public class InMemoryRepository : IRepository
+    internal class InMemoryRepository : IRepository
     {
         private readonly IList<object> objects;
 
