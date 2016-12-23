@@ -3,6 +3,7 @@ using Autofac;
 using Mofichan.Core;
 using Mofichan.Core.BotState;
 using MongoDB.Driver;
+using static Mofichan.Core.Utility.Extensions;
 
 namespace Mofichan.DataAccess.Database
 {
@@ -22,23 +23,23 @@ namespace Mofichan.DataAccess.Database
 
             switch (databaseAdapter)
             {
-                case "inmemory":
+                case "in_memory":
                     builder.RegisterType<InMemoryRepository>().As<IRepository>();
                     break;
 
                 case "mongodb":
-                    string mongoUser = databaseAdapterConfig["user"] ?? string.Empty;
-                    string mongoPassword = databaseAdapterConfig["password"] ?? string.Empty;
-                    string mongoHostname = databaseAdapterConfig["hostname"] ?? "localhost";
-                    string mongoPort = databaseAdapterConfig["port"] ?? "41428";
+                    string mongoUser = databaseAdapterConfig.TryGetValueWithDefault("user", string.Empty);
+                    string mongoPassword = databaseAdapterConfig.TryGetValueWithDefault("password", string.Empty);
+                    string mongoHostname = databaseAdapterConfig.TryGetValueWithDefault("hostname", "localhost");
+                    string mongoPort = databaseAdapterConfig.TryGetValueWithDefault("port", "41428");
                     string mongoCredentials = string.Empty;
 
-                    if (mongoUser != null && mongoPassword != null)
+                    if (!string.IsNullOrWhiteSpace(mongoUser) && !string.IsNullOrWhiteSpace(mongoPassword))
                     {
-                        mongoCredentials = mongoUser + ":" + mongoPassword;
+                        mongoCredentials = mongoUser + ":" + mongoPassword + "@";
                     }
 
-                    var mongoConnectionString = string.Format("mongodb://{0}@{1}:{2}/mofichan",
+                    var mongoConnectionString = string.Format("mongodb://{0}{1}:{2}/mofichan",
                         mongoCredentials, mongoHostname, mongoPort);
 
                     builder.RegisterInstance(new MongoClient(mongoConnectionString));

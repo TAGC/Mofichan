@@ -15,19 +15,9 @@ namespace Mofichan.Tests
                 yield return new object[]
                 {
                     new BotConfiguration.Builder(),
-                    new Predicate<BotConfiguration>(it => it.BackendConfiguration.Count == 0)
-                };
-
-                yield return new object[]
-                {
-                    new BotConfiguration.Builder().SetBotName("foo"),
-                    new Predicate<BotConfiguration>(it => it.BotName == "foo")
-                };
-
-                yield return new object[]
-                {
-                    new BotConfiguration.Builder().SetDeveloperName("bar"),
-                    new Predicate<BotConfiguration>(it => it.DeveloperName == "bar")
+                    new Predicate<BotConfiguration>(it =>
+                        it.BackendConfiguration.Count == 0 &&
+                        it.DatabaseAdapterConfiguration.Count == 0)
                 };
 
                 yield return new object[]

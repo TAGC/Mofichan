@@ -13,7 +13,7 @@ namespace Mofichan.Tests.DataAccess
         public void In_Memory_Repository_Should_Recall_Stored_Objects()
         {
             // GIVEN an in memory repository.
-            var repository = new InMemoryRepository();
+            var repository = new InMemoryRepository(MockLogger.Instance);
 
             // GIVEN set of objects to store.
             var numbers = new[] { 1, 42, 103 }.ToList();

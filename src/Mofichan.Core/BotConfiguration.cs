@@ -9,22 +9,6 @@ namespace Mofichan.Core
     public struct BotConfiguration
     {
         /// <summary>
-        /// Gets the name of the bot.
-        /// </summary>
-        /// <value>
-        /// The name of the bot.
-        /// </value>
-        public string BotName { get; private set; }
-
-        /// <summary>
-        /// Gets the name of the developer.
-        /// </summary>
-        /// <value>
-        /// The name of the developer.
-        /// </value>
-        public string DeveloperName { get; private set; }
-
-        /// <summary>
         /// Gets the selected backend.
         /// </summary>
         /// <value>
@@ -73,28 +57,6 @@ namespace Mofichan.Core
             {
                 this.backendConfiguration = new Dictionary<string, string>();
                 this.databaseAdapterConfiguration = new Dictionary<string, string>();
-            }
-
-            /// <summary>
-            /// Sets the name of the bot.
-            /// </summary>
-            /// <param name="botName">Name of the bot.</param>
-            /// <returns>This builder.</returns>
-            public Builder SetBotName(string botName)
-            {
-                this.config.BotName = botName;
-                return this;
-            }
-
-            /// <summary>
-            /// Sets the name of the developer.
-            /// </summary>
-            /// <param name="developerName">Name of the developer.</param>
-            /// <returns>This builder.</returns>
-            public Builder SetDeveloperName(string developerName)
-            {
-                this.config.DeveloperName = developerName;
-                return this;
             }
 
             /// <summary>

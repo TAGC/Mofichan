@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Mofichan.Core;
@@ -11,9 +12,6 @@ namespace Mofichan.Runner
     /// </summary>
     public class ConfigurationLoader : IConfigurationLoader
     {
-        private static readonly string DefaultBotName = "Mofichan";
-        private static readonly string DefaultDeveloperName = "ThymineC";
-
         /// <summary>
         /// Loads Mofichan's configuration from a configuration file.
         /// </summary>
@@ -26,25 +24,36 @@ namespace Mofichan.Runner
             IConfigurationRoot configuration = BuildConfigurationRoot(configPath);
 
             var backendName = this.GetRequiredConfigValue("core:backend", configuration);
-            var backendProperties = configuration
-                .GetSection(backendName)
-                .GetChildren()
-                .Where(it => it.Key != null)
-                .Where(it => it.Key != "name")
-                .ToDictionary(it => it.Key, it => it.Value);
+            var backendProperties = GetSectionProperties(configuration, backendName);
 
-            // TODO: improve this.
+            var databaseAdapterName = this.GetRequiredConfigValue("core:database_adapter", configuration);
+            var databaseAdapterProperties = GetSectionProperties(configuration, databaseAdapterName);
+
             var configBuilder = new BotConfiguration.Builder();
-            configBuilder.SetBotName(DefaultBotName);
-            configBuilder.SetDeveloperName(DefaultDeveloperName);
             configBuilder.SetSelectedBackend(backendName.ToLowerInvariant());
+            configBuilder.SetSelectedDatabaseAdapter(databaseAdapterName.ToLowerInvariant());
 
             foreach (var property in backendProperties)
             {
                 configBuilder.WithBackendSetting(property.Key, property.Value);
             }
 
+            foreach (var property in databaseAdapterProperties)
+            {
+                configBuilder.WithDatabaseAdapterSetting(property.Key, property.Value);
+            }
+
             return configBuilder.Build();
+        }
+
+        private static IDictionary<string, string> GetSectionProperties(IConfigurationRoot configuration, string sectionName)
+        {
+            return configuration
+                .GetSection(sectionName)
+                .GetChildren()
+                .Where(it => it.Key != null)
+                .Where(it => it.Key != "name")
+                .ToDictionary(it => it.Key.ToLowerInvariant(), it => it.Value);
         }
 
         private static IConfigurationRoot BuildConfigurationRoot(string configPath)

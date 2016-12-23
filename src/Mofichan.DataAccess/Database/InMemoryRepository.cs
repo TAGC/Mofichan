@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Serilog;
 
 namespace Mofichan.DataAccess.Database
 {
@@ -7,9 +8,12 @@ namespace Mofichan.DataAccess.Database
     {
         private readonly IList<object> objects;
 
-        public InMemoryRepository()
+        public InMemoryRepository(ILogger logger)
         {
             this.objects = new List<object>();
+
+            logger.ForContext<InMemoryRepository>().Information(
+                "Instantiated in-memory repository");
         }
 
         public void Add<T>(T item)

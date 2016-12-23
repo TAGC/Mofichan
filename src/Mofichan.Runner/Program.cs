@@ -36,7 +36,7 @@ namespace Mofichan.Runner
 
                 Console.WriteLine("Started Mofichan");
                 Console.WriteLine("Press any key to shut down...");
-                Console.ReadKey();
+                Console.Read();
             }
         }
 
@@ -47,7 +47,7 @@ namespace Mofichan.Runner
             var botConfiguration = container.Resolve<BotConfiguration>();
             var backendName = botConfiguration.SelectedBackend;
             var backendParams = from item in botConfiguration.BackendConfiguration
-                                let paramName = item.Key.ToLowerInvariant()
+                                let paramName = item.Key
                                 let paramValue = item.Value
                                 select new NamedParameter(paramName, paramValue);
 
