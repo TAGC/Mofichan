@@ -1,5 +1,5 @@
 ﻿using Mofichan.Behaviour.Base;
-using Mofichan.Core;
+using Mofichan.Core.BotState;
 using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
 using Serilog;
@@ -20,17 +20,15 @@ namespace Mofichan.Behaviour.Admin
         /// Initializes a new instance of the <see cref="AdministrationBehaviour" /> class.
         /// </summary>
         /// <param name="botContext">The bot context.</param>
-        /// <param name="flowManager">The flow manager.</param>
         /// <param name="chainBuilder">The object to use for composing sub-behaviours into a chain.</param>
         /// <param name="logger">The logger to use.</param>
         public AdministrationBehaviour(
             BotContext botContext,
-            IFlowManager flowManager,
             IBehaviourChainBuilder chainBuilder,
             ILogger logger)
             : base(chainBuilder,
-            new ToggleEnableBehaviour(botContext, flowManager, logger),
-            new DisplayChainBehaviour(botContext, flowManager, logger))
+            new ToggleEnableBehaviour(botContext, logger),
+            new DisplayChainBehaviour(botContext, logger))
         {
         }
 

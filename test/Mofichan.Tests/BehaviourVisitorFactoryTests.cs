@@ -31,7 +31,7 @@ namespace Mofichan.Tests
             var visitorFactory = new BehaviourVisitorFactory(MockBotContext.Instance, messageBuilderFactory);
 
             // WHEN we create a visitor.
-            var visitor = visitorFactory.CreatePulseVisitor();
+            var visitor = visitorFactory.CreateMessageVisitor(new MessageContext());
 
             // AND we try to register a response.
             visitor.RegisterResponse(rb => rb.WithMessage(mb => mb.FromRaw("foo")));
@@ -41,7 +41,7 @@ namespace Mofichan.Tests
         }
 
         [Fact]
-        public void Pulse_Visitors_Should_Use_Last_Provided_Message()
+        public void Pulse_Visitors_Should_Permit_Responses_To_Last_Provided_Message()
         {
             // GIVEN an instance of a visitor factory.
             var visitorFactory = new BehaviourVisitorFactory(MockBotContext.Instance,
@@ -56,8 +56,8 @@ namespace Mofichan.Tests
             // AND we create an OnPulseVisitor.
             var onPulseVisitor = visitorFactory.CreatePulseVisitor();
 
-            // WHEN we register a response with the visitor.
-            onPulseVisitor.RegisterResponse(rb => { });
+            // WHEN we register a response with the visitor using the message as the response context.
+            onPulseVisitor.RegisterResponse(rb => rb.To(expectedMessage));
 
             // THEN the generated response should contain the message used to create the OnMessageVisitor.
             var response = onPulseVisitor.Responses.ShouldHaveSingleItem();

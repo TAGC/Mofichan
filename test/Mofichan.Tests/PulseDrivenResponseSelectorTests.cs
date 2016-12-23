@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Mofichan.Core;
+using Mofichan.Core.BehaviourOutputs;
 using Mofichan.Core.Interfaces;
 using Mofichan.Core.Relevance;
 using Mofichan.Core.Visitor;
@@ -15,25 +16,30 @@ namespace Mofichan.Tests
 {
     public class PulseDrivenResponseSelectorTests
     {
-        private static void SetupVisitors(IBehaviourVisitor[] visitors)
+        private static void SetupVisitors(IBehaviourVisitor[] visitors, params MessageContext[] respondingTo)
         {
             visitors[0].RegisterResponse(rb => rb
+                .To(respondingTo[0])
                 .WithMessage(mb => mb.FromRaw("a"))
                 .RelevantBecause(it => it.SuitsMessageTags("a")));
 
             visitors[0].RegisterResponse(rb => rb
+                .To(respondingTo[0])
                 .WithMessage(mb => mb.FromRaw("b"))
                 .RelevantBecause(it => it.SuitsMessageTags("b")));
 
             visitors[1].RegisterResponse(rb => rb
+                .To(respondingTo[1])
                 .WithMessage(mb => mb.FromRaw("c"))
                 .RelevantBecause(it => it.SuitsMessageTags("c")));
 
             visitors[2].RegisterResponse(rb => rb
+                .To(respondingTo[2])
                 .WithMessage(mb => mb.FromRaw("d"))
                 .RelevantBecause(it => it.SuitsMessageTags("d")));
 
             visitors[3].RegisterResponse(rb => rb
+                .To(respondingTo[3])
                 .WithMessage(mb => mb.FromRaw("e"))
                 .RelevantBecause(it => it.SuitsMessageTags("e")));
         }
@@ -45,7 +51,7 @@ namespace Mofichan.Tests
 
         private static OnPulseVisitor CreatePulseVisitor(MessageContext message)
         {
-            return new OnPulseVisitor(message, MockBotContext.Instance, CreateSimpleMessageBuilder);
+            return new OnPulseVisitor(new[] { message }, MockBotContext.Instance, CreateSimpleMessageBuilder);
         }
 
         private readonly ControllablePulseDriver pulseDriver;
@@ -187,7 +193,7 @@ namespace Mofichan.Tests
                 CreatePulseVisitor(message),
             };
 
-            SetupVisitors(visitors);
+            SetupVisitors(visitors, message, message, message, message);
 
             // WHEN the response selector receives a visitor on each pulse.
             foreach (var visitor in visitors)
@@ -229,7 +235,7 @@ namespace Mofichan.Tests
                 CreatePulseVisitor(messageA),
             };
 
-            SetupVisitors(visitors);
+            SetupVisitors(visitors, messageA, messageB, messageB, messageA);
 
             // WHEN the response selector receives a visitor on each pulse.
             foreach (var visitor in visitors)

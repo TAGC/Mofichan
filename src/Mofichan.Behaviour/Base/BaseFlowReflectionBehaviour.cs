@@ -4,11 +4,17 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using Mofichan.Behaviour.Flow;
-using Mofichan.Core;
+using Mofichan.Core.BotState;
 using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
+using Mofichan.Core.Visitor;
 using PommaLabs.Thrower;
 using Serilog;
+using NodeAction = System.Func<
+    Mofichan.Core.Flow.FlowContext,
+    Mofichan.Core.Flow.FlowTransitionManager,
+    Mofichan.Core.Visitor.IBehaviourVisitor,
+    Mofichan.Core.Flow.FlowNodeState?>;
 
 namespace Mofichan.Behaviour.Base
 {
@@ -24,7 +30,8 @@ namespace Mofichan.Behaviour.Base
         private const BindingFlags CandidateBindingFlags =
             BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.Instance;
 
-        private readonly Func<IEnumerable<IFlowTransition>, IFlowTransitionManager> transitionManagerFactory;
+        private readonly string startNodeId;
+        private readonly Func<IEnumerable<IFlowTransition>, FlowTransitionManager> transitionManagerFactory;
         private readonly ISet<IFlowNode> nodes;
         private readonly ISet<IFlowTransition> transitions;
         private readonly ISet<Tuple<string, string, string>> connections;
@@ -34,17 +41,15 @@ namespace Mofichan.Behaviour.Base
         /// </summary>
         /// <param name="startNodeId">Identifies the starting node in the flow.</param>
         /// <param name="botContext">The bot context.</param>
-        /// <param name="flowManager">The flow manager.</param>
         /// <param name="logger">The logger.</param>
         protected BaseFlowReflectionBehaviour(
             string startNodeId,
             BotContext botContext,
-            IFlowManager flowManager,
             ILogger logger)
-            : base(startNodeId, flowManager, logger)
+            : base(logger)
         {
+            this.startNodeId = startNodeId;
             this.BotContext = botContext;
-            this.transitionManagerFactory = flowManager.BuildTransitionManager;
             this.nodes = new HashSet<IFlowNode>();
             this.transitions = new HashSet<IFlowTransition>();
             this.connections = new HashSet<Tuple<string, string, string>>();
@@ -75,7 +80,7 @@ namespace Mofichan.Behaviour.Base
             string successTransitionId,
             string failureTransitionId)
         {
-            var node = this.CreateNode(nodeId, (context, manager) =>
+            var node = this.CreateNode(nodeId, (context, manager, visitor) =>
             {
                 var tags = context.Message.Tags;
                 var user = context.Message.From as IUser;
@@ -95,6 +100,8 @@ namespace Mofichan.Behaviour.Base
                 {
                     manager.MakeTransitionCertain(failureTransitionId);
                 }
+
+                return null;
             });
 
             this.nodes.Add(node);
@@ -107,7 +114,7 @@ namespace Mofichan.Behaviour.Base
         /// <param name="nodeId">The node identifier.</param>
         protected void RegisterSimpleNode(string nodeId)
         {
-            var node = this.CreateNode(nodeId, (c, m) => { });
+            var node = this.CreateNode(nodeId, (c, m, v) => null);
             this.nodes.Add(node);
         }
 
@@ -130,7 +137,7 @@ namespace Mofichan.Behaviour.Base
             string from,
             string to)
         {
-            var transition = new FlowTransition(transitionId, (context, manager) =>
+            var transition = new FlowTransition(transitionId, (context, manager, visitor) =>
             {
                 var user = context.Message.From as IUser;
                 Debug.Assert(user != null, "The message should be from a user");
@@ -161,12 +168,18 @@ namespace Mofichan.Behaviour.Base
         #endregion
 
         /// <summary>
-        /// Configures the <see cref="IFlow"/> for this instance based on both the declared
+        /// Configures the <see cref="IFlowManager" /> for this instance based on both the declared
         /// methods within the concrete type and additional nodes or transitions declared
-        /// through <see cref="RegisterSimpleNode(string)"/> and
-        /// <see cref="RegisterSimpleTransition(string, string, string)"/> respectively.
+        /// through <see cref="RegisterSimpleNode(string)" /> and
+        /// <see cref="RegisterSimpleTransition(string, string, string)" /> respectively.
         /// </summary>
-        protected void Configure()
+        /// <typeparam name="T">The type of flow that will be managed.</typeparam>
+        /// <param name="createManager">
+        /// The function used to create the flow manager from a configured template.
+        /// </param>
+        protected void Configure<T>(
+            Func<Func<BaseFlow.Builder<T>, BaseFlow.Builder<T>>, IFlowManager<T>> createManager)
+            where T : BaseFlow
         {
             var candidateMethods = this.GetType().GetTypeInfo().GetMethods(CandidateBindingFlags);
 
@@ -175,9 +188,8 @@ namespace Mofichan.Behaviour.Base
                                 let stateAttr = methodInfo.GetCustomAttribute<FlowStateAttribute>()
                                 where stateAttr != null
                                 let stateId = stateAttr.Id
-                                let distinctUntilChanged = stateAttr.DistinctUntilChanged
-                                let stateAction = this.CreateStateAction(methodInfo, distinctUntilChanged)
-                                select new FlowNode(stateId, stateAction, this.transitionManagerFactory);
+                                let stateAction = this.CreateStateAction(methodInfo)
+                                select new FlowNode(stateId, stateAction);
 
             var declaredConnections = from methodInfo in candidateMethods
                                       where HasValidSignature(methodInfo)
@@ -205,79 +217,71 @@ namespace Mofichan.Behaviour.Base
             this.connections.UnionWith(declaredConnections.Select(
                 it => Tuple.Create(it.nodeFrom, it.nodeTo, it.transition.Id)));
 
-            this.RegisterFlow(flowBuilder =>
+            this.SetFlowManager(createManager(templateBuilder =>
             {
-                flowBuilder.WithNodes(this.nodes).WithTransitions(this.transitions);
+                templateBuilder
+                    .WithStartNodeId(this.startNodeId)
+                    .WithNodes(this.nodes)
+                    .WithTransitions(this.transitions);
 
-                this.connections.ToList().ForEach(it => flowBuilder.WithConnection(it.Item1, it.Item2, it.Item3));
+                this.connections.ToList().ForEach(it => templateBuilder.WithConnection(it.Item1, it.Item2, it.Item3));
 
-                return flowBuilder;
-            });
+                return templateBuilder;
+            }));
         }
 
         private static bool HasValidSignature(MethodInfo methodInfo)
         {
-            Func<bool> hasTwoParameters =
-                () => methodInfo.GetParameters().Length == 2;
+            Func<bool> hasThreeParameters =
+                () => methodInfo.GetParameters().Length == 3;
 
             Func<bool> firstParamIsFlowContext =
                 () => methodInfo.GetParameters()[0].ParameterType == typeof(FlowContext);
 
             Func<bool> secondParamIsFlowTransitionManager =
-                () => methodInfo.GetParameters()[1].ParameterType == typeof(IFlowTransitionManager);
+                () => methodInfo.GetParameters()[1].ParameterType == typeof(FlowTransitionManager);
 
-            return hasTwoParameters()
+            Func<bool> thirdParamIsVisitor =
+                () => methodInfo.GetParameters()[2].ParameterType == typeof(IBehaviourVisitor);
+
+            return hasThreeParameters()
                 && firstParamIsFlowContext()
-                && secondParamIsFlowTransitionManager();
+                && secondParamIsFlowTransitionManager()
+                && thirdParamIsVisitor();
         }
 
-        private IFlowNode CreateNode(string nodeId, Action<FlowContext, IFlowTransitionManager> nodeAction)
+        private IFlowNode CreateNode(string nodeId, NodeAction nodeAction)
         {
-            return new FlowNode(nodeId, nodeAction, this.transitionManagerFactory);
+            return new FlowNode(nodeId, nodeAction);
         }
 
-        private Action<FlowContext, IFlowTransitionManager> CreateStateAction(
-            MethodInfo methodInfo, bool distinctUntilChanged)
+        private NodeAction CreateStateAction(MethodInfo methodInfo)
         {
             Debug.Assert(HasValidSignature(methodInfo), "The method should have a valid signature");
 
-            var distinctContexts = new HashSet<FlowContext>();
-
-            return (c, m) =>
+            return (c, m, v) =>
             {
-                if (distinctUntilChanged && !distinctContexts.Add(c))
-                {
-                    return;
-                }
-                else if (distinctUntilChanged)
-                {
-                    distinctContexts.Clear();
-                    bool added = distinctContexts.Add(c);
-
-                    Debug.Assert(added, "The first element of the flow context set should always be added");
-                }
-
                 try
                 {
-                    methodInfo.Invoke(this, new object[] { c, m });
+                    return methodInfo.Invoke(this, new object[] { c, m, v }) as FlowNodeState?;
                 }
                 catch (TargetInvocationException e)
                 {
-                    throw e.InnerException;
+                    throw e.GetBaseException();
                 }
             };
         }
 
-        private Action<FlowContext, IFlowTransitionManager> CreateTransitionAction(
+        private Action<FlowContext, FlowTransitionManager, IBehaviourVisitor> CreateTransitionAction(
             MethodInfo methodInfo)
         {
             Debug.Assert(HasValidSignature(methodInfo), "The method should have a valid signature");
 
-            return (c, m) =>
+            return (c, m, v) =>
             {
                 try
                 {
-                    methodInfo.Invoke(this, new object[] { c, m });
+                    methodInfo.Invoke(this, new object[] { c, m, v });
                 }
                 catch (TargetInvocationException e)
                 {

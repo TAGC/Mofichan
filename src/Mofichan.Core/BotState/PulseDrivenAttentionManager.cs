@@ -7,7 +7,7 @@ using Mofichan.Core.Utility;
 using PommaLabs.Thrower;
 using Serilog;
 
-namespace Mofichan.Core.Flow
+namespace Mofichan.Core.BotState
 {
     /// <summary>
     /// An implementation of <see cref="IAttentionManager"/> that maintains attention to
@@ -86,7 +86,7 @@ namespace Mofichan.Core.Flow
         {
             this.attentionSpans.Remove(user);
 
-            this.logger.Verbose("Stopped paying attention to {User}", user.Name);
+            this.logger.Debug("Stopped paying attention to {User}", user.Name);
         }
 
         /// <summary>
@@ -106,7 +106,7 @@ namespace Mofichan.Core.Flow
 
             this.attentionSpans[user] = attentionDuration;
 
-            this.logger.Verbose("Renewed attention to {User} for {Duration} steps",
+            this.logger.Debug("Renewed attention to {User} for {Duration} steps",
                 user.Name, attentionDuration);
         }
 

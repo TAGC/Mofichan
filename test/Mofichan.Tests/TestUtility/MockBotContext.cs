@@ -1,5 +1,4 @@
-﻿using Mofichan.Core;
-using Mofichan.Core.Interfaces;
+﻿using Mofichan.Core.BotState;
 using Moq;
 
 namespace Mofichan.Tests.TestUtility
@@ -10,7 +9,7 @@ namespace Mofichan.Tests.TestUtility
         {
             get
             {
-                return new BotContext(Mock.Of<IAttentionManager>());
+                return new BotContext(Mock.Of<IAttentionManager>(), Mock.Of<IMemoryManager>());
             }
         }
     }

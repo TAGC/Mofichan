@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Mofichan.DataAccess;
+using Mofichan.DataAccess.Domain;
 using Mofichan.DataAccess.Response;
 using Moq;
 using Shouldly;
@@ -79,7 +80,7 @@ namespace Mofichan.Tests.DataAccess
             var mockLibrary = new Mock<ILibrary>();
             mockLibrary.SetupGet(it => it.Articles).Returns(ExampleArticles);
 
-            this.articleFilter = new ArticleFilter(new[] { mockLibrary.Object });
+            this.articleFilter = new ArticleFilter(mockLibrary.Object.Articles);
         }
 
         [Theory]

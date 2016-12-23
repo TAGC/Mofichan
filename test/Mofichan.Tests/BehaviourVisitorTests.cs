@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Mofichan.Core;
+using Mofichan.Core.BehaviourOutputs;
 using Mofichan.Core.Interfaces;
 using Mofichan.Core.Visitor;
 using Mofichan.Tests.TestUtility;
@@ -18,32 +19,33 @@ namespace Mofichan.Tests
         {
             get
             {
-                var mockSender = new Mock<IUser>();
-                mockSender.SetupGet(it => it.Name).Returns("Tom");
-
-                var mockRecipient = new Mock<IUser>();
-                mockRecipient.SetupGet(it => it.Name).Returns("Jerry");
-
-                var message = new MessageContext(mockSender.Object, mockRecipient.Object, "Meow");
+                var tom = new MockUser("Tom", "Tom");
+                var jerry = new MockUser("Jerry", "Jerry");
+                var message = new MessageContext(tom, jerry, "Meow");
 
                 yield return new object[]
                 {
-                    new OnMessageVisitor(message, MockBotContext.Instance, CreateSimpleMessageBuilder)
+                    new OnMessageVisitor(message, MockBotContext.Instance, CreateSimpleMessageBuilder),
+                    message
                 };
 
                 yield return new object[]
                 {
-                    new OnPulseVisitor(message, MockBotContext.Instance, CreateSimpleMessageBuilder)
+                    new OnPulseVisitor(new[] { message }, MockBotContext.Instance, CreateSimpleMessageBuilder),
+                    message
                 };
             }
         }
 
         [Fact]
-        public void Exception_Should_Be_Thrown_If_Message_Is_Null()
+        public void Exception_Should_Be_Thrown_By_On_Message_Visitor_If_Message_Is_Null()
         {
             Assert.Throws<ArgumentNullException>(() =>
                 new OnMessageVisitor(null, MockBotContext.Instance, () => Mock.Of<IResponseBodyBuilder>()));
+        }
 
+        public void Exception_Should_Be_Thrown_By_On_Pulse_Visitor_If_Valid_Response_Contexts_Is_Null()
+        {
             Assert.Throws<ArgumentNullException>(() =>
                 new OnPulseVisitor(null, MockBotContext.Instance, () => Mock.Of<IResponseBodyBuilder>()));
         }
@@ -55,7 +57,7 @@ namespace Mofichan.Tests
                 new OnMessageVisitor(new MessageContext(), null, () => Mock.Of<IResponseBodyBuilder>()));
 
             Assert.Throws<ArgumentNullException>(() =>
-                new OnPulseVisitor(new MessageContext(), null, () => Mock.Of<IResponseBodyBuilder>()));
+                new OnPulseVisitor(Enumerable.Empty<MessageContext>(), null, () => Mock.Of<IResponseBodyBuilder>()));
         }
 
         [Fact]
@@ -65,19 +67,76 @@ namespace Mofichan.Tests
                 new OnMessageVisitor(new MessageContext(), MockBotContext.Instance, null));
 
             Assert.Throws<ArgumentNullException>(() =>
-                new OnPulseVisitor(new MessageContext(), MockBotContext.Instance, null));
+                new OnPulseVisitor(Enumerable.Empty<MessageContext>(), MockBotContext.Instance, null));
         }
 
-        [Theory]
-        [MemberData(nameof(Visitors))]
-        public void Visitor_Should_Contain_Expected_Responses_After_Registration(IBehaviourVisitor visitor)
+        [Fact]
+        public void On_Message_Visitor_Should_Assume_Responses_Target_Carried_Message()
         {
-            // WHEN we register responses with the visitor.
+            // GIVEN a message.
+            var tom = new MockUser("Tom", "Tom");
+            var jerry = new MockUser("Jerry", "Jerry");
+            var message = new MessageContext(tom, jerry, "Meow");
+
+            // GIVEN an on message visitor carrying the message.
+            var visitor = new OnMessageVisitor(message, MockBotContext.Instance, CreateSimpleMessageBuilder);
+
+            // WHEN we register a response with the visitor without specfying "To".
             visitor.RegisterResponse(rb => rb
                 .WithMessage(mb => mb.FromRaw("Don't hurt me!"))
                 .RelevantBecause(it => it.SuitsMessageTags("mood:scared")));
 
+            // THEN the visitor should contain a response to the original message.
+            var response = visitor.Responses.ShouldHaveSingleItem();
+            response.Message.Body.ShouldBe("Don't hurt me!");
+            response.Message.From.ShouldBe(jerry);
+            response.Message.To.ShouldBe(tom);
+        }
+
+        [Fact]
+        public void On_Pulse_Visitor_Should_Validate_Response_Context()
+        {
+            // GIVEN a message.
+            var tom = new MockUser("Tom", "Tom");
+            var jerry = new MockUser("Jerry", "Jerry");
+            var message = new MessageContext(tom, jerry, "Meow");
+
+            // GIVEN an on pulse visitor that only permits responses to this message.
+            var visitor = new OnPulseVisitor(new[] { message }, MockBotContext.Instance, CreateSimpleMessageBuilder);
+
+            // EXPECT we can register a response if the response context is the original message.
             visitor.RegisterResponse(rb => rb
+                .To(message)
+                .WithMessage(mb => mb.FromRaw("Don't hurt me!"))
+                .RelevantBecause(it => it.SuitsMessageTags("mood:scared")));
+
+            // EXPECT an exception is thrown if the response context is not specified.
+            Assert.Throws<InvalidOperationException>(() => visitor.RegisterResponse(rb => rb
+                .WithMessage(mb => mb.FromRaw("Don't hurt me!"))
+                .RelevantBecause(it => it.SuitsMessageTags("mood:scared"))));
+
+            // EXPECT an exception is thrown if the response context is an invalid message.
+            var invalidMessageContext = new MessageContext(tom, jerry, "Boo!");
+
+            Assert.Throws<InvalidOperationException>(() => visitor.RegisterResponse(rb => rb
+                .To(invalidMessageContext)
+                .WithMessage(mb => mb.FromRaw("Don't hurt me!"))
+                .RelevantBecause(it => it.SuitsMessageTags("mood:scared"))));
+        }
+
+        [Theory]
+        [MemberData(nameof(Visitors))]
+        public void Visitor_Should_Contain_Expected_Responses_After_Registration(
+            IBehaviourVisitor visitor, MessageContext respondingTo)
+        {
+            // WHEN we register responses with the visitor.
+            visitor.RegisterResponse(rb => rb
+                .To(respondingTo)
+                .WithMessage(mb => mb.FromRaw("Don't hurt me!"))
+                .RelevantBecause(it => it.SuitsMessageTags("mood:scared")));
+
+            visitor.RegisterResponse(rb => rb
+                .To(respondingTo)
                 .WithMessage(mb => mb.FromRaw("Go away!"))
                 .RelevantBecause(it => it.SuitsMessageTags("mood:angry")));
 
@@ -94,14 +153,57 @@ namespace Mofichan.Tests
 
         [Theory]
         [MemberData(nameof(Visitors))]
-        public void Visitor_Should_Allow_Modification_Of_Contained_Responses(IBehaviourVisitor visitor)
+        public void Visitor_Should_Contain_Expected_Autonomous_Outputs_After_Registration(
+            IBehaviourVisitor visitor, MessageContext _)
+        {
+            // WHEN we register two autonomous outputs with the visitor.
+            var tom = new MockUser("Tom", "Tom");
+            var sideEffectATriggered = false;
+            var sideEffectBTriggered = false;
+
+            visitor.RegisterAutonomousOutput(ob => ob
+                .WithMessage(tom, mb => mb.FromRaw("Hello Tom!"))
+                .WithSideEffect(() => sideEffectATriggered = true));
+
+            visitor.RegisterAutonomousOutput(ob => ob
+                .WithMessage(tom, mb => mb.FromRaw("Hi there Tom!"))
+                .WithSideEffect(() => sideEffectBTriggered = true));
+
+            // THEN the visitor should contain the expected autonomous outputs.
+            var outputs = visitor.AutonomousOutputs.ToArray();
+            outputs.Length.ShouldBe(2);
+
+            outputs[0].Message.Body.ShouldBe("Hello Tom!");
+            outputs[0].Message.To.ShouldBe(tom);
+            outputs[0].SideEffects.Count().ShouldBe(1);
+
+            outputs[1].Message.Body.ShouldBe("Hi there Tom!");
+            outputs[1].Message.To.ShouldBe(tom);
+            outputs[1].SideEffects.Count().ShouldBe(1);
+
+            // AND the side effects of these outputs should be triggered when the outputs are accepted.
+            sideEffectATriggered.ShouldBeFalse();
+            sideEffectBTriggered.ShouldBeFalse();
+
+            visitor.AutonomousOutputs.ToList().ForEach(it => it.Accept());
+
+            sideEffectATriggered.ShouldBeTrue();
+            sideEffectBTriggered.ShouldBeTrue();
+        }
+
+        [Theory]
+        [MemberData(nameof(Visitors))]
+        public void Visitor_Should_Allow_Modification_Of_Contained_Responses(
+            IBehaviourVisitor visitor, MessageContext respondingTo)
         {
             // GIVEN two responses registered with the visitor.
             visitor.RegisterResponse(rb => rb
+                .To(respondingTo)
                 .WithMessage(mb => mb.FromRaw("Don't hurt me!"))
                 .RelevantBecause(it => it.SuitsMessageTags("mood:scared")));
 
             visitor.RegisterResponse(rb => rb
+                .To(respondingTo)
                 .WithMessage(mb => mb.FromRaw("Go away!"))
                 .RelevantBecause(it => it.SuitsMessageTags("mood:angry")));
 
@@ -129,6 +231,42 @@ namespace Mofichan.Tests
 
             responses[1].Message.Body.ShouldBe("'Go away!' - Jerry");
             responses[1].RelevanceArgument.MessageTagArguments.ShouldHaveSingleItem().ShouldBe("mood:angry");
+        }
+
+        [Theory]
+        [MemberData(nameof(Visitors))]
+        public void Visitor_Should_Allow_Modification_Of_Contained_Autonomous_Outputs(
+            IBehaviourVisitor visitor, MessageContext respondingTo)
+        {
+            // GIVEN two autonomous outputs registered with the visitor.
+            visitor.RegisterAutonomousOutput(aob => aob
+                .WithMessage(respondingTo.To, respondingTo.From, mb => mb.FromRaw("Don't hurt me!")));
+
+            visitor.RegisterAutonomousOutput(aob => aob
+                .WithMessage(respondingTo.To, respondingTo.From, mb => mb.FromRaw("Go away!")));
+
+            // GIVEN a function that modifies autonomous outputs.
+            Func<SimpleOutput, SimpleOutput> f = output =>
+            {
+                var body = output.Message.Body;
+                var sender = output.Message.From;
+                var receiver = output.Message.To;
+                var newBody = string.Format("'{0}' - {1}", body, (sender as IUser).Name);
+                var newMessage = new MessageContext(sender, receiver, newBody);
+
+                return output.DeriveFromNewMessage(newMessage);
+            };
+
+            // WHEN we request to modify the outputs collected by the visitor using the function.
+            visitor.ModifyAutonomousOutputs(f);
+
+            // THEN the outputs should have been modified as expected.
+            var outputs = visitor.AutonomousOutputs.ToArray();
+            outputs.Length.ShouldBe(2);
+
+            outputs[0].Message.Body.ShouldBe("'Don't hurt me!' - Jerry");
+
+            outputs[1].Message.Body.ShouldBe("'Go away!' - Jerry");
         }
     }
 }

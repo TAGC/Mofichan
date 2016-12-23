@@ -59,6 +59,12 @@ namespace Mofichan.DataAccess
             return this;
         }
 
+        public IResponseBodyBuilder FromFormatted(string format, params object[] args)
+        {
+            this.stringBuilder.Append(string.Format(format, args));
+            return this;
+        }
+
         public IResponseBodyBuilder FromAnyOf(params string[] phrases)
         {
             return this.FromAnyOf(DefaultPrefix, DefaultChance, phrases);

@@ -13,14 +13,9 @@ namespace Mofichan.Behaviour.Flow
         /// Initializes a new instance of the <see cref="FlowStateAttribute" /> class.
         /// </summary>
         /// <param name="id">The flow node identifier.</param>
-        /// <param name="distinctUntilChanged">
-        /// If set to <c>true</c>, will cause the node to ignore <see cref="Core.Flow.FlowContext"/> instances
-        /// until they change.
-        /// </param>
-        public FlowStateAttribute(string id, bool distinctUntilChanged = false)
+        public FlowStateAttribute(string id)
         {
             this.Id = id;
-            this.DistinctUntilChanged = distinctUntilChanged;
         }
 
         /// <summary>
@@ -30,15 +25,5 @@ namespace Mofichan.Behaviour.Flow
         /// The flow node identifier.
         /// </value>
         public string Id { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether the flow node should ignore contiguous identical
-        /// <see cref="Core.Flow.FlowContext"/> instances.
-        /// </summary>
-        /// <value>
-        /// <c>true</c> if the node should ignore contiguous identical flow contexts;
-        /// otherwise, <c>false</c>.
-        /// </value>
-        public bool DistinctUntilChanged { get; }
     }
 }

@@ -16,7 +16,6 @@ namespace Mofichan.Behaviour.Base
         /// <summary>
         /// Initializes a new instance of the <see cref="BaseBehaviour" /> class.
         /// </summary>
-        /// <param name="responseBuilderFactory">A factory for instances of <see cref="Response.Builder"/>.</param>
         protected BaseBehaviour()
         {
         }

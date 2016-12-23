@@ -1,6 +1,5 @@
-﻿using Mofichan.Core.Flow;
+﻿using Mofichan.Core.BotState;
 using Mofichan.Tests.TestUtility;
-using Serilog;
 using Shouldly;
 using Xunit;
 

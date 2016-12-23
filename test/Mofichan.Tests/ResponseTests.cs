@@ -1,5 +1,7 @@
 ﻿using System;
 using Mofichan.Core;
+using Mofichan.Core.BehaviourOutputs;
+using Mofichan.Core.BotState;
 using Mofichan.Core.Interfaces;
 using Mofichan.Tests.TestUtility;
 using Moq;
@@ -19,7 +21,9 @@ namespace Mofichan.Tests
             this.mockAttentionManager = new Mock<IAttentionManager>();
             mockAttentionManager.Setup(it => it.RenewAttentionTowardsUser(It.IsAny<IUser>()));
 
-            this.botContext = new BotContext(this.mockAttentionManager.Object);
+            var mockMemoryManager = Mock.Of<IMemoryManager>();
+
+            this.botContext = new BotContext(this.mockAttentionManager.Object, mockMemoryManager);
             this.messageBuilderFactory = () => Mock.Of<IResponseBodyBuilder>();
         }
 
@@ -37,7 +41,7 @@ namespace Mofichan.Tests
 
             // GIVEN a response builder passed this action.
             var builder = CreateBuilder()
-                .RespondingTo(new MessageContext())
+                .To(new MessageContext())
                 .RelevantBecause(it => it.GuaranteesRelevance())
                 .WithSideEffect(action);
 
@@ -78,7 +82,7 @@ namespace Mofichan.Tests
         public void Response_Builder_Should_Use_Default_Relevance_Argument_If_Custom_One_Not_Specified()
         {
             // GIVEN a response builder without a specified relevance argument.
-            var builder = CreateBuilder().RespondingTo(new MessageContext());
+            var builder = CreateBuilder().To(new MessageContext());
 
             // WHEN we create a response from the builder.
             var response = builder.Build();
@@ -92,7 +96,7 @@ namespace Mofichan.Tests
         public void Response_Builder_Should_Accept_Relevance_Argument()
         {
             // GIVEN a response builder.
-            var builder = CreateBuilder().RespondingTo(new MessageContext());
+            var builder = CreateBuilder().To(new MessageContext());
 
             // WHEN we configure the builder to include an argument about the response relevance.
             builder.RelevantBecause(it => it.SuitsMessageTags("foo", "bar"));
@@ -115,7 +119,7 @@ namespace Mofichan.Tests
             var sideEffectCTriggered = false;
 
             var response = CreateBuilder()
-                .RespondingTo(new MessageContext())
+                .To(new MessageContext())
                 .WithSideEffect(() => sideEffectATriggered = true)
                 .WithSideEffect(() => sideEffectBTriggered = true)
                 .WithSideEffect(() => sideEffectCTriggered = true)
@@ -138,7 +142,7 @@ namespace Mofichan.Tests
 
             // GIVEN a response that will cause attention to be paid to Tom if accepted.
             var response = CreateBuilder()
-                .RespondingTo(new MessageContext())
+                .To(new MessageContext())
                 .WithBotContextChange(ctx => ctx.Attention.RenewAttentionTowardsUser(tom))
                 .Build();
 

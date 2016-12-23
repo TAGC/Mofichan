@@ -15,19 +15,9 @@ namespace Mofichan.Tests
                 yield return new object[]
                 {
                     new BotConfiguration.Builder(),
-                    new Predicate<BotConfiguration>(it => it.BackendConfiguration.Count == 0)
-                };
-
-                yield return new object[]
-                {
-                    new BotConfiguration.Builder().SetBotName("foo"),
-                    new Predicate<BotConfiguration>(it => it.BotName == "foo")
-                };
-
-                yield return new object[]
-                {
-                    new BotConfiguration.Builder().SetDeveloperName("bar"),
-                    new Predicate<BotConfiguration>(it => it.DeveloperName == "bar")
+                    new Predicate<BotConfiguration>(it =>
+                        it.BackendConfiguration.Count == 0 &&
+                        it.DatabaseAdapterConfiguration.Count == 0)
                 };
 
                 yield return new object[]
@@ -48,6 +38,20 @@ namespace Mofichan.Tests
                         it.BackendConfiguration.Count == 2 &&
                         it.BackendConfiguration["a"] == "1" &&
                         it.BackendConfiguration["abra"] == "kadabra")
+                };
+
+                yield return new object[]
+                {
+                    new BotConfiguration.Builder()
+                        .SetSelectedDatabaseAdapter("mockDb")
+                        .WithDatabaseAdapterSetting("url", "http://foo.bar.com")
+                        .WithDatabaseAdapterSetting("maxConnections", "3"),
+
+                    new Predicate<BotConfiguration>(it =>
+                        it.SelectedDatabaseAdapter == "mockDb" &&
+                        it.DatabaseAdapterConfiguration.Count == 2 &&
+                        it.DatabaseAdapterConfiguration["url"] == "http://foo.bar.com" &&
+                        it.DatabaseAdapterConfiguration["maxConnections"] == "3")
                 };
             }
         }

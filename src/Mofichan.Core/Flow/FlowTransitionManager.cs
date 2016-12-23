@@ -1,23 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using Mofichan.Core.Interfaces;
 using PommaLabs.Thrower;
 
 namespace Mofichan.Core.Flow
 {
     /// <summary>
-    /// An implementation of <see cref="IFlowTransitionManager"/>.
+    /// Represents an object used to help instance <see cref="IFlowNode"/> manage
+    /// the weight distributions of their associated transitions.
+    /// <para></para>
+    /// These distributions will likely change based on the messages each node receives.
     /// </summary>
-    public class FlowTransitionManager : IFlowTransitionManager
+    public class FlowTransitionManager
     {
-        private readonly Dictionary<string, IFlowTransition> transitionMap;
+        private readonly IDictionary<string, FlowTransition> transitionMap;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FlowTransitionManager"/> class.
+        /// Initializes a new instance of the <see cref="FlowTransitionManager" /> class.
         /// </summary>
         /// <param name="transitions">The transitions to manage.</param>
-        public FlowTransitionManager(IEnumerable<IFlowTransition> transitions)
+        public FlowTransitionManager(IEnumerable<FlowTransition> transitions)
         {
             this.transitionMap = transitions.ToDictionary(it => it.Id, it => it);
         }

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Mofichan.DataAccess.Domain;
 
 namespace Mofichan.DataAccess.Response
 {
@@ -26,9 +27,9 @@ namespace Mofichan.DataAccess.Response
     {
         private readonly IEnumerable<TaggedMessage> articles;
 
-        public ArticleFilter(IEnumerable<ILibrary> libraries)
+        public ArticleFilter(IEnumerable<TaggedMessage> articles)
         {
-            this.articles = libraries.SelectMany(it => it.Articles);
+            this.articles = articles;
         }
 
         public IEnumerable<string> FilterByTagRequirement(ITagRequirement requirement)

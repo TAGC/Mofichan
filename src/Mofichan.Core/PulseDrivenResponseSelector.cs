@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Mofichan.Core.BehaviourOutputs;
 using Mofichan.Core.Interfaces;
 using Mofichan.Core.Relevance;
 using Mofichan.Core.Visitor;
@@ -10,6 +11,15 @@ using Serilog;
 
 namespace Mofichan.Core
 {
+    /// <summary>
+    /// A type of <see cref="IResponseSelector"/> that maintains transient response candidate sets
+    /// for each particular received message and selects a response from each set when they "mature".
+    /// <para></para>
+    /// Response candidate sets "mature" when a certain number of pulses (logical clock ticks) have
+    /// occurred after the corresponding message has been received.
+    /// </summary>
+    /// <seealso cref="Mofichan.Core.Interfaces.IResponseSelector" />
+    /// <seealso cref="System.IDisposable" />
     public class PulseDrivenResponseSelector : IResponseSelector, IDisposable
     {
         private readonly int responseWindow;
@@ -18,6 +28,16 @@ namespace Mofichan.Core
         private readonly ILogger logger;
         private readonly IDictionary<MessageContext, ResponseCandidateSet> responseCandidates;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PulseDrivenResponseSelector"/> class.
+        /// </summary>
+        /// <param name="responseWindow">The number of pulses until new response candidate sets mature.</param>
+        /// <param name="pulseDriver">The pulse driver.</param>
+        /// <param name="evaluator">
+        /// An object used to evaluate the relevance of each response within a candidate set towards the message
+        /// being responded to.
+        /// </param>
+        /// <param name="logger">The logger.</param>
         public PulseDrivenResponseSelector(int responseWindow, IPulseDriver pulseDriver,
             IRelevanceArgumentEvaluator evaluator, ILogger logger)
         {
@@ -37,38 +57,55 @@ namespace Mofichan.Core
             this.pulseDriver.PulseOccurred += this.OnPulseOccurred;
         }
 
+        /// <summary>
+        /// Occurs when this object has chosen a response to a particular message.
+        /// </summary>
         public event EventHandler<ResponseSelectedEventArgs> ResponseSelected;
 
+        /// <summary>
+        /// Occurs when the window for responding to a particular message has expired.
+        /// </summary>
         public event EventHandler<ResponseWindowExpiredEventArgs> ResponseWindowExpired;
 
+        /// <summary>
+        /// Inspects the specified visitor to determine which messages have been received
+        /// and what response candidates are available for them.
+        /// </summary>
+        /// <param name="visitor">The visitor.</param>
         public void InspectVisitor(IBehaviourVisitor visitor)
         {
-            var onMessageVisitor = visitor as OnMessageVisitor;
-
-            if (onMessageVisitor != null)
+            lock (this.responseCandidates)
             {
-                var key = onMessageVisitor.Message;
+                var onMessageVisitor = visitor as OnMessageVisitor;
 
-                Debug.Assert(!this.responseCandidates.ContainsKey(key),
-                    "OnMessageVisitors should carry unique messages");
-
-                this.responseCandidates[key] = new ResponseCandidateSet { PulsesRemaining = this.responseWindow };
-                this.logger.Verbose("Created response candidate set for {Message} (matures in {Window} pulses)",
-                    key.Body, this.responseWindow);
-            }
-
-            // Assign each response registered with the visitor to the appropriate response candidate set.
-            foreach (var response in visitor.Responses)
-            {
-                var key = response.RespondingTo;
-
-                if (!this.responseCandidates.ContainsKey(key))
+                if (onMessageVisitor != null)
                 {
-                    // The window for responding to this particular message has closed.
-                    continue;
+                    var key = onMessageVisitor.Message;
+
+                    Debug.Assert(!this.responseCandidates.ContainsKey(key),
+                        "OnMessageVisitors should carry unique messages");
+
+                    this.responseCandidates[key] = new ResponseCandidateSet { PulsesRemaining = this.responseWindow };
+                    this.logger.Verbose("Created response candidate set for {Message} (matures in {Window} pulses)",
+                        key.Body, this.responseWindow);
                 }
 
-                this.responseCandidates[key].Responses.Add(response);
+                // Assign each response registered with the visitor to the appropriate response candidate set.
+                foreach (var response in visitor.Responses)
+                {
+                    var key = response.RespondingTo;
+
+                    if (!this.responseCandidates.ContainsKey(key))
+                    {
+                        // The window for responding to this particular message has closed.
+                        this.logger.Warning("Discovered {Response} targeting expired message {Message}",
+                            response, key);
+
+                        continue;
+                    }
+
+                    this.responseCandidates[key].Responses.Add(response);
+                }
             }
         }
 
@@ -82,36 +119,39 @@ namespace Mofichan.Core
 
         private void OnPulseOccurred(object sender, EventArgs e)
         {
-            // Decrement the visitors remaining count for all response candidate sets.
-            foreach (var responseCandidateSet in this.responseCandidates.Values)
+            lock (this.responseCandidates)
             {
-                responseCandidateSet.PulsesRemaining -= 1;
-            }
-
-            // Process the response candidates sets that have matured.
-            foreach (var pair in this.responseCandidates.Where(it => it.Value.PulsesRemaining == 0).ToList())
-            {
-                this.responseCandidates.Remove(pair.Key);
-
-                var respondingTo = pair.Key;
-                var candidates = pair.Value.Responses.ToList();
-
-                if (candidates.Any())
+                // Decrement the visitors remaining count for all response candidate sets.
+                foreach (var responseCandidateSet in this.responseCandidates.Values)
                 {
-                    var chosenResponse = this.Select(candidates, respondingTo);
-
-                    this.logger.Verbose("Response candidate set for {Message} matured - " +
-                                        "selected {Response} ({CandidateCount} possibilities)",
-                        respondingTo, chosenResponse, candidates.Count);
-
-                    this.OnResponseSelected(chosenResponse);
+                    responseCandidateSet.PulsesRemaining -= 1;
                 }
-                else
-                {
-                    this.logger.Verbose("Response candidate set for {Message} expired (no candidates found)",
-                        respondingTo);
 
-                    this.OnResponseWindowExpired(respondingTo);
+                // Process the response candidates sets that have matured.
+                foreach (var pair in this.responseCandidates.Where(it => it.Value.PulsesRemaining == 0).ToList())
+                {
+                    this.responseCandidates.Remove(pair.Key);
+
+                    var respondingTo = pair.Key;
+                    var candidates = pair.Value.Responses.ToList();
+
+                    if (candidates.Any())
+                    {
+                        var chosenResponse = this.Select(candidates, respondingTo);
+
+                        this.logger.Verbose("Response candidate set for {Message} matured - " +
+                                            "selected {Response} ({CandidateCount} possibilities)",
+                            respondingTo, chosenResponse, candidates.Count);
+
+                        this.OnResponseSelected(chosenResponse);
+                    }
+                    else
+                    {
+                        this.logger.Verbose("Response candidate set for {Message} expired (no candidates found)",
+                            respondingTo);
+
+                        this.OnResponseWindowExpired(respondingTo);
+                    }
                 }
             }
         }
@@ -154,6 +194,7 @@ namespace Mofichan.Core
             }
 
             public int PulsesRemaining { get; set; }
+
             public IList<Response> Responses { get; }
         }
     }

@@ -1,7 +1,4 @@
-﻿using System.Diagnostics;
-using System.IO;
-using System.Reflection;
-using Autofac;
+﻿using Autofac;
 using Mofichan.Core.Interfaces;
 
 namespace Mofichan.DataAccess.Response
@@ -22,25 +19,14 @@ namespace Mofichan.DataAccess.Response
         /// </remarks>
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterInstance(BuildLibrary("greetings"));
-            builder.RegisterInstance(BuildLibrary("emotes"));
+            builder.Register(context =>
+            {
+                var articles = context.Resolve<IQueryableMemoryManager>().LoadResponses();
+                return new ArticleFilter(articles);
+            }).As<IArticleFilter>();
 
-            builder.RegisterType<ArticleFilter>().As<IArticleFilter>();
             builder.RegisterType<ArticleResolver>().As<IArticleResolver>();
             builder.RegisterType<ResponseBodyBuilder>().As<IResponseBodyBuilder>();
-        }
-
-        private static ILibrary BuildLibrary(string resourceName)
-        {
-            var assembly = typeof(ResponseModule).GetTypeInfo().Assembly;
-            var resourcePath = string.Format("Mofichan.DataAccess.Response.Resources.{0}.json", resourceName);
-
-            using (var resourceStream = assembly.GetManifestResourceStream(resourcePath))
-            {
-                Debug.Assert(resourceStream != null, "The resource should exist");
-
-                return new JsonSourceLibrary(new StreamReader(resourceStream));
-            }
         }
     }
 }

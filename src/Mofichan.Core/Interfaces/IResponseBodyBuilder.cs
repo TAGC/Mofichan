@@ -23,6 +23,16 @@ namespace Mofichan.Core.Interfaces
         IResponseBodyBuilder FromRaw(string rawString);
 
         /// <summary>
+        /// Specifies part of a response to be constructed from a formatted string.
+        /// </summary>
+        /// <param name="format">The format string.</param>
+        /// <param name="args">The arguments to apply to the format string.</param>
+        /// <returns>
+        /// This builder.
+        /// </returns>
+        IResponseBodyBuilder FromFormatted(string format, params object[] args);
+
+        /// <summary>
         /// Specifies part of a response to be constructed using an article (snippet)
         /// chosen based on the specified tag requirements.
         /// </summary>

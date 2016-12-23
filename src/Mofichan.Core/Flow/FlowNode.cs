@@ -1,8 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Collections.Generic;
 using System.Linq;
-using Mofichan.Core.Interfaces;
+using Mofichan.Core.Visitor;
+using NodeAction = System.Func<
+    Mofichan.Core.Flow.FlowContext,
+    Mofichan.Core.Flow.FlowTransitionManager,
+    Mofichan.Core.Visitor.IBehaviourVisitor,
+    Mofichan.Core.Flow.FlowNodeState?>;
 
 namespace Mofichan.Core.Flow
 {
@@ -11,27 +14,19 @@ namespace Mofichan.Core.Flow
     /// </summary>
     public class FlowNode : IFlowNode
     {
-        private readonly Func<IEnumerable<IFlowTransition>, IFlowTransitionManager> transitionManagerFactory;
-        private readonly Action<FlowContext, IFlowTransitionManager> onAcceptAction;
-        private readonly IDictionary<IFlowTransition, IFlowNode> transitionMap;
-        private readonly IDictionary<string, FlowContext> userFlowContexts;
+        private readonly IDictionary<FlowTransition, FlowNode> transitionMap;
+        private readonly NodeAction onAcceptAction;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FlowNode" /> class.
         /// </summary>
         /// <param name="id">The node identifier.</param>
         /// <param name="onAcceptAction">The action to take on this node accepting a flow context.</param>
-        /// <param name="transitionManagerFactory">The transition manager factory.</param>
-        public FlowNode(
-            string id,
-            Action<FlowContext, IFlowTransitionManager> onAcceptAction,
-            Func<IEnumerable<IFlowTransition>, IFlowTransitionManager> transitionManagerFactory)
+        public FlowNode(string id, NodeAction onAcceptAction)
         {
             this.Id = id;
             this.onAcceptAction = onAcceptAction;
-            this.transitionManagerFactory = transitionManagerFactory;
-            this.transitionMap = new Dictionary<IFlowTransition, IFlowNode>();
-            this.userFlowContexts = new Dictionary<string, FlowContext>();
+            this.transitionMap = new Dictionary<FlowTransition, FlowNode>();
         }
 
         /// <summary>
@@ -43,93 +38,73 @@ namespace Mofichan.Core.Flow
         public string Id { get; }
 
         /// <summary>
-        /// Gets a value indicating whether this  node is active within the flow.
+        /// Gets or sets the current state of this node.
         /// </summary>
         /// <value>
-        /// <c>true</c> if this instance is active; otherwise, <c>false</c>.
+        /// This node's current state.
         /// </value>
-        public bool IsActive
-        {
-            get
-            {
-                return this.userFlowContexts.Any();
-            }
-        }
+        public FlowNodeState State { get; set; }
 
-        private IFlowTransitionManager TransitionManager
+        private FlowTransitionManager TransitionManager
         {
             get
             {
-                return this.transitionManagerFactory(this.transitionMap.Keys);
+                return new FlowTransitionManager(this.transitionMap.Keys);
             }
         }
 
         /// <summary>
         /// Allows this flow node to modify its state based on contextual flow state
-        /// information.
+        /// information and register responses with a visitor.
         /// </summary>
         /// <param name="flowContext">The flow context.</param>
-        public void Accept(FlowContext flowContext)
+        /// <param name="visitor">The flow node visitor.</param>
+        public void Accept(FlowContext flowContext, IBehaviourVisitor visitor)
         {
-            var userId = (flowContext.Message.From as IUser).UserId;
-            Debug.Assert(this.userFlowContexts.ContainsKey(userId),
-                "This node should only have accepted the message if the user ID is stored");
+            FlowNodeState? newState = this.onAcceptAction(flowContext, this.TransitionManager, visitor);
 
-            this.userFlowContexts[userId] = flowContext;
-            this.onAcceptAction(flowContext, this.TransitionManager);
+            if (newState.HasValue)
+            {
+                this.State = newState.Value;
+            }
         }
 
         /// <summary>
         /// Invokes a transition of a flow to this node.
         /// </summary>
-        /// <param name="flowContext">The flow context.</param>
-        public void TransitionTo(FlowContext flowContext)
+        public void TransitionTo()
         {
-            var transitioningUserId = (flowContext.Message.From as IUser).UserId;
-            this.userFlowContexts[transitioningUserId] = flowContext;
+            this.State = FlowNodeState.Active;
         }
 
         /// <summary>
         /// Allows this node to respond to a logical clock tick.
         /// </summary>
         /// <param name="flowContext">The flow context.</param>
-        public void OnTick(FlowContext flowContext)
+        /// <param name="visitor">A visitor to register responses to.</param>
+        public void OnTick(FlowContext flowContext, IBehaviourVisitor visitor)
         {
-            var transitions = this.transitionMap.Select(it => it.Key);
+            var transitions = this.transitionMap.Select(it => it.Key).ToList();
 
             /*
              * This flow ends if there are no valid transitions out of this state.
              */
             if (!transitions.Any())
             {
-                this.userFlowContexts.Clear();
+                this.State = FlowNodeState.Inactive;
                 return;
             }
 
-            /*
-             * Decrement all transition clocks with a positive value.
-             */
-            transitions.Where(it => it.Clock > 0).ToList().ForEach(it => --it.Clock);
+            transitions.ForEach(it => it.OnTick());
 
-            /*
-             * A transition becomes available when the associated clock reaches 0.
-             */
-            var selectedTransition = transitions.FirstOrDefault(it => it.Clock == 0);
+            var selectedTransition = transitions.FirstOrDefault(it => it.IsViable(flowContext));
 
             if (selectedTransition != null)
             {
+                this.State = FlowNodeState.Inactive;
                 var targetNode = this.transitionMap[selectedTransition];
-                var transitioningContexts = this.userFlowContexts.Values.ToList();
-
-                selectedTransition.Action?.Invoke(flowContext, this.TransitionManager);
-
-                foreach (var transitioningContext in transitioningContexts)
-                {
-                    targetNode.TransitionTo(transitioningContext);
-                    targetNode.Accept(transitioningContext);
-                }
-
-                this.userFlowContexts.Clear();
+                selectedTransition.Action?.Invoke(flowContext, this.TransitionManager, visitor);
+                targetNode.TransitionTo();
             }
         }
 
@@ -140,21 +115,19 @@ namespace Mofichan.Core.Flow
         /// <param name="transition">The transition to connect with.</param>
         public void Connect(IFlowNode node, IFlowTransition transition)
         {
-            this.transitionMap[transition] = node;
+            this.transitionMap[(FlowTransition)transition] = (FlowNode)node;
         }
 
         /// <summary>
-        /// Determines whether this is the suitable node to select as "current" for the specified
-        /// message context.
+        /// Copies this node. All transition mappings are omitted from the copy.
         /// </summary>
-        /// <param name="messageContext">The message context.</param>
-        /// <returns>
-        /// <c>true</c> if this is the "current" node for the message context; otherwise, <c>false</c>.
-        /// </returns>
-        public bool IsCurrentNodeForMessageContext(MessageContext messageContext)
+        /// <returns>A copy of this node, without transition mappings.</returns>
+        public IFlowNode Copy()
         {
-            var userId = (messageContext.From as IUser).UserId;
-            return this.userFlowContexts.ContainsKey(userId);
+            var copy = new FlowNode(this.Id, this.onAcceptAction);
+            copy.State = this.State;
+
+            return copy;
         }
 
         /// <summary>
@@ -195,7 +168,7 @@ namespace Mofichan.Core.Flow
         /// </returns>
         public override string ToString()
         {
-            return string.Format("Flow node [{0}]", this.Id);
+            return string.Format("Flow node [{0}] ({1})", this.Id, this.State);
         }
     }
 }

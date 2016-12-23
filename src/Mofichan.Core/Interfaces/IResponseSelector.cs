@@ -1,4 +1,5 @@
 ﻿using System;
+using Mofichan.Core.BehaviourOutputs;
 using Mofichan.Core.Visitor;
 
 namespace Mofichan.Core.Interfaces

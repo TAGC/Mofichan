@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Mofichan.DataAccess;
+using Mofichan.DataAccess.Domain;
 using Shouldly;
 using Xunit;
 

@@ -2,6 +2,7 @@
 using System.Text.RegularExpressions;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
+using Mofichan.Core.BotState;
 using Mofichan.Core.Interfaces;
 using Mofichan.Core.Utility;
 using Mofichan.Core.Visitor;

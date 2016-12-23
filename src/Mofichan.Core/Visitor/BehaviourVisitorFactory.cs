@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Mofichan.Core.BehaviourOutputs;
+using Mofichan.Core.BotState;
 using Mofichan.Core.Interfaces;
 
 namespace Mofichan.Core.Visitor
@@ -44,6 +46,20 @@ namespace Mofichan.Core.Visitor
         }
 
         /// <summary>
+        /// Gets the autonomous outputs.
+        /// </summary>
+        /// <value>
+        /// The autonomous outputs.
+        /// </value>
+        public IEnumerable<SimpleOutput> AutononousOutputs
+        {
+            get
+            {
+                return this.visitors.SelectMany(it => it.AutonomousOutputs);
+            }
+        }
+
+        /// <summary>
         /// Creates an <see cref="OnMessageVisitor" /> that carries the message that responses should be
         /// collected for.
         /// </summary>
@@ -68,7 +84,7 @@ namespace Mofichan.Core.Visitor
         /// </returns>
         public OnPulseVisitor CreatePulseVisitor()
         {
-            var visitor = new OnPulseVisitor(this.lastMessage, this.botContext, this.messageBuilderFactory);
+            var visitor = new OnPulseVisitor(new[] { this.lastMessage }, this.botContext, this.messageBuilderFactory);
             this.visitors.Add(visitor);
 
             return visitor;

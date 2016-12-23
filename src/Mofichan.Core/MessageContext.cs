@@ -11,12 +11,15 @@ namespace Mofichan.Core
     /// </summary>
     public class MessageContext
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MessageContext"/> class.
+        /// </summary>
         public MessageContext() : this(null, null, null, null, null)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="MessageContext" /> struct.
+        /// Initializes a new instance of the <see cref="MessageContext" /> class.
         /// </summary>
         /// <param name="from">The sender of the message.</param>
         /// <param name="to">The recipient of the message.</param>

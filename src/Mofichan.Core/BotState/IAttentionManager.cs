@@ -1,4 +1,6 @@
-﻿namespace Mofichan.Core.Interfaces
+﻿using Mofichan.Core.Interfaces;
+
+namespace Mofichan.Core.BotState
 {
     /// <summary>
     /// Represents objects that manage Mofichan's attention towards particular users.

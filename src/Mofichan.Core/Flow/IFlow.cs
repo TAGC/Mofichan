@@ -4,16 +4,53 @@ using Mofichan.Core.Visitor;
 namespace Mofichan.Core.Flow
 {
     /// <summary>
+    /// An enumeration of the possible states of a node within a behavioural flow.
+    /// </summary>
+    public enum FlowNodeState
+    {
+        /// <summary>
+        /// Represents a node that is inactive within its flow.
+        /// </summary>
+        Inactive,
+
+        /// <summary>
+        /// Represents a node that is active within its flow, but will not
+        /// perform any processing when the flow receives new visitors.
+        /// </summary>
+        Dormant,
+
+        /// <summary>
+        /// Represents a node that is active within its flow and will perform
+        /// processing when the flow receives new visitors.
+        /// </summary>
+        Active
+    }
+
+    /// <summary>
     /// Represents a logical behaviour flow.
     /// </summary>
     public interface IFlow
     {
+        /// <summary>
+        /// Gets a value indicating whether this flow is complete.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this flow is complete; otherwise, <c>false</c>.
+        /// </value>
+        bool IsComplete { get; }
+
         /// <summary>
         /// Allows this flow to modify its state and potentially generate responses
         /// using the provided visitor.
         /// </summary>
         /// <param name="visitor">The visitor.</param>
         void Accept(IBehaviourVisitor visitor);
+
+        /// <summary>
+        /// Creates a copy of this flow, which includes copies of all of its nodes, transitions and connections.
+        /// </summary>
+        /// <returns>A copy of this flow.</returns>
+        IFlow Copy();
     }
 
     /// <summary>
@@ -30,12 +67,12 @@ namespace Mofichan.Core.Flow
         string Id { get; }
 
         /// <summary>
-        /// Gets a value indicating whether this node is active within the flow.
+        /// Gets the current state of this node.
         /// </summary>
         /// <value>
-        ///   <c>true</c> if this instance is active; otherwise, <c>false</c>.
+        /// This node's current state.
         /// </value>
-        bool IsActive { get; }
+        FlowNodeState State { get; }
 
         /// <summary>
         /// Connects this node to another node using a specified transition.
@@ -46,32 +83,29 @@ namespace Mofichan.Core.Flow
 
         /// <summary>
         /// Allows this flow node to modify its state based on contextual flow state
-        /// information.
+        /// information and register responses with a visitor.
         /// </summary>
         /// <param name="flowContext">The flow context.</param>
-        void Accept(FlowContext flowContext);
+        /// <param name="visitor">The flow node visitor.</param>
+        void Accept(FlowContext flowContext, IBehaviourVisitor visitor);
 
         /// <summary>
         /// Invokes a transition of a flow to this node.
         /// </summary>
-        /// <param name="flowContext">The flow context.</param>
-        void TransitionTo(FlowContext flowContext);
+        void TransitionTo();
 
         /// <summary>
         /// Allows this node to respond to a logical clock tick.
         /// </summary>
         /// <param name="flowContext">The flow context.</param>
-        void OnTick(FlowContext flowContext);
+        /// <param name="visitor">A visitor to register responses to.</param>
+        void OnTick(FlowContext flowContext, IBehaviourVisitor visitor);
 
         /// <summary>
-        /// Determines whether this is the suitable node to select as "current" for the specified
-        /// message context.
+        /// Creates a copy of this node, omitting transition maps.
         /// </summary>
-        /// <param name="messageContext">The message context.</param>
-        /// <returns>
-        ///   <c>true</c> if this is the "current" node for the message context; otherwise, <c>false</c>.
-        /// </returns>
-        bool IsCurrentNodeForMessageContext(MessageContext messageContext);
+        /// <returns>A copy of this flow node.</returns>
+        IFlowNode Copy();
     }
 
     /// <summary>
@@ -93,15 +127,26 @@ namespace Mofichan.Core.Flow
         /// <value>
         /// The transition action.
         /// </value>
-        Action<FlowContext, IFlowTransitionManager> Action { get; }
+        Action<FlowContext, FlowTransitionManager, IBehaviourVisitor> Action { get; }
 
         /// <summary>
-        /// Gets or sets the clock for this transition, representing the number of
-        /// ticks until this transition should occur.
+        /// Determines whether this transition is viable.
         /// </summary>
-        /// <value>
-        /// The transition clock.
-        /// </value>
-        int Clock { get; set; }
+        /// <param name="context">The current flow context.</param>
+        /// <returns>
+        ///   <c>true</c> if this transition is viable; otherwise, <c>false</c>.
+        /// </returns>
+        bool IsViable(FlowContext context);
+
+        /// <summary>
+        /// Allows this transition to respond to a logical clock tick.
+        /// </summary>
+        void OnTick();
+
+        /// <summary>
+        /// Creates a copy of this transition.
+        /// </summary>
+        /// <returns>A copy of this flow transition.</returns>
+        IFlowTransition Copy();
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
+using Mofichan.Core.BehaviourOutputs;
 using Mofichan.Core.Exceptions;
 using Mofichan.Core.Interfaces;
 using Mofichan.Core.Visitor;
@@ -20,7 +21,7 @@ namespace Mofichan.Core
     public sealed class Kernel : IDisposable
     {
         private readonly IPulseDriver pulseDriver;
-        private readonly IMessageClassifier messageClassifier;
+        private readonly Func<IMessageClassifier> messageClassifierFactory;
         private readonly IBehaviourVisitorFactory visitorFactory;
         private readonly IResponseSelector responseSelector;
         private readonly IMofichanBackend backend;
@@ -39,8 +40,10 @@ namespace Mofichan.Core
         /// <param name="behaviours">The collection of behaviours to determine Mofichan's personality.</param>
         /// <param name="chainBuilder">The object to use to compose the provided behaviours into a chain.</param>
         /// <param name="pulseDriver">The pulse driver.</param>
-        /// <param name="messageClassifier">The object used to classify messages Mofichan receives</param>
-        /// <param name="visitorFactory">A factory to produce instances of behaviour visitors</param>
+        /// <param name="messageClassifierFactory">
+        /// A factory to produce objects to classify messages Mofichan receives.
+        /// </param>
+        /// <param name="visitorFactory">A factory to produce instances of behaviour visitors.</param>
         /// <param name="responseSelector">The object to use to choose responses obtained by visitors.</param>
         /// <param name="logger">The logger to use.</param>
         public Kernel(
@@ -48,7 +51,7 @@ namespace Mofichan.Core
             IEnumerable<IMofichanBehaviour> behaviours,
             IBehaviourChainBuilder chainBuilder,
             IPulseDriver pulseDriver,
-            IMessageClassifier messageClassifier,
+            Func<IMessageClassifier> messageClassifierFactory,
             IBehaviourVisitorFactory visitorFactory,
             IResponseSelector responseSelector,
             ILogger logger)
@@ -58,7 +61,7 @@ namespace Mofichan.Core
                 "At least one behaviour must be specified for Mofichan");
 
             this.pulseDriver = pulseDriver;
-            this.messageClassifier = messageClassifier;
+            this.messageClassifierFactory = messageClassifierFactory;
             this.visitorFactory = visitorFactory;
             this.responseSelector = responseSelector;
             this.backend = backend;
@@ -67,8 +70,8 @@ namespace Mofichan.Core
 
             this.logger.Information("Initialising Mofichan with {Backend} and {Behaviours}", backend, behaviours);
 
-            this.responseSelector.ResponseSelected += (s, e) => OnResponseSelected(e.Response);
-            this.responseSelector.ResponseWindowExpired += (s, e) => OnResponseWindowExpired(e.RespondingTo);
+            this.responseSelector.ResponseSelected += (s, e) => this.OnResponseSelected(e.Response);
+            this.responseSelector.ResponseWindowExpired += (s, e) => this.OnResponseWindowExpired(e.RespondingTo);
             this.rootBehaviour = this.BuildBehaviourChain(behaviours, chainBuilder);
 
             this.PairRootBehaviourToBackend();
@@ -172,16 +175,43 @@ namespace Mofichan.Core
 
             var message = this.pendingReceivedMessages.Dequeue();
 
-            var tags = messageClassifier.Classify(message.Body);
+            var tags = this.messageClassifierFactory().Classify(message.Body);
             var structuredMessage = message.FromTags(tags);
 
-            logger.Debug("Classified {MessageBody} with {Tags}", message.Body, tags);
+            this.logger.Debug("Classified {MessageBody} with {Tags}", message.Body, tags);
 
             var visitor = this.visitorFactory.CreateMessageVisitor(structuredMessage);
 
             this.rootBehaviour.OnNext(visitor);
             this.responsePending = true;
             this.responseSelector.InspectVisitor(visitor);
+            this.HandleAutonomousOutputs(visitor);
+        }
+
+        private void HandleAutonomousOutputs(IBehaviourVisitor visitor)
+        {
+            foreach (var output in visitor.AutonomousOutputs)
+            {
+                var sideEffects = output.SideEffects.ToList();
+                var numSideEffects = sideEffects.Count;
+                var message = output.Message;
+
+                this.logger.Debug("Handling autonomous output: {AutonomousOutput}", output);
+
+                try
+                {
+                    output.Accept();
+                }
+                catch (MofichanAuthorisationException e)
+                {
+                    this.HandleAuthorisationException(e);
+                }
+
+                if (output.Message != null)
+                {
+                    this.backend.OnNext(output.Message);
+                }
+            }
         }
 
         private void OnReceiveMessage(MessageContext message)
@@ -196,6 +226,7 @@ namespace Mofichan.Core
 
             this.rootBehaviour.OnNext(visitor);
             this.responseSelector.InspectVisitor(visitor);
+            this.HandleAutonomousOutputs(visitor);
         }
 
         private void HandleAuthorisationException(MofichanAuthorisationException e)

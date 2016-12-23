@@ -1,4 +1,5 @@
-﻿using Mofichan.Core.Interfaces;
+﻿using Mofichan.Core;
+using Mofichan.Core.Interfaces;
 using Mofichan.Core.Visitor;
 using Moq;
 using TestStack.BDDfy;
@@ -16,7 +17,7 @@ namespace Mofichan.Spec.Core.Feature
                     .And(s => s.Given_Mofichan_is_running())
                 .When(s => s.When_Mofichan_receives_a_message_with_tags(this.JohnSmithUser, "Hi Mofi, how are you?",
                         "directedAtMofichan", "greeting", "wellbeing"))
-                    .And(s => s.When_behaviours_are_driven_by__pulseCount__pulses(2))
+                    .And(s => s.When_behaviours_are_driven_by__pulseCount__pulses(ResponseWindow))
                 .Then(s => s.Then_Mofichan_should_have_sent__body__("I'm okay thanks, how are you?"));
         }
 
@@ -24,20 +25,30 @@ namespace Mofichan.Spec.Core.Feature
         {
             var mockBehaviour = new Mock<IMofichanBehaviour>();
 
+            MessageContext respondingTo = null;
+
             mockBehaviour
                 .Setup(it => it.OnNext(It.IsAny<IBehaviourVisitor>()))
-                .Callback<IBehaviourVisitor>(visitor => SendMockResponses(visitor));
+                .Callback<IBehaviourVisitor>(visitor =>
+                {
+                    var onMessageVisitor = visitor as OnMessageVisitor;
+                    if (onMessageVisitor != null) respondingTo = onMessageVisitor.Message;
+
+                    SendMockResponses(visitor, respondingTo);
+                });
 
             return mockBehaviour;
         }
 
-        private static void SendMockResponses(IBehaviourVisitor visitor)
+        private static void SendMockResponses(IBehaviourVisitor visitor, MessageContext respondingTo)
         {
             visitor.RegisterResponse(rb => rb
+                .To(respondingTo)
                 .WithMessage(mb => mb.FromRaw("Hello there!"))
                 .RelevantBecause(it => it.SuitsMessageTags("directedAtMofichan", "greeting")));
 
             visitor.RegisterResponse(rb => rb
+                .To(respondingTo)
                 .WithMessage(mb => mb.FromRaw("I'm okay thanks, how are you?"))
                 .RelevantBecause(it => it.SuitsMessageTags("directedAtMofichan", "greeting", "wellbeing")));
         }

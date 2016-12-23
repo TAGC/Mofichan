@@ -1,27 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Mofichan.Core.BotState;
 using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
-using Serilog;
+using Mofichan.Core.Visitor;
+using NodeAction = System.Func<
+    Mofichan.Core.Flow.FlowContext,
+    Mofichan.Core.Flow.FlowTransitionManager,
+    Mofichan.Core.Visitor.IBehaviourVisitor,
+    Mofichan.Core.Flow.FlowNodeState?>;
 
 namespace Mofichan.Tests.TestUtility
 {
     public static class FlowUtil
     {
-        public static Action<FlowContext, IFlowTransitionManager> NullStateAction
+        public static NodeAction NullStateAction
         {
             get
             {
-                return (c, m) => { };
-            }
-        }
-
-        public static Func<IEnumerable<IFlowTransition>, IFlowTransitionManager> TransitionManagerFactory
-        {
-            get
-            {
-                return transitions => new FlowTransitionManager(transitions);
+                return (c, m, v) => null;
             }
         }
 
@@ -33,24 +31,22 @@ namespace Mofichan.Tests.TestUtility
             }
         }
 
-        public static BasicFlow.Builder CreateDefaultFlowBuilder(
+        public static BaseFlow.Builder<T> ConfigureDefaultFlowBuilder<T>(
+            BaseFlow.Builder<T> flowBuilder,
             IEnumerable<IFlowNode> nodes,
             IEnumerable<IFlowTransition> transitions)
+            where T : BaseFlow
         {
-            var manager = new FlowManager(null);
-
-            return new BasicFlow.Builder()
-                .WithLogger(new LoggerConfiguration().CreateLogger())
-                .WithManager(manager)
+            return flowBuilder
                 .WithStartNodeId(nodes.First().Id)
                 .WithNodes(nodes)
                 .WithTransitions(transitions);
         }
 
-        public static Action<FlowContext, IFlowTransitionManager> DecideTransitionFromMatch(
+        public static NodeAction DecideTransitionFromMatch(
             string toMatch, string successTransitionId)
         {
-            return (context, manager) =>
+            return (context, manager, visitor) =>
             {
                 var body = context.Message.Body;
 
@@ -62,6 +58,8 @@ namespace Mofichan.Tests.TestUtility
                 {
                     manager.MakeTransitionsImpossible();
                 }
+
+                return null;
             };
         }
     }

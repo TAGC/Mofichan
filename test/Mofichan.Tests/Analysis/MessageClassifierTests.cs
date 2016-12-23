@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
-using Mofichan.DataAccess;
 using Mofichan.DataAccess.Analysis;
+using Mofichan.DataAccess.Domain;
 using Mofichan.Tests.TestUtility;
 using Shouldly;
 using Xunit;
@@ -9,7 +9,7 @@ namespace Mofichan.Tests.Analysis
 {
     public class MessageClassifierFixture
     {
-        private static IEnumerable<TaggedMessage> TrainingSet
+        internal static IEnumerable<TaggedMessage> TrainingSet
         {
             get
             {
@@ -80,11 +80,13 @@ namespace Mofichan.Tests.Analysis
         {
             double requiredConfidenceRatioForUnitTesting = 0.9;
 
-            this.Classifier = new MessageClassifier(MockLogger.Instance);
-            this.Classifier.Train(TrainingSet, requiredConfidenceRatioForUnitTesting);
+            var factory = new CompositeBayesianClassifier.Factory(requiredConfidenceRatioForUnitTesting,
+                MockLogger.Instance);
+
+            this.Classifier = factory.From(TrainingSet);
         }
 
-        internal MessageClassifier Classifier { get; }
+        internal CompositeBayesianClassifier Classifier { get; }
     }
 
     public class MessageClassifierTests : IClassFixture<MessageClassifierFixture>
@@ -133,11 +135,30 @@ namespace Mofichan.Tests.Analysis
             }
         }
 
-        private readonly MessageClassifier classifier;
+        private readonly CompositeBayesianClassifier classifier;
 
         public MessageClassifierTests(MessageClassifierFixture classifierFixture)
         {
             this.classifier = classifierFixture.Classifier;
+        }
+
+        [Fact]
+        public void Factory_Should_Return_Same_Classifier_When_Provided_Same_Training_Set()
+        {
+            // GIVEN a classifier factory.
+            var factory = new CompositeBayesianClassifier.Factory(0.5, MockLogger.Instance);
+
+            // GIVEN a training set.
+            var trainingSet = MessageClassifierFixture.TrainingSet;
+
+            // WHEN we get a classifier from the training set using the factory.
+            var classifierA = factory.From(trainingSet);
+
+            // AND we get another classifier from the training set using the factory.
+            var classifierB = factory.From(trainingSet);
+
+            // THEN the two classifier instances should be one and the same.
+            ReferenceEquals(classifierA, classifierB).ShouldBeTrue();
         }
 
         [Theory]

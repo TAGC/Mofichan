@@ -5,11 +5,13 @@ using System.Text.RegularExpressions;
 using Mofichan.Behaviour.Base;
 using Mofichan.Behaviour.Flow;
 using Mofichan.Core;
+using Mofichan.Core.BotState;
 using Mofichan.Core.Exceptions;
 using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
 using Mofichan.Core.Visitor;
 using Serilog;
+using static Mofichan.Core.Flow.UserDrivenFlowManager;
 
 namespace Mofichan.Behaviour.Admin
 {
@@ -33,11 +35,10 @@ namespace Mofichan.Behaviour.Admin
         /// <summary>
         /// Initializes a new instance of the <see cref="ToggleEnableBehaviour" /> class.
         /// </summary>
-        /// <param name="flowManager">The flow manager.</param>
         /// <param name="botContext">The bot context.</param>
         /// <param name="logger">The logger to use.</param>
-        public ToggleEnableBehaviour(BotContext botContext, IFlowManager flowManager, ILogger logger)
-            : base("S0", botContext, flowManager, logger)
+        public ToggleEnableBehaviour(BotContext botContext, ILogger logger)
+            : base("S0", botContext, logger)
         {
             this.behaviourMap = new Dictionary<string, EnableableBehaviourDecorator>();
 
@@ -47,7 +48,7 @@ namespace Mofichan.Behaviour.Admin
             this.RegisterSimpleTransition("T0,1", from: "S0", to: "S1");
             this.RegisterSimpleTransition("T0,Term", from: "S0", to: "STerm");
             this.RegisterSimpleTransition("T1,Term", from: "S1", to: "STerm");
-            this.Configure();
+            this.Configure<UserDrivenFlow>(Create);
         }
 
         /// <summary>
@@ -55,13 +56,13 @@ namespace Mofichan.Behaviour.Admin
         /// </summary>
         /// <param name="context">The flow context.</param>
         /// <param name="manager">The transition manager.</param>
+        /// <param name="visitor">The visitor.</param>
         /// <exception cref="MofichanAuthorisationException">
         /// Non-admin user attempted to enable behaviour
         /// or
-        /// Non-admin user attempted to disable behaviour
-        /// </exception>
-        [FlowState(id: "S1", distinctUntilChanged: true)]
-        public void WithAttention(FlowContext context, IFlowTransitionManager manager)
+        /// Non-admin user attempted to disable behaviour</exception>
+        [FlowState(id: "S1")]
+        public void WithAttention(FlowContext context, FlowTransitionManager manager, IBehaviourVisitor visitor)
         {
             var messageBody = context.Message.Body;
             var user = context.Message.From as IUser;
@@ -76,20 +77,20 @@ namespace Mofichan.Behaviour.Admin
 
             if (enableRequest && authorised)
             {
-                this.ChangeBehaviourEnableState(context.Visitor, context.Message, EnableMatch, "enabled", true);
+                this.ChangeBehaviourEnableState(visitor, context.Message, EnableMatch, "enabled", true);
             }
             else if (disableRequest && authorised)
             {
-                this.ChangeBehaviourEnableState(context.Visitor, context.Message, DisableMatch, "disabled", false);
+                this.ChangeBehaviourEnableState(visitor, context.Message, DisableMatch, "disabled", false);
             }
             else if (enableRequest && !authorised)
             {
-                HandleAuthorisationFailure(context.Visitor, context.Message,
+                HandleAuthorisationFailure(visitor, context.Message,
                     "Non-admin user attempted to enable behaviour");
             }
             else if (disableRequest && !authorised)
             {
-                HandleAuthorisationFailure(context.Visitor, context.Message,
+                HandleAuthorisationFailure(visitor, context.Message,
                     "Non-admin user attempted to disable behaviour");
             }
         }
@@ -136,6 +137,7 @@ namespace Mofichan.Behaviour.Admin
             Debug.Assert(user != null, "The message sender should be a user");
 
             visitor.RegisterResponse(rb => rb
+                .To(incomingMessage)
                 .WithBotContextChange(ctx => ctx.Attention.RenewAttentionTowardsUser(user))
                 .WithSideEffect(() => { throw exception; }));
         }
@@ -150,6 +152,7 @@ namespace Mofichan.Behaviour.Admin
                 behaviour, action, user.Name);
 
             visitor.RegisterResponse(rb => rb
+                .To(incomingMessage)
                 .WithMessage(mb => mb.FromRaw(reply))
                 .WithBotContextChange(ctx => ctx.Attention.RenewAttentionTowardsUser(user))
                 .RelevantBecause(it => it.GuaranteesRelevance()));
@@ -181,6 +184,7 @@ namespace Mofichan.Behaviour.Admin
                 }
 
                 visitor.RegisterResponse(rb => rb
+                    .To(incomingMessage)
                     .WithMessage(mb => mb.FromRaw(reply))
                     .WithSideEffect(enableStateChange)
                     .WithBotContextChange(ctx => ctx.Attention.RenewAttentionTowardsUser(user))

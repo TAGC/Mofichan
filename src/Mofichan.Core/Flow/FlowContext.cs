@@ -1,5 +1,4 @@
 ﻿using System.Dynamic;
-using Mofichan.Core.Visitor;
 
 namespace Mofichan.Core.Flow
 {
@@ -11,37 +10,18 @@ namespace Mofichan.Core.Flow
         /// <summary>
         /// Initializes a new instance of the <see cref="FlowContext" /> class.
         /// </summary>
-        public FlowContext() : this(default(MessageContext), null)
+        public FlowContext()
         {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="FlowContext" /> class.
-        /// </summary>
-        /// <param name="message">The message to associate with the flow context.</param>
-        /// <param name="visitor">The visitor to associate with the flow context.</param>
-        public FlowContext(MessageContext message, IBehaviourVisitor visitor)
-        {
-            this.Message = message;
-            this.Visitor = visitor;
             this.Extras = new ExpandoObject();
         }
 
         /// <summary>
-        /// Gets the visitor.
-        /// </summary>
-        /// <value>
-        /// The visitor.
-        /// </value>
-        public IBehaviourVisitor Visitor { get; }
-
-        /// <summary>
-        /// Gets the message.
+        /// Gets or sets the message.
         /// </summary>
         /// <value>
         /// The message.
         /// </value>
-        public MessageContext Message { get; }
+        public MessageContext Message { get; set; }
 
         /// <summary>
         /// Gets a(n) <see cref="ExpandoObject"/> that can be used to store additional flow context
@@ -51,34 +31,6 @@ namespace Mofichan.Core.Flow
         /// An <c>ExpandObject</c> for storing additional context information.
         /// </value>
         public dynamic Extras { get; private set; }
-
-        /// <summary>
-        /// Derives an instance of <c>FlowContext</c> that includes the specified message.
-        /// </summary>
-        /// <param name="message">The message to associate with this context.</param>
-        /// <returns>A new <c>FlowContext</c> instance derived from this.</returns>
-        public FlowContext FromMessage(MessageContext message)
-        {
-            var newContext = new FlowContext(message, this.Visitor);
-
-            newContext.Extras = this.Extras;
-
-            return newContext;
-        }
-
-        /// <summary>
-        /// Derives an instance of <c>FlowContext</c> that includes the specified visitor.
-        /// </summary>
-        /// <param name="visitor">The visitor to associate with this context.</param>
-        /// <returns>A new <c>FlowContext</c> instance derived from this.</returns>
-        public FlowContext FromVisitor(IBehaviourVisitor visitor)
-        {
-            var newContext = new FlowContext(this.Message, visitor);
-
-            newContext.Extras = this.Extras;
-
-            return newContext;
-        }
 
         /// <summary>
         /// Determines whether the specified <see cref="System.Object" />, is equal to this instance.
@@ -96,10 +48,10 @@ namespace Mofichan.Core.Flow
                 return false;
             }
 
-            bool messagesEqual = (this.Message == null && other.Message == null) || this.Message.Equals(other.Message);
-            bool visitorsEqual = (this.Visitor == null && other.Visitor == null) || this.Visitor.Equals(other.Visitor);
+            bool messagesEqual = (this.Message == null && other.Message == null)
+                || this.Message.Equals(other.Message);
 
-            return messagesEqual && visitorsEqual;
+            return messagesEqual;
         }
 
         /// <summary>
@@ -113,7 +65,6 @@ namespace Mofichan.Core.Flow
             int hashCode = 17;
 
             hashCode += 31 * this.Message?.GetHashCode() ?? 0;
-            hashCode += 31 * this.Visitor?.GetHashCode() ?? 0;
 
             return hashCode;
         }

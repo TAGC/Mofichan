@@ -1,9 +1,4 @@
-﻿using System;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using Autofac;
+﻿using Autofac;
 using Mofichan.Core.Interfaces;
 using Serilog;
 
@@ -25,39 +20,21 @@ namespace Mofichan.DataAccess.Analysis
         /// </remarks>
         protected override void Load(ContainerBuilder builder)
         {
-            var analysisLibraries = new[]
-            {
-                BuildLibrary("greetings"),
-                BuildLibrary("emotive")
-            };
-
-            Action<MessageClassifier> trainClassifier = classifier =>
-            {
-                double requiredConfidenceRatio = 0.5;
-                classifier.Train(analysisLibraries.SelectMany(it => it.Articles), requiredConfidenceRatio);
-            };
-
-            builder.RegisterType<MessageClassifier>()
-                .OnActivated(e => trainClassifier(e.Instance))
-                .Named<IMessageClassifier>("classifier")
+            builder.RegisterType<CompositeBayesianClassifier.Factory>()
+                .WithParameter("requiredConfidenceRatio", 0.5)
+                .AsSelf()
                 .SingleInstance();
+
+            builder.Register(context =>
+            {
+                var factory = context.Resolve<CompositeBayesianClassifier.Factory>();
+                var trainingSet = context.Resolve<IQueryableMemoryManager>().LoadAnalyses();
+                return factory.From(trainingSet);
+            }).Named<IMessageClassifier>("classifier");
 
             builder.RegisterDecorator<IMessageClassifier>(
                 (c, inner) => new SentenceFragmentAnalyser(inner, c.Resolve<ILogger>()),
                 fromKey: "classifier");
-        }
-
-        private static ILibrary BuildLibrary(string resourceName)
-        {
-            var assembly = typeof(AnalysisModule).GetTypeInfo().Assembly;
-            var resourcePath = string.Format("Mofichan.DataAccess.Analysis.Resources.{0}.json", resourceName);
-
-            using (var resourceStream = assembly.GetManifestResourceStream(resourcePath))
-            {
-                Debug.Assert(resourceStream != null, "The resource should exist");
-
-                return new JsonSourceLibrary(new StreamReader(resourceStream));
-            }
         }
     }
 }

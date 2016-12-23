@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Mofichan.Core.Interfaces;
 using Mofichan.Core.Visitor;
 
@@ -35,7 +36,14 @@ namespace Mofichan.Behaviour.Base
         /// <value>
         /// The identifier.
         /// </value>
-        public abstract string Id { get; }
+        public virtual string Id
+        {
+            get
+            {
+                return this.GetType().GetTypeInfo().Name.Replace("Behaviour", string.Empty)
+                    .ToLowerInvariant();
+            }
+        }
 
         /// <summary>
         /// Gets the collection of sub-behaviours.

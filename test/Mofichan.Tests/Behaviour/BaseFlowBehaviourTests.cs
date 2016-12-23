@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
 using Mofichan.Core.Exceptions;
@@ -8,7 +7,6 @@ using Mofichan.Core.Interfaces;
 using Mofichan.Core.Visitor;
 using Mofichan.Tests.TestUtility;
 using Moq;
-using Serilog;
 using Shouldly;
 using Xunit;
 using static Mofichan.Tests.TestUtility.FlowUtil;
@@ -20,14 +18,13 @@ namespace Mofichan.Tests.Behaviour
     {
         private class MockFlowBehaviour : BaseFlowBehaviour
         {
-            public MockFlowBehaviour(string startNodeId, IFlowManager flowManager)
-                : base(startNodeId, flowManager, MockLogger.Instance)
+            public MockFlowBehaviour() : base(MockLogger.Instance)
             {
             }
 
-            public new void RegisterFlow(Func<BasicFlow.Builder, BasicFlow.Builder> flowBuilderFunction)
+            public new void SetFlowManager(IFlowManager flowManager)
             {
-                base.RegisterFlow(flowBuilderFunction);
+                base.SetFlowManager(flowManager);
             }
         }
 
@@ -39,8 +36,8 @@ namespace Mofichan.Tests.Behaviour
             //  - S1 -> S0 occurs if "foo" is received
             var nodes = new[]
             {
-                new FlowNode("S0", DecideTransitionFromMatch("bar", "T0,1"), TransitionManagerFactory),
-                new FlowNode("S1", DecideTransitionFromMatch("foo", "T1,0"), TransitionManagerFactory),
+                new FlowNode("S0", DecideTransitionFromMatch("bar", "T0,1")),
+                new FlowNode("S1", DecideTransitionFromMatch("foo", "T1,0")),
             };
 
             // GIVEN transitions T0,0, T0,1, T1,0 and T1,1 where T1,0 will generate a response.
@@ -49,21 +46,21 @@ namespace Mofichan.Tests.Behaviour
                 new FlowTransition("T0,0"),
                 new FlowTransition("T0,1"),
                 new FlowTransition("T1,1"),
-                new FlowTransition("T1,0", (context, _) => context.Visitor.RegisterResponse(rb => rb
+                new FlowTransition("T1,0", (context, _, visitor) => visitor.RegisterResponse(rb => rb
+                    .To(context.Message)
                     .WithMessage(mb => mb.FromRaw("Yes sir, yes sir, three baz full"))))
             };
 
             // GIVEN a mock flow behaviour that registers a flow with these nodes.
-            var manager = new FlowManager(t => new FlowTransitionManager(t));
-            var mockBehaviour = new MockFlowBehaviour("S0", manager);
-            mockBehaviour.RegisterFlow(builder => builder
-                .WithLogger(MockLogger.Instance)
+            var mockBehaviour = new MockFlowBehaviour();
+            mockBehaviour.SetFlowManager(UserDrivenFlowManager.Create(builder => builder
+                .WithStartNodeId("S0")
                 .WithNodes(nodes)
                 .WithTransitions(transitions)
                 .WithConnection("S0", "S0", "T0,0")
                 .WithConnection("S0", "S1", "T0,1")
                 .WithConnection("S1", "S0", "T1,0")
-                .WithConnection("S1", "S1", "T1,1"));
+                .WithConnection("S1", "S1", "T1,1")));
 
             // GIVEN the ID of some particular user.
             var borgUser = "borg-7.9";
@@ -94,20 +91,17 @@ namespace Mofichan.Tests.Behaviour
             // GIVEN a node that throws an authorisation exception on accepting messages.
             var nodes = new[]
             {
-                new FlowNode("S0", (c, m) => { throw new MofichanAuthorisationException(c.Message); },
-                    TransitionManagerFactory)
+                new FlowNode("S0", (c, m, v) => { throw new MofichanAuthorisationException(c.Message); })
             };
 
             var transitions = Enumerable.Empty<IFlowTransition>();
 
             // GIVEN a mock flow behaviour that registers a flow with this node.
-            var manager = new FlowManager(t => new FlowTransitionManager(t));
-            var mockBehaviour = new MockFlowBehaviour("S0", manager);
-            mockBehaviour.RegisterFlow(builder => builder
-                .WithLogger(MockLogger.Instance)
+            var mockBehaviour = new MockFlowBehaviour();
+            mockBehaviour.SetFlowManager(UserDrivenFlowManager.Create(builder => builder
+                .WithStartNodeId("S0")
                 .WithNodes(nodes)
-                .WithTransitions(transitions)
-                .WithStartNodeId("S0"));
+                .WithTransitions(transitions)));
 
             // GIVEN a mock user.
             var janeway = new Mock<IUser>();
@@ -132,24 +126,22 @@ namespace Mofichan.Tests.Behaviour
             // GIVEN two nodes and a transition that throws an authorisation exception.
             var nodes = new[]
             {
-                new FlowNode("S0", (c, m) => m.MakeTransitionCertain("T0,1"), TransitionManagerFactory),
-                new FlowNode("S1", NullStateAction, TransitionManagerFactory),
+                new FlowNode("S0", (c, m, v) => { m.MakeTransitionCertain("T0,1"); return null; }),
+                new FlowNode("S1", NullStateAction),
             };
 
             var transitions = new[]
             {
-                new FlowTransition("T0,1", (c, _) => { throw new MofichanAuthorisationException(c.Message); })
+                new FlowTransition("T0,1", (c, m, v) => { throw new MofichanAuthorisationException(c.Message); })
             };
 
             // GIVEN a mock flow behaviour that registers a flow with this node.
-            var manager = new FlowManager(t => new FlowTransitionManager(t));
-            var mockBehaviour = new MockFlowBehaviour("S0", manager);
-            mockBehaviour.RegisterFlow(builder => builder
-                .WithLogger(MockLogger.Instance)
+            var mockBehaviour = new MockFlowBehaviour();
+            mockBehaviour.SetFlowManager(UserDrivenFlowManager.Create(builder => builder
+                .WithStartNodeId("S0")
                 .WithNodes(nodes)
                 .WithTransitions(transitions)
-                .WithConnection("S0", "S1", "T0,1")
-                .WithStartNodeId("S0"));
+                .WithConnection("S0", "S1", "T0,1")));
 
             // GIVEN a mock user.
             var janeway = new Mock<IUser>();

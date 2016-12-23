@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Mofichan.DataAccess.Domain;
 
 namespace Mofichan.DataAccess
 {

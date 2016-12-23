@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Threading;
 using Mofichan.Core;
-using Moq;
-using Serilog;
+using Mofichan.Tests.TestUtility;
 using Xunit;
 
 namespace Mofichan.Tests
@@ -14,7 +13,7 @@ namespace Mofichan.Tests
         {
             // WHEN we create a heart.
             var resetEvent = new AutoResetEvent(false);
-            using (var heart = new Heart(Mock.Of<ILogger>()))
+            using (var heart = new Heart(MockLogger.Instance))
             {
                 heart.PulseOccurred += (s, e) => resetEvent.Set();
                 

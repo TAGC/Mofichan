@@ -49,7 +49,7 @@ namespace Mofichan.DataAccess.Analysis
         {
             get
             {
-                var assembly = typeof(MessageClassifier).GetTypeInfo().Assembly;
+                var assembly = typeof(CompositeBayesianClassifier).GetTypeInfo().Assembly;
                 var resourcePath = "Mofichan.DataAccess.Analysis.Resources.stopwords.txt";
 
                 using (var stream = assembly.GetManifestResourceStream(resourcePath))
@@ -167,7 +167,7 @@ namespace Mofichan.DataAccess.Analysis
             return Regex.Matches(message, @"[\w']+")
                 .Cast<Match>()
                 .Select(it => it.Value.ToLowerInvariant())
-                .Aggregate(string.Empty, (e, a) => e + " " + a);
+                .Aggregate(string.Empty, (a, e) => a + " " + e);
         }
     }
 }

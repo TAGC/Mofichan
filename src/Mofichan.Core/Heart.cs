@@ -7,6 +7,12 @@ using Serilog;
 
 namespace Mofichan.Core
 {
+    /// <summary>
+    /// A type of <see cref="IPulseDriver"/> that generates pulses at a configurable, regular
+    /// interval.
+    /// <para></para>
+    /// Instances of this class act as the lifeblood that drives all of Mofichan's behaviours.
+    /// </summary>
     public class Heart : IPulseDriver, IDisposable
     {
         private readonly ILogger logger;
@@ -14,6 +20,7 @@ namespace Mofichan.Core
         private readonly Task stepperTask;
 
         private bool disposed;
+        private TimeSpan heartRate;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Heart"/> class.
@@ -39,7 +46,19 @@ namespace Mofichan.Core
         /// <value>
         /// Mofichan's heart rate.
         /// </value>
-        public TimeSpan Rate { get; set; }
+        public TimeSpan Rate
+        {
+            get
+            {
+                return this.heartRate;
+            }
+
+            set
+            {
+                this.logger.Information("Setting heart rate={HeartRate}", value);
+                this.heartRate = value;
+            }
+        }
 
         /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.

@@ -1,6 +1,4 @@
-﻿using System;
-using Mofichan.Behaviour.Flow;
-using Mofichan.Core.Flow;
+﻿using Mofichan.Core.Flow;
 using Mofichan.Core.Visitor;
 using Serilog;
 
@@ -13,27 +11,18 @@ namespace Mofichan.Behaviour.Base
     /// <seealso cref="IFlow"/>
     public abstract class BaseFlowBehaviour : BaseBehaviour
     {
-        private readonly IFlowManager flowManager;
         private readonly ILogger logger;
-        private readonly string startNodeId;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BaseFlowBehaviour" /> class.
         /// </summary>
-        /// <param name="startNodeId">Identifies the starting node in the flow.</param>
-        /// <param name="flowManager">The flow manager.</param>
         /// <param name="logger">The logger to use.</param>
-        protected BaseFlowBehaviour(
-            string startNodeId,
-            IFlowManager flowManager,
-            ILogger logger)
+        protected BaseFlowBehaviour(ILogger logger)
         {
-            this.startNodeId = startNodeId;
-            this.flowManager = flowManager;
             this.logger = logger.ForContext<BaseFlowBehaviour>();
         }
 
-        private IFlow Flow { get; set; }
+        private IFlowManager FlowManager { get; set; }
 
         /// <summary>
         /// Invoked when this behaviour is visited by an <see cref="OnMessageVisitor" />.
@@ -44,7 +33,7 @@ namespace Mofichan.Behaviour.Base
         /// <param name="visitor">The visitor.</param>
         protected override void HandleMessageVisitor(OnMessageVisitor visitor)
         {
-            this.Flow.Accept(visitor);
+            this.FlowManager.Accept(visitor);
             base.HandleMessageVisitor(visitor);
         }
 
@@ -57,24 +46,17 @@ namespace Mofichan.Behaviour.Base
         /// <param name="visitor">The visitor.</param>
         protected override void HandlePulseVisitor(OnPulseVisitor visitor)
         {
-            this.Flow.Accept(visitor);
+            this.FlowManager.Accept(visitor);
             base.HandlePulseVisitor(visitor);
         }
 
         /// <summary>
-        /// Registers the flow used by this instance.
+        /// Sets the flow manager.
         /// </summary>
-        /// <param name="flowBuilderFunction">
-        /// Determines the properties of the flow that gets registered.
-        /// </param>
-        protected void RegisterFlow(Func<BasicFlow.Builder, BasicFlow.Builder> flowBuilderFunction)
+        /// <param name="manager">The flow manager.</param>
+        protected void SetFlowManager(IFlowManager manager)
         {
-            var baseFlowBuilder = new BasicFlow.Builder()
-                .WithLogger(this.logger)
-                .WithManager(this.flowManager)
-                .WithStartNodeId(this.startNodeId);
-
-            this.Flow = flowBuilderFunction(baseFlowBuilder).Build();
+            this.FlowManager = manager;
         }
     }
 }

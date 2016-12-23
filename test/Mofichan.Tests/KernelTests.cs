@@ -19,7 +19,7 @@ namespace Mofichan.Tests
             var backend = Mock.Of<IMofichanBackend>();
             var chainBuilder = Mock.Of<IBehaviourChainBuilder>();
             var pulseDriver = Mock.Of<IPulseDriver>();
-            var messageClassifier = Mock.Of<IMessageClassifier>();
+            Func<IMessageClassifier> messageClassifierFactory = Mock.Of<IMessageClassifier>;
             var visitorFactory = Mock.Of<IBehaviourVisitorFactory>();
             var responseSelector = Mock.Of<IResponseSelector>();
             var logger = MockLogger.Instance;
@@ -29,7 +29,7 @@ namespace Mofichan.Tests
 
             // EXPECT an exception to be thrown if we construct a kernel with it.
             Assert.Throws<ArgumentNullException>(() =>
-                new Kernel(backend, behaviours, chainBuilder, pulseDriver, messageClassifier, visitorFactory,
+                new Kernel(backend, behaviours, chainBuilder, pulseDriver, messageClassifierFactory, visitorFactory,
                     responseSelector, logger));
         }
 
@@ -39,7 +39,7 @@ namespace Mofichan.Tests
             var backend = Mock.Of<IMofichanBackend>();
             var chainBuilder = Mock.Of<IBehaviourChainBuilder>();
             var pulseDriver = Mock.Of<IPulseDriver>();
-            var messageClassifier = Mock.Of<IMessageClassifier>();
+            Func<IMessageClassifier> messageClassifierFactory = Mock.Of<IMessageClassifier>;
             var visitorFactory = Mock.Of<IBehaviourVisitorFactory>();
             var responseSelector = Mock.Of<IResponseSelector>();
             var logger = MockLogger.Instance;
@@ -49,7 +49,7 @@ namespace Mofichan.Tests
 
             // EXPECT an exception to be thrown if we construct a kernel with it.
             Assert.Throws<ArgumentException>(() =>
-                new Kernel(backend, behaviours, chainBuilder, pulseDriver, messageClassifier, visitorFactory,
+                new Kernel(backend, behaviours, chainBuilder, pulseDriver, messageClassifierFactory, visitorFactory,
                     responseSelector, logger));
         }
 
@@ -59,7 +59,7 @@ namespace Mofichan.Tests
             var behaviours = new[] { Mock.Of<IMofichanBehaviour>() };
             var chainBuilder = new BehaviourChainBuilder();
             var pulseDriver = Mock.Of<IPulseDriver>();
-            var messageClassifier = Mock.Of<IMessageClassifier>();
+            Func<IMessageClassifier> messageClassifierFactory = Mock.Of<IMessageClassifier>;
             var visitorFactory = Mock.Of<IBehaviourVisitorFactory>();
             var responseSelector = Mock.Of<IResponseSelector>();
             var logger = MockLogger.Instance;
@@ -68,7 +68,7 @@ namespace Mofichan.Tests
             var backend = new Mock<IMofichanBackend>();
 
             // GIVEN a kernel constructed with the backend.
-            var kernel = new Kernel(backend.Object, behaviours, chainBuilder, pulseDriver, messageClassifier,
+            var kernel = new Kernel(backend.Object, behaviours, chainBuilder, pulseDriver, messageClassifierFactory,
                 visitorFactory, responseSelector, logger);
 
             // WHEN we start the kernel.

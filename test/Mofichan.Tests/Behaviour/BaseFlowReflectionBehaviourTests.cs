@@ -11,9 +11,10 @@ using Mofichan.Core.Utility;
 using Mofichan.Core.Visitor;
 using Mofichan.Tests.TestUtility;
 using Moq;
-using Serilog;
 using Shouldly;
 using Xunit;
+using static Mofichan.Core.Flow.AutoFlowManager;
+using static Mofichan.Core.Flow.UserDrivenFlowManager;
 using static Mofichan.Tests.TestUtility.FlowUtil;
 using static Mofichan.Tests.TestUtility.MessageUtil;
 
@@ -24,24 +25,24 @@ namespace Mofichan.Tests.Behaviour
         #region Mocks
         public class FooBarFlowBehaviour : BaseFlowReflectionBehaviour
         {
-            public FooBarFlowBehaviour(IFlowManager manager)
-                : base("S0", MockBotContext.Instance, manager, MockLogger.Instance)
+            public FooBarFlowBehaviour()
+                : base("S0", MockBotContext.Instance, MockLogger.Instance)
             {
                 this.RegisterSimpleTransition("T0,0", from: "S0", to: "S0");
                 this.RegisterSimpleTransition("T0,1", from: "S0", to: "S1");
                 this.RegisterSimpleTransition("T1,1", from: "S1", to: "S1");
                 this.RegisterSimpleTransition("T1,0:timeout", from: "S1", to: "S0");
-                this.Configure();
+                this.Configure<UserDrivenFlow>(Create);
             }
 
             [FlowState(id: "S0")]
-            public void WaitOnBar(FlowContext context, IFlowTransitionManager manager)
+            public void WaitOnBar(FlowContext context, FlowTransitionManager manager, IBehaviourVisitor visitor)
             {
-                DecideTransitionFromMatch("bar", "T0,1")(context, manager);
+                DecideTransitionFromMatch("bar", "T0,1")(context, manager, visitor);
             }
 
             [FlowState(id: "S1")]
-            public void WaitOnFoo(FlowContext context, IFlowTransitionManager manager)
+            public void WaitOnFoo(FlowContext context, FlowTransitionManager manager, IBehaviourVisitor visitor)
             {
                 var body = context.Message.Body;
 
@@ -57,29 +58,30 @@ namespace Mofichan.Tests.Behaviour
             }
 
             [FlowTransition(id: "T1,0", from: "S1", to: "S0")]
-            public void OnFoo(FlowContext context, IFlowTransitionManager manager)
+            public void OnFoo(FlowContext context, FlowTransitionManager manager, IBehaviourVisitor visitor)
             {
                 var response = "Yes sir, yes sir, three baz full";
 
-                context.Visitor.RegisterResponse(rb => rb
+                visitor.RegisterResponse(rb => rb
+                    .To(context.Message)
                     .WithMessage(mb => mb.FromRaw(response)));
             }
         }
 
         public class WarfareFlowBehaviour : BaseFlowReflectionBehaviour
         {
-            public WarfareFlowBehaviour(IFlowManager manager)
-                : base("S0", MockBotContext.Instance, manager, MockLogger.Instance)
+            public WarfareFlowBehaviour()
+                : base("S0", MockBotContext.Instance, MockLogger.Instance)
             {
                 this.RegisterSimpleTransition("T0,0", from: "S0", to: "S0");
                 this.RegisterSimpleTransition("T0,1", from: "S0", to: "S1");
                 this.RegisterSimpleTransition("T1,1", from: "S1", to: "S1");
                 this.RegisterSimpleTransition("T1,0:timeout", from: "S1", to: "S0");
-                this.Configure();
+                this.Configure<UserDrivenFlow>(Create);
             }
 
             [FlowState(id: "S0")]
-            public void Idle(FlowContext context, IFlowTransitionManager manager)
+            public void Idle(FlowContext context, FlowTransitionManager manager, IBehaviourVisitor visitor)
             {
                 if (context.Message.Tags.Contains("directedAtMofichan"))
                 {
@@ -92,7 +94,7 @@ namespace Mofichan.Tests.Behaviour
             }
 
             [FlowState(id: "S1")]
-            public void Attentive(FlowContext context, IFlowTransitionManager manager)
+            public void Attentive(FlowContext context, FlowTransitionManager manager, IBehaviourVisitor visitor)
             {
                 if (Regex.IsMatch(context.Message.Body, "launch.*nuclear warheads", RegexOptions.IgnoreCase))
                 {
@@ -113,21 +115,76 @@ namespace Mofichan.Tests.Behaviour
             }
 
             [FlowTransition(id: "T1,0:success", from: "S1", to: "S0")]
-            public void OnAuthorisedRequest(FlowContext context, IFlowTransitionManager manager)
+            public void OnAuthorisedRequest(FlowContext context, FlowTransitionManager manager, IBehaviourVisitor visitor)
             {
                 var response = "Launching all warheads in T-10...";
 
-                context.Visitor.RegisterResponse(rb => rb
+                visitor.RegisterResponse(rb => rb
+                    .To(context.Message)
                     .WithMessage(mb => mb.FromRaw(response)));
             }
 
             [FlowTransition(id: "T1,0:failure", from: "S1", to: "S0")]
-            public void OnUnauthorisedRequest(FlowContext context, IFlowTransitionManager manager)
+            public void OnUnauthorisedRequest(FlowContext context, FlowTransitionManager manager, IBehaviourVisitor visitor)
             {
                 var response = "Sorry - you do not have permission to destroy the world.";
 
-                context.Visitor.RegisterResponse(rb => rb
+                visitor.RegisterResponse(rb => rb
+                    .To(context.Message)
                     .WithMessage(mb => mb.FromRaw(response)));
+            }
+        }
+
+        // Tests auto-flows.
+        public class CanadianFlowBehaviour : BaseFlowReflectionBehaviour
+        {
+            public CanadianFlowBehaviour() : base("S0", MockBotContext.Instance, MockLogger.Instance)
+            {
+                this.RegisterSimpleTransition("T0,1", "S0", "S1");
+                this.RegisterSimpleTransition("T1,2", "S1", "S2");
+                this.RegisterSimpleTransition("T2,3", "S2", "S3");
+                this.RegisterSimpleTransition("T3,1", "S3", "S1");
+                this.Configure<AutoFlow>(Create);
+            }
+
+            [FlowState(id: "S0")]
+            public void Setup(FlowContext context, FlowTransitionManager manager, IBehaviourVisitor visitor)
+            {
+                context.Extras.User = new MockUser("Terrance", "Terrance");
+                manager.MakeTransitionCertain("T0,1");
+            }
+
+            [FlowState(id: "S1")]
+            public void NotFriend_Buddy(FlowContext context, FlowTransitionManager manager, IBehaviourVisitor visitor)
+            {
+                IUser recipient = context.Extras.User;
+
+                visitor.RegisterAutonomousOutput(aob => aob
+                    .WithMessage(recipient, mb => mb.FromRaw("I'm not your friend, buddy!")));
+
+                manager.MakeTransitionCertain("T1,2");
+            }
+
+            [FlowState(id: "S2")]
+            public void NotBuddy_Guy(FlowContext context, FlowTransitionManager manager, IBehaviourVisitor visitor)
+            {
+                IUser recipient = context.Extras.User;
+
+                visitor.RegisterAutonomousOutput(aob => aob
+                    .WithMessage(recipient, mb => mb.FromRaw("I'm not your buddy, guy!")));
+
+                manager.MakeTransitionCertain("T2,3");
+            }
+
+            [FlowState(id: "S3")]
+            public void NotGuy_Friend(FlowContext context, FlowTransitionManager manager, IBehaviourVisitor visitor)
+            {
+                IUser recipient = context.Extras.User;
+
+                visitor.RegisterAutonomousOutput(aob => aob
+                    .WithMessage(recipient, mb => mb.FromRaw("I'm not your guy, friend!")));
+
+                manager.MakeTransitionCertain("T3,1");
             }
         }
         #endregion
@@ -136,8 +193,7 @@ namespace Mofichan.Tests.Behaviour
         public void Foo_Bar_Flow_Behaviour_Should_Behave_As_Expected()
         {
             // GIVEN a foo bar flow behaviour.
-            var manager = new FlowManager(t => new FlowTransitionManager(t));
-            var behaviour = new FooBarFlowBehaviour(manager);
+            var behaviour = new FooBarFlowBehaviour();
 
             // GIVEN the ID of some particular user.
             var borgUser = "borg-7.9";
@@ -159,6 +215,39 @@ namespace Mofichan.Tests.Behaviour
             var response = visitorFactory.Responses.ShouldHaveSingleItem().Message;
             response.Body.ShouldBe("Yes sir, yes sir, three baz full");
             (response.To as IUser).UserId.ShouldBe(borgUser);
+        }
+
+        [Fact]
+        public void Canadian_Flow_Behaviour_Should_Run_Without_User_Interaction()
+        {
+            // GIVEN a canadian flow behaviour.
+            var behaviour = new CanadianFlowBehaviour();
+
+            // GIVEN a visitor factory.
+            var visitorFactory = new BehaviourVisitorFactory(MockBotContext.Instance, CreateSimpleMessageBuilder);
+
+            // EXPECT no outputs when we pulse the behaviour once.
+            behaviour.OnNext(visitorFactory.CreatePulseVisitor());
+            visitorFactory.AutononousOutputs.ShouldBeEmpty();
+
+            // EXPECT an output when we pulse the behaviour once more.
+            behaviour.OnNext(visitorFactory.CreatePulseVisitor());
+            visitorFactory.AutononousOutputs.ShouldHaveSingleItem().Message.Body.ShouldContain("friend, buddy");
+
+            // EXPECT a second output when we pulse the behaviour once more.
+            behaviour.OnNext(visitorFactory.CreatePulseVisitor());
+            visitorFactory.AutononousOutputs.Count().ShouldBe(2);
+            visitorFactory.AutononousOutputs.ElementAt(1).Message.Body.ShouldContain("buddy, guy");
+
+            // EXPECT a third output when we pulse the behaviour once more.
+            behaviour.OnNext(visitorFactory.CreatePulseVisitor());
+            visitorFactory.AutononousOutputs.Count().ShouldBe(3);
+            visitorFactory.AutononousOutputs.ElementAt(2).Message.Body.ShouldContain("guy, friend");
+
+            // EXPECT the first output again when we pulse the behaviour once more.
+            behaviour.OnNext(visitorFactory.CreatePulseVisitor());
+            visitorFactory.AutononousOutputs.Count().ShouldBe(4);
+            visitorFactory.AutononousOutputs.ElementAt(3).Message.Body.ShouldContain("friend, buddy");
         }
 
         [Fact]
@@ -269,8 +358,7 @@ namespace Mofichan.Tests.Behaviour
             out Mock<IUser> donaldTrump)
         {
             // GIVEN a warfare flow behaviour.
-            var manager = new FlowManager(t => new FlowTransitionManager(t));
-            behaviour = new WarfareFlowBehaviour(manager);
+            behaviour = new WarfareFlowBehaviour();
 
             // GIVEN a normal user.
             johnSmith = new Mock<IUser>();

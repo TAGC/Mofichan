@@ -1,5 +1,8 @@
 ﻿using System;
+using Mofichan.Core.BehaviourOutputs;
+using Mofichan.Core.BotState;
 using Mofichan.Core.Interfaces;
+using PommaLabs.Thrower;
 
 namespace Mofichan.Core.Visitor
 {
@@ -18,8 +21,10 @@ namespace Mofichan.Core.Visitor
         /// <param name="messageBuilderFactory">A factory for constructing instances of a message builder.</param>
         public OnMessageVisitor(MessageContext message, BotContext botContext,
             Func<IResponseBodyBuilder> messageBuilderFactory)
-            : base(message, botContext, messageBuilderFactory)
+            : base(botContext, messageBuilderFactory)
         {
+            Raise.ArgumentNullException.IfIsNull(message, nameof(message));
+            this.Message = message;
         }
 
         /// <summary>
@@ -28,12 +33,20 @@ namespace Mofichan.Core.Visitor
         /// <value>
         /// The message being responded to.
         /// </value>
-        public new MessageContext Message
+        public MessageContext Message { get; }
+
+        /// <summary>
+        /// Registers a response.
+        /// </summary>
+        /// <param name="configureBuilder">An action used to configure the response builder.</param>
+        public override void RegisterResponse(Action<Response.Builder> configureBuilder)
         {
-            get
-            {
-                return base.Message;
-            }
+            var builder = new Response.Builder(this.BotContext, this.MessageBuilderFactory);
+            builder.To(this.Message);
+
+            configureBuilder(builder);
+
+            this.AddResponse(builder.Build());
         }
     }
 }

@@ -39,7 +39,7 @@ namespace Mofichan.Behaviour
         protected override void HandleMessageVisitor(OnMessageVisitor visitor)
         {
             base.HandleMessageVisitor(visitor);
-            this.DelayResponses(visitor);
+            this.DelayOutputs(visitor);
         }
 
         /// <summary>
@@ -52,7 +52,7 @@ namespace Mofichan.Behaviour
         protected override void HandlePulseVisitor(OnPulseVisitor visitor)
         {
             base.HandlePulseVisitor(visitor);
-            this.DelayResponses(visitor);
+            this.DelayOutputs(visitor);
         }
 
         private static int CountWordsInString(string input)
@@ -61,21 +61,38 @@ namespace Mofichan.Behaviour
             return input.Split(delimiters, StringSplitOptions.RemoveEmptyEntries).Length;
         }
 
-        private void DelayResponses(IBehaviourVisitor visitor)
+        private void DelayOutputs(IBehaviourVisitor visitor)
         {
             visitor.ModifyResponses(response =>
             {
-                if (response.Message == null)
+                var message = response.Message;
+
+                if (message == null)
                 {
                     return response;
                 }
 
-                var message = response.Message;
-                TimeSpan delay = this.CalculateDelayForMessage(message.Body);
-                var delayedMessage = new MessageContext(message.From, message.To, message.Body, delay);
-
-                return response.DeriveFromNewMessage(delayedMessage);
+                return response.DeriveFromNewMessage(CreateDelayedMessage(message));
             });
+
+            visitor.ModifyAutonomousOutputs(output =>
+            {
+                var message = output.Message;
+
+                if (message == null)
+                {
+                    return output;
+                }
+
+                return output.DeriveFromNewMessage(CreateDelayedMessage(message));
+            });
+        }
+
+        private MessageContext CreateDelayedMessage(MessageContext message)
+        {
+            TimeSpan delay = this.CalculateDelayForMessage(message.Body);
+            var delayedMessage = new MessageContext(message.From, message.To, message.Body, delay);
+            return delayedMessage;
         }
 
         private TimeSpan CalculateDelayForMessage(string messageBody)

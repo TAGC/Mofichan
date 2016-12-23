@@ -1,17 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using Mofichan.Behaviour.Base;
 using Mofichan.Behaviour.Flow;
-using Mofichan.Core;
+using Mofichan.Core.BotState;
 using Mofichan.Core.Exceptions;
 using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
 using Mofichan.Core.Visitor;
 using Serilog;
+using static Mofichan.Core.Flow.UserDrivenFlowManager;
 
 namespace Mofichan.Behaviour.Admin
 {
@@ -25,7 +25,7 @@ namespace Mofichan.Behaviour.Admin
     /// <para></para>
     /// This chain will also represent the enable state of enableable behaviour modules.
     /// </remarks>
-    public class DisplayChainBehaviour : BaseFlowReflectionBehaviour
+    internal class DisplayChainBehaviour : BaseFlowReflectionBehaviour
     {
         private const string BehaviourChainConnector = " ⇄ ";
 
@@ -37,10 +37,9 @@ namespace Mofichan.Behaviour.Admin
         /// Initializes a new instance of the <see cref="DisplayChainBehaviour" /> class.
         /// </summary>
         /// <param name="botContext">The bot context.</param>
-        /// <param name="flowManager">The flow manager.</param>
         /// <param name="logger">The logger to use.</param>
-        public DisplayChainBehaviour(BotContext botContext, IFlowManager flowManager, ILogger logger)
-            : base("S0", botContext, flowManager, logger)
+        public DisplayChainBehaviour(BotContext botContext, ILogger logger)
+            : base("S0", botContext, logger)
         {
             this.RegisterSimpleNode("STerm");
             this.RegisterAttentionGuardNode("S0", "T0,1", "T0,Term");
@@ -48,7 +47,7 @@ namespace Mofichan.Behaviour.Admin
             this.RegisterSimpleTransition("T0,1", from: "S0", to: "S1");
             this.RegisterSimpleTransition("T0,Term", from: "S0", to: "STerm");
             this.RegisterSimpleTransition("T1,Term", from: "S1", to: "STerm");
-            this.Configure();
+            this.Configure<UserDrivenFlow>(Create);
         }
 
         /// <summary>
@@ -56,11 +55,12 @@ namespace Mofichan.Behaviour.Admin
         /// </summary>
         /// <param name="context">The flow context.</param>
         /// <param name="manager">The transition manager.</param>
+        /// <param name="visitor">The visitor.</param>
         /// <exception cref="MofichanAuthorisationException">
         /// Thrown if non-admin user attempts to display behaviour chain
         /// </exception>
-        [FlowState(id: "S1", distinctUntilChanged: true)]
-        public void WithAttention(FlowContext context, IFlowTransitionManager manager)
+        [FlowState(id: "S1")]
+        public void WithAttention(FlowContext context, FlowTransitionManager manager, IBehaviourVisitor visitor)
         {
             var messageBody = context.Message.Body;
             var user = context.Message.From as IUser;
@@ -73,7 +73,8 @@ namespace Mofichan.Behaviour.Admin
 
             if (displayChainRequest && authorised)
             {
-                context.Visitor.RegisterResponse(rb => rb
+                visitor.RegisterResponse(rb => rb
+                    .To(context.Message)
                     .WithMessage(mb => mb
                         .FromRaw("My behaviour chain: " + this.BuildBehaviourChainRepresentation()))
                     .WithBotContextChange(ctx => ctx.Attention.RenewAttentionTowardsUser(user))
@@ -84,7 +85,8 @@ namespace Mofichan.Behaviour.Admin
                 var exception = new MofichanAuthorisationException(
                     "Non-admin user attempted to display behaviour chain", context.Message);
 
-                context.Visitor.RegisterResponse(rb => rb
+                visitor.RegisterResponse(rb => rb
+                    .To(context.Message)
                     .WithBotContextChange(ctx => ctx.Attention.RenewAttentionTowardsUser(user))
                     .WithSideEffect(() => { throw exception; }));
             }

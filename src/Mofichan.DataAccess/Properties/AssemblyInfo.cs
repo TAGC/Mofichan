@@ -19,4 +19,5 @@ using System.Runtime.InteropServices;
 [assembly: Guid("e3d73a59-6329-481b-a906-f667965d0c28")]
 
 [assembly: InternalsVisibleTo("Mofichan.Tests")]
+[assembly: InternalsVisibleTo("Mofichan.Spec")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]

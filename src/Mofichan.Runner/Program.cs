@@ -6,6 +6,7 @@ using Autofac;
 using Mofichan.Backend;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
+using Mofichan.Core.BotState;
 using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
 using Mofichan.Core.Relevance;
@@ -35,7 +36,7 @@ namespace Mofichan.Runner
 
                 Console.WriteLine("Started Mofichan");
                 Console.WriteLine("Press any key to shut down...");
-                Console.ReadKey();
+                Console.Read();
             }
         }
 
@@ -43,13 +44,10 @@ namespace Mofichan.Runner
         {
             IContainer container = BuildContainer();
 
-            var botConfiguration = container
-                .Resolve<IConfigurationLoader>()
-                .LoadConfiguration(DefaultConfigPath);
-
+            var botConfiguration = container.Resolve<BotConfiguration>();
             var backendName = botConfiguration.SelectedBackend;
             var backendParams = from item in botConfiguration.BackendConfiguration
-                                let paramName = item.Key.ToLowerInvariant()
+                                let paramName = item.Key
                                 let paramValue = item.Value
                                 select new NamedParameter(paramName, paramValue);
 
@@ -62,17 +60,19 @@ namespace Mofichan.Runner
                 container.ResolveNamed<IMofichanBehaviour>("administration"),
                 container.ResolveNamed<IMofichanBehaviour>("diagnostics"),
                 container.ResolveNamed<IMofichanBehaviour>("attention"),
-                container.ResolveNamed<IMofichanBehaviour>("greeting")
+                container.ResolveNamed<IMofichanBehaviour>("greeting"),
+                container.ResolveNamed<IMofichanBehaviour>("analysis"),
+                container.ResolveNamed<IMofichanBehaviour>("learning"),
             };
 
             var chainBuilder = container.Resolve<IBehaviourChainBuilder>();
             var pulseDriver = container.Resolve<IPulseDriver>();
-            var messageClassifier = container.Resolve<IMessageClassifier>();
+            Func<IMessageClassifier> messageClassifierFactory = container.Resolve<IMessageClassifier>;
             var visitorFactory = container.Resolve<IBehaviourVisitorFactory>();
             var responseSelector = container.Resolve<IResponseSelector>();
             var rootLogger = container.Resolve<ILogger>();
 
-            var mofichan = new Kernel(backend, behaviours, chainBuilder, pulseDriver, messageClassifier,
+            var mofichan = new Kernel(backend, behaviours, chainBuilder, pulseDriver, messageClassifierFactory,
                 visitorFactory, responseSelector, rootLogger);
 
             return mofichan;
@@ -90,24 +90,26 @@ namespace Mofichan.Runner
             var backendAssembly = typeof(BaseBackend).GetTypeInfo().Assembly;
             var containerBuilder = new ContainerBuilder();
 
+            // Register configuration.
+            var botConfig = new ConfigurationLoader().LoadConfiguration(DefaultConfigPath);
+            containerBuilder.Register(_ => botConfig);
+
             // Register generic parts.
             containerBuilder
-                .RegisterType<ConfigurationLoader>()
-                .As<IConfigurationLoader>();
+                .RegisterInstance(CreateRootLogger());
 
-            containerBuilder.RegisterInstance(CreateRootLogger());
             containerBuilder
                 .RegisterType<BehaviourChainBuilder>()
                 .As<IBehaviourChainBuilder>();
 
             containerBuilder
                 .RegisterType<FlowTransitionManager>()
-                .As<IFlowTransitionManager>();
+                .As<FlowTransitionManager>();
 
             containerBuilder
                 .RegisterType<PulseDrivenAttentionManager>()
                 .As<IAttentionManager>()
-                .WithParameter("mu", 100)
+                .WithParameter("mu", 200)
                 .WithParameter("sigma", 10)
                 .SingleInstance();
 
@@ -115,10 +117,6 @@ namespace Mofichan.Runner
                 .Register(c => new Heart(c.Resolve<ILogger>()) { Rate = TimeSpan.FromMilliseconds(100) })
                 .As<IPulseDriver>()
                 .SingleInstance();
-
-            containerBuilder
-                .RegisterType<FlowManager>()
-                .As<IFlowManager>();
 
             containerBuilder
                 .RegisterType<BotContext>();
@@ -133,13 +131,14 @@ namespace Mofichan.Runner
 
             containerBuilder
                 .RegisterType<PulseDrivenResponseSelector>()
-                .WithParameter("responseWindow", 2)
+                .WithParameter("responseWindow", 4)
                 .As<IResponseSelector>();
 
             // Register data access modules.
             containerBuilder
                 .RegisterModule<DataAccess.Analysis.AnalysisModule>()
-                .RegisterModule<DataAccess.Response.ResponseModule>();
+                .RegisterModule<DataAccess.Response.ResponseModule>()
+                .RegisterModule(new DataAccess.Database.DatabaseModule(botConfig));
 
             // Register behaviour plugins.
             containerBuilder

@@ -1,16 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive.Subjects;
 using System.Text.RegularExpressions;
 using Autofac;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
+using Mofichan.Core.BotState;
 using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
 using Mofichan.Core.Relevance;
 using Mofichan.Core.Utility;
 using Mofichan.Core.Visitor;
+using Mofichan.DataAccess;
+using Mofichan.DataAccess.Domain;
 using Moq;
 using Serilog;
 using Shouldly;
@@ -28,10 +30,14 @@ namespace Mofichan.Spec
         private ControllablePulseDriver pulseDriver;
         private IObserver<MessageContext> backendObserver;
         private ILifetimeScope lifetimeScope;
+        
+        static Scenario()
+        {
+            DatabaseFixture.Initialise();
+        }
 
         protected Scenario(string scenarioTitle = null)
         {
-
             this.scenarioTitle = scenarioTitle;
             this.pulseDriver = new ControllablePulseDriver();
             this.MofichanUser = ConstructMockUser("Mofichan", "Mofichan", UserType.Self);
@@ -74,8 +80,11 @@ namespace Mofichan.Spec
                 it.Name.ToLowerInvariant().Replace("behaviour", string.Empty);
 
             var behaviourAssembly = typeof(BaseBehaviour).Assembly();
-
+            var botConfig = this.BuildBotConfiguration();
             var containerBuilder = new ContainerBuilder();
+
+            containerBuilder.Register(_ => botConfig);
+
             containerBuilder
                 .RegisterAssemblyTypes(behaviourAssembly)
                 .AssignableTo(typeof(IMofichanBehaviour))
@@ -89,17 +98,13 @@ namespace Mofichan.Spec
             containerBuilder
                 .RegisterType<PulseDrivenAttentionManager>()
                 .As<IAttentionManager>()
-                .WithParameter("mu", 100)
+                .WithParameter("mu", 200)
                 .WithParameter("sigma", 10)
                 .SingleInstance();
 
             containerBuilder
                 .RegisterType<FlowTransitionManager>()
-                .As<IFlowTransitionManager>();
-
-            containerBuilder
-                .RegisterType<FlowManager>()
-                .As<IFlowManager>();
+                .As<FlowTransitionManager>();
 
             containerBuilder
                 .RegisterType<BotContext>();
@@ -120,7 +125,7 @@ namespace Mofichan.Spec
 
             containerBuilder
                 .RegisterType<PulseDrivenResponseSelector>()
-                .WithParameter("responseWindow", 2)
+                .WithParameter("responseWindow", ResponseWindow)
                 .As<IResponseSelector>();
 
             containerBuilder
@@ -130,9 +135,23 @@ namespace Mofichan.Spec
             // Register data access modules.
             containerBuilder
                 .RegisterModule<DataAccess.Analysis.AnalysisModule>()
-                .RegisterModule<DataAccess.Response.ResponseModule>();
+                .RegisterModule<DataAccess.Response.ResponseModule>()
+                .RegisterModule(new DataAccess.Database.DatabaseModule(botConfig));
+
+            // Override repository registration with test repository.
+            containerBuilder
+                .Register(_ => DatabaseFixture.CreateTestRepository())
+                .As<IRepository>()
+                .SingleInstance();
 
             return containerBuilder;
+        }
+
+        private BotConfiguration BuildBotConfiguration()
+        {
+            return new BotConfiguration.Builder()
+                .SetSelectedDatabaseAdapter("in_memory")
+                .Build();
         }
 
         private IMofichanBackend ConstructMockBackend()
@@ -147,6 +166,14 @@ namespace Mofichan.Spec
             return mock.Object;
         }
         #endregion
+
+        protected static int ResponseWindow
+        {
+            get
+            {
+                return 4;
+            }
+        }
 
         protected IContainer Container { get; }
         protected IList<MessageContext> SentMessages { get; }
@@ -215,7 +242,7 @@ namespace Mofichan.Spec
                 this.Behaviours,
                 this.lifetimeScope.Resolve<IBehaviourChainBuilder>(),
                 this.pulseDriver,
-                this.lifetimeScope.Resolve<IMessageClassifier>(),
+                this.lifetimeScope.Resolve<IMessageClassifier>,
                 this.lifetimeScope.Resolve<IBehaviourVisitorFactory>(),
                 this.lifetimeScope.Resolve<IResponseSelector>(),
                 this.lifetimeScope.Resolve<ILogger>());
@@ -283,5 +310,45 @@ namespace Mofichan.Spec
             this.SentMessages.ShouldNotBeEmpty();
         }
         #endregion
+    }
+
+    internal static class DatabaseFixture
+    {
+        public static void Initialise()
+        {
+            var botConfig = new BotConfiguration.Builder()
+                .SetSelectedDatabaseAdapter("mongodb")
+                .WithDatabaseAdapterSetting("user", "testrunner")
+                .WithDatabaseAdapterSetting("password", "testrunner")
+                .WithDatabaseAdapterSetting("hostname", "ds141428.mlab.com")
+                .WithDatabaseAdapterSetting("port", "41428")
+                .Build();
+
+            var logger = new LoggerConfiguration().CreateLogger();
+            var containerBuilder = new ContainerBuilder();
+
+            containerBuilder.RegisterInstance(logger).As<ILogger>();
+            containerBuilder.RegisterModule(new DataAccess.Database.DatabaseModule(botConfig));
+
+            var container = containerBuilder.Build();
+            var productionRepo = container.Resolve<IRepository>();
+            BaseTestRepository = new DataAccess.Database.InMemoryRepository(logger);
+
+            productionRepo.All<AnalysisArticle>().ToList().ForEach(it => BaseTestRepository.Add(it));
+            productionRepo.All<ResponseArticle>().ToList().ForEach(it => BaseTestRepository.Add(it));
+        }
+
+        private static IRepository BaseTestRepository { get; set; }
+
+        public static IRepository CreateTestRepository()
+        {
+            var logger = new LoggerConfiguration().CreateLogger();
+            var newRepository = new DataAccess.Database.InMemoryRepository(logger);
+
+            BaseTestRepository.All<AnalysisArticle>().ToList().ForEach(it => newRepository.Add(it));
+            BaseTestRepository.All<ResponseArticle>().ToList().ForEach(it => newRepository.Add(it));
+
+            return newRepository;
+        }
     }
 }

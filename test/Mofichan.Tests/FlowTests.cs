@@ -6,86 +6,73 @@ using Mofichan.Core.Interfaces;
 using Mofichan.Core.Utility;
 using Mofichan.Core.Visitor;
 using Mofichan.Tests.TestUtility;
-using Moq;
 using Shouldly;
 using Xunit;
+using static Mofichan.Core.Flow.UserDrivenFlowManager;
 using static Mofichan.Tests.TestUtility.FlowUtil;
 using static Mofichan.Tests.TestUtility.MessageUtil;
 
 namespace Mofichan.Tests
 {
-    public class BasicFlowTests
+    public class FlowTests
     {
-        [Fact]
-        public void Exception_Should_Be_Thrown_If_Flow_Constructed_With_Null_Logger()
+        public static IEnumerable<object[]> FlowBuilders
         {
-            Assert.Throws<ArgumentNullException>(() => new BasicFlow.Builder()
-                .WithLogger(null)
-                .WithManager(Mock.Of<IFlowManager>())
-                .WithStartNodeId("A")
-                .WithNodes(new[] {
-                    new FlowNode("A", NullStateAction, TransitionManagerFactory),
-                    new FlowNode("B", NullStateAction, TransitionManagerFactory) })
-                .WithTransitions(Enumerable.Empty<IFlowTransition>())
-                .Build());
+            get
+            {
+                yield return new object[] { new UserDrivenFlowManager.UserDrivenFlow.Builder() };
+                yield return new object[] { new AutoFlowManager.AutoFlow.Builder() };
+            }
         }
 
-        [Fact]
-        public void Exception_Should_Be_Thrown_If_Flow_Constructed_With_Null_Flow_Manager()
+        [Theory]
+        [MemberData(nameof(FlowBuilders))]
+        public void Exception_Should_Be_Thrown_If_Flow_Constructed_With_Null_Flow_Node_Collection<T>(
+            BaseFlow.Builder<T> flowBuilder)
+            where T : BaseFlow
         {
-            Assert.Throws<ArgumentNullException>(() => new BasicFlow.Builder()
-                .WithLogger(MockLogger.Instance)
-                .WithManager(null)
-                .WithStartNodeId("A")
-                .WithNodes(new[] {
-                    new FlowNode("A", NullStateAction, TransitionManagerFactory),
-                    new FlowNode("B", NullStateAction, TransitionManagerFactory) })
-                .WithTransitions(Enumerable.Empty<IFlowTransition>())
-                .Build());
-        }
-
-        [Fact]
-        public void Exception_Should_Be_Thrown_If_Flow_Constructed_With_Null_Flow_Node_Collection()
-        {
-            Assert.Throws<ArgumentNullException>(() => new BasicFlow.Builder()
-                .WithLogger(MockLogger.Instance)
-                .WithManager(Mock.Of<IFlowManager>())
+            Assert.Throws<ArgumentNullException>(() => flowBuilder
                 .WithNodes(null)
                 .WithTransitions(Enumerable.Empty<IFlowTransition>())
                 .Build());
         }
 
-        [Fact]
-        public void Exception_Should_Be_Thrown_If_Flow_Constructed_With_Empty_Flow_Node_Collection()
+        [Theory]
+        [MemberData(nameof(FlowBuilders))]
+        public void Exception_Should_Be_Thrown_If_Flow_Constructed_With_Empty_Flow_Node_Collection<T>(
+            BaseFlow.Builder<T> flowBuilder)
+            where T : BaseFlow
         {
-            Assert.Throws<ArgumentException>(() => new BasicFlow.Builder()
-                .WithLogger(MockLogger.Instance)
-                .WithManager(Mock.Of<IFlowManager>())
+            Assert.Throws<ArgumentException>(() => flowBuilder
                 .WithNodes(Enumerable.Empty<IFlowNode>())
                 .WithTransitions(Enumerable.Empty<IFlowTransition>())
                 .Build());
         }
 
-        [Fact]
-        public void Exception_Should_Be_Thrown_If_Flow_Constructed_With_Null_Flow_Transition_Collection()
+        [Theory]
+        [MemberData(nameof(FlowBuilders))]
+        public void Exception_Should_Be_Thrown_If_Flow_Constructed_With_Null_Flow_Transition_Collection<T>(
+            BaseFlow.Builder<T> flowBuilder)
+            where T : BaseFlow
         {
-            Assert.Throws<ArgumentNullException>(() => new BasicFlow.Builder()
-                .WithLogger(MockLogger.Instance)
-                .WithManager(Mock.Of<IFlowManager>())
+            Assert.Throws<ArgumentNullException>(() => flowBuilder
                 .WithStartNodeId("A")
                 .WithNodes(new[] {
-                    new FlowNode("A", NullStateAction, TransitionManagerFactory),
-                    new FlowNode("B", NullStateAction, TransitionManagerFactory) })
+                    new FlowNode("A", NullStateAction),
+                    new FlowNode("B", NullStateAction) })
                 .WithTransitions(null)
                 .Build());
         }
 
-        [Fact]
-        public void Exception_Should_Be_Thrown_When_Connecting_Node_To_Non_Existent_Node()
+        [Theory]
+        [MemberData(nameof(FlowBuilders))]
+        public void Exception_Should_Be_Thrown_When_Connecting_Node_To_Non_Existent_Node<T>(
+            BaseFlow.Builder<T> flowBuilder)
+            where T : BaseFlow
         {
             var nodes = new[]
             {
-                new FlowNode("S0", NullStateAction, TransitionManagerFactory)
+                new FlowNode("S0", NullStateAction)
             };
 
             var transitions = new[]
@@ -93,23 +80,26 @@ namespace Mofichan.Tests
                     new FlowTransition("T0,0")
             };
 
-            Assert.Throws<ArgumentException>(() => CreateDefaultFlowBuilder(nodes, transitions)
+            Assert.Throws<ArgumentException>(() => ConfigureDefaultFlowBuilder(flowBuilder, nodes, transitions)
                 .WithConnection("S0", "<<NON_EXISTENT>>", "T0,0")
                 .Build());
         }
 
-        [Fact]
-        public void Exception_Should_Be_Thrown_When_Connecting_Nodes_With_Non_Existent_Transition()
+        [Theory]
+        [MemberData(nameof(FlowBuilders))]
+        public void Exception_Should_Be_Thrown_When_Connecting_Nodes_With_Non_Existent_Transition<T>(
+            BaseFlow.Builder<T> flowBuilder)
+            where T : BaseFlow
         {
             var nodes = new[]
             {
-                new FlowNode("S0", NullStateAction, TransitionManagerFactory),
-                new FlowNode("S1", NullStateAction, TransitionManagerFactory)
+                new FlowNode("S0", NullStateAction),
+                new FlowNode("S1", NullStateAction)
             };
 
             var transitions = Enumerable.Empty<IFlowTransition>();
 
-            Assert.Throws<ArgumentException>(() => CreateDefaultFlowBuilder(nodes, transitions)
+            Assert.Throws<ArgumentException>(() => ConfigureDefaultFlowBuilder(flowBuilder, nodes, transitions)
                 .WithConnection("S0", "S1", "<<NON_EXISTENT>>")
                 .Build());
         }
@@ -120,7 +110,7 @@ namespace Mofichan.Tests
             // GIVEN node S0
             var nodes = new[]
             {
-                new FlowNode("S0", (context, manager) =>
+                new FlowNode("S0", (context, manager, visitor) =>
                 {
                     manager.MakeTransitionsImpossible();
 
@@ -132,8 +122,10 @@ namespace Mofichan.Tests
                     {
                         manager.MakeTransitionCertain("T0,0:bar");
                     }
-                }, TransitionManagerFactory),
-                new FlowNode("S1", NullStateAction, TransitionManagerFactory)
+
+                    return null;
+                }),
+                new FlowNode("S1", NullStateAction)
             };
 
             // GIVEN transitions T0,0: foo and T0,0: bar
@@ -142,13 +134,13 @@ namespace Mofichan.Tests
 
             var transitions = new[]
             {
-                new FlowTransition("T0,0:foo", (c, m) => fooTransitionCount += 1),
-                new FlowTransition("T0,0:bar", (c, m) => barTransitionCount += 1)
+                new FlowTransition("T0,0:foo", (c, m, v) => fooTransitionCount += 1),
+                new FlowTransition("T0,0:bar", (c, m, v) => barTransitionCount += 1)
             };
 
             // GIVEN a flow created from the node and transitions.
             var visitorFactory = new BehaviourVisitorFactory(MockBotContext.Instance, CreateSimpleMessageBuilder);
-            var flow = CreateDefaultFlowBuilder(nodes, transitions)
+            var flow = ConfigureDefaultFlowBuilder(new UserDrivenFlow.Builder(), nodes, transitions)
                 .WithConnection("S0", "S0", "T0,0:foo")
                 .WithConnection("S0", "S0", "T0,0:bar")
                 .Build();
@@ -184,89 +176,6 @@ namespace Mofichan.Tests
         }
 
         [Fact]
-        public void Flow_Should_Appropriately_Correlate_Users_With_Their_Positions_In_The_Flow()
-        {
-            // GIVEN nodes S0, S1 and S2 where:
-            //  - S0 -> S1 occurs if "bar" is received
-            //  - S1 -> S2 occurs if "foo" is received
-            var nodes = new[]
-            {
-                new FlowNode("S0", DecideTransitionFromMatch("bar", "T0,1"), TransitionManagerFactory),
-                new FlowNode("S1", DecideTransitionFromMatch("foo", "T1,2"), TransitionManagerFactory),
-                new FlowNode("S2", NullStateAction, TransitionManagerFactory),
-            };
-
-            // GIVEN the transitions, where T0,1 and T1,2 are "interesting".
-            var barTransitionUsers = new List<string>();
-            var fooTransitionUsers = new List<string>();
-
-            var transitions = new[]
-            {
-                new FlowTransition("T0,0"),
-                new FlowTransition("T1,1"),
-                new FlowTransition("T0,1",
-                    (context, _) => barTransitionUsers.Add((context.Message.From as IUser).UserId)),
-                new FlowTransition("T1,2",
-                    (context, m) => fooTransitionUsers.Add((context.Message.From as IUser).UserId))
-            };
-
-            // GIVEN a flow created from these nodes and transitions.
-            var visitorFactory = new BehaviourVisitorFactory(MockBotContext.Instance, CreateSimpleMessageBuilder);
-            var flow = CreateDefaultFlowBuilder(nodes, transitions)
-                .WithConnection("S0", "S0", "T0,0")
-                .WithConnection("S0", "S1", "T0,1")
-                .WithConnection("S1", "S1", "T1,1")
-                .WithConnection("S1", "S2", "T1,2")
-                .Build();
-
-            // GIVEN the IDs of two users.
-            var rick_C137 = "Rick_C137";
-            var rick_J18 = "Rick_J18";
-
-            // EXPECT no interesting transition occurs when the flow accepts a message containing "foo" from Rick C137.
-            // Reason: transition to node B needs to have happened first.
-            flow.Accept(visitorFactory.CreateMessageVisitor(MessageFromBodyAndSender("Have you any foo?", rick_C137)));
-            flow.Accept(visitorFactory.CreatePulseVisitor());
-            fooTransitionUsers.ShouldNotContain(rick_C137);
-            fooTransitionUsers.ShouldNotContain(rick_J18);
-
-            // EXPECT the bar transition occurs for Rick C137 when the flow accepts a message containing "bar" from him.
-            // Reason: this is the first transition - no prior transitions are necessary.
-            flow.Accept(visitorFactory.CreateMessageVisitor(MessageFromBodyAndSender("Bar bar black sheep", rick_C137)));
-            flow.Accept(visitorFactory.CreatePulseVisitor());
-            barTransitionUsers.ShouldContain(rick_C137);
-            barTransitionUsers.ShouldNotContain(rick_J18);
-
-            // EXPECT the foo transition occurs for Rick C137 when the flow accepts a message containing "foo" from him.
-            // Reason: flow should now associate Rick C137 with node B.
-            flow.Accept(visitorFactory.CreateMessageVisitor(MessageFromBodyAndSender("Have you any foo?", rick_C137)));
-            flow.Accept(visitorFactory.CreatePulseVisitor());
-            fooTransitionUsers.ShouldContain(rick_C137);
-            fooTransitionUsers.ShouldNotContain(rick_J18);
-
-            // EXPECT no interesting transition occurs when the flow accepts a message containing "foo" from Rick J18.
-            // Reason: Flow should still be at node A for Rick J18, as he is a different user.
-            flow.Accept(visitorFactory.CreateMessageVisitor(MessageFromBodyAndSender("Have you any foo?", rick_J18)));
-            flow.Accept(visitorFactory.CreatePulseVisitor());
-            fooTransitionUsers.ShouldContain(rick_C137);
-            fooTransitionUsers.ShouldNotContain(rick_J18);
-
-            // EXPECT the bar transition occurs for Rick J18 when the flow accepts a message containing "bar" from him.
-            // Reason: this is the first transition for Rick J18 - no prior transitions are necessary.
-            flow.Accept(visitorFactory.CreateMessageVisitor(MessageFromBodyAndSender("Bar bar black sheep", rick_J18)));
-            flow.Accept(visitorFactory.CreatePulseVisitor());
-            barTransitionUsers.ShouldContain(rick_C137);
-            barTransitionUsers.ShouldContain(rick_J18);
-
-            // EXPECT the foo transition occurs for Rick J18 when the flow accepts a message containing "foo" from him.
-            // Reason: flow should now associate Rick J18 with node B, along with Rick C137.
-            flow.Accept(visitorFactory.CreateMessageVisitor(MessageFromBodyAndSender("Have you any foo?", rick_J18)));
-            flow.Accept(visitorFactory.CreatePulseVisitor());
-            fooTransitionUsers.ShouldContain(rick_C137);
-            fooTransitionUsers.ShouldContain(rick_J18);
-        }
-
-        [Fact]
         public void Flow_Should_Be_Able_To_Generate_Outgoing_Messages_On_Transition()
         {
             // GIVEN nodes S0 and S1 where:
@@ -274,8 +183,8 @@ namespace Mofichan.Tests
             //  - S1 -> S0 occurs if "foo" is received
             var nodes = new[]
             {
-                new FlowNode("S0", DecideTransitionFromMatch("bar", "T0,1"), TransitionManagerFactory),
-                new FlowNode("S1", DecideTransitionFromMatch("foo", "T1,0"), TransitionManagerFactory)
+                new FlowNode("S0", DecideTransitionFromMatch("bar", "T0,1")),
+                new FlowNode("S1", DecideTransitionFromMatch("foo", "T1,0"))
             };
 
             // GIVEN transitions T0,0, T0,1, T1,0 and T1,1 where T1,0 will generate a response.
@@ -284,13 +193,14 @@ namespace Mofichan.Tests
                 new FlowTransition("T0,0"),
                 new FlowTransition("T0,1"),
                 new FlowTransition("T1,1"),
-                new FlowTransition("T1,0", (context, _) => context.Visitor.RegisterResponse(rb => rb
+                new FlowTransition("T1,0", (context, _, visitor) => visitor.RegisterResponse(rb => rb
+                    .To(context.Message)
                     .WithMessage(mb => mb.FromRaw("Yes sir, yes sir, three baz full"))))
             };
 
             // GIVEN a flow created from these nodes and transitions.
             var visitorFactory = new BehaviourVisitorFactory(MockBotContext.Instance, CreateSimpleMessageBuilder);
-            var flow = CreateDefaultFlowBuilder(nodes, transitions)
+            var flow = ConfigureDefaultFlowBuilder(new UserDrivenFlow.Builder(), nodes, transitions)
                 .WithConnection("S0", "S0", "T0,0")
                 .WithConnection("S0", "S1", "T0,1")
                 .WithConnection("S1", "S0", "T1,0")
@@ -330,9 +240,9 @@ namespace Mofichan.Tests
             //  - S1 -> S2 occurs if "foo" is received
             var nodes = new[]
             {
-                new FlowNode("S0", DecideTransitionFromMatch("bar", "T0,1"), TransitionManagerFactory),
-                new FlowNode("S1", DecideTransitionFromMatch("foo", "T1,2"), TransitionManagerFactory),
-                new FlowNode("S2", NullStateAction, TransitionManagerFactory),
+                new FlowNode("S0", DecideTransitionFromMatch("bar", "T0,1")),
+                new FlowNode("S1", DecideTransitionFromMatch("foo", "T1,2")),
+                new FlowNode("S2", NullStateAction),
             };
 
             // GIVEN transitions T0,1 and T1,2.
@@ -341,13 +251,13 @@ namespace Mofichan.Tests
 
             var transitions = new[]
             {
-                new FlowTransition("T0,1", (c, m) => barTransitionOccurred = true),
-                new FlowTransition("T1,2", (c, m) => fooTransitionOccurred = true),
+                new FlowTransition("T0,1", (c, m, v) => barTransitionOccurred = true),
+                new FlowTransition("T1,2", (c, m, v) => fooTransitionOccurred = true),
             };
 
             // GIVEN a flow created from these nodes and transitions.
             var visitorFactory = new BehaviourVisitorFactory(MockBotContext.Instance, CreateSimpleMessageBuilder);
-            var flow = CreateDefaultFlowBuilder(nodes, transitions)
+            var flow = ConfigureDefaultFlowBuilder(new UserDrivenFlow.Builder(), nodes, transitions)
                 .WithConnection("S0", "S1", "T0,1")
                 .WithConnection("S1", "S2", "T1,2")
                 .Build();
@@ -373,7 +283,7 @@ namespace Mofichan.Tests
             //  - S0 -> S2 occurs if "foo" is received
             var nodes = new[]
             {
-                new FlowNode("S0", (context, manager) =>
+                new FlowNode("S0", (context, manager, visitor) =>
                 {
                     var body = context.Message.Body;
 
@@ -389,9 +299,11 @@ namespace Mofichan.Tests
                     {
                         manager.MakeTransitionCertain("T0,0");
                     }
-                }, TransitionManagerFactory),
-                new FlowNode("S1", NullStateAction, TransitionManagerFactory),
-                new FlowNode("S2", NullStateAction, TransitionManagerFactory)
+
+                    return null;
+                }),
+                new FlowNode("S1", NullStateAction),
+                new FlowNode("S2", NullStateAction)
             };
 
             // GIVEN transitions T0,0, T0,1, T0,2
@@ -402,14 +314,14 @@ namespace Mofichan.Tests
             {
                 new FlowTransition("T0,0"),
                 new FlowTransition("T0,1",
-                    (context, _) => barTransitionUsers.Add((context.Message.From as IUser).UserId)),
+                    (context, m, v) => barTransitionUsers.Add((context.Message.From as IUser).UserId)),
                 new FlowTransition("T0,2",
-                    (context, _) => fooTransitionUsers.Add((context.Message.From as IUser).UserId))
+                    (context, m, v) => fooTransitionUsers.Add((context.Message.From as IUser).UserId))
             };
 
-            // GIVEN a flow created from these nodes and transitions.
+            // GIVEN a flow template created from these nodes and transitions.
             var visitorFactory = new BehaviourVisitorFactory(MockBotContext.Instance, CreateSimpleMessageBuilder);
-            var flow = CreateDefaultFlowBuilder(nodes, transitions)
+            var template = ConfigureDefaultFlowBuilder(new UserDrivenFlow.Builder(), nodes, transitions)
                 .WithConnection("S0", "S0", "T0,0")
                 .WithConnection("S0", "S1", "T0,1")
                 .WithConnection("S0", "S2", "T0,2")
@@ -418,25 +330,27 @@ namespace Mofichan.Tests
             barTransitionUsers.ShouldBeEmpty();
             fooTransitionUsers.ShouldBeEmpty();
 
-            // GIVEN the IDs of two users.
-            var rick_C137 = "Rick_C137";
-            var rick_J18 = "Rick_J18";
+            // GIVEN the ID of two users.
+            var tom = "Tom";
+            var jerry = "Jerry";
 
-            // EXPECT that the A->B transition occurs when Rick C137 says "bar".
-            flow.Accept(visitorFactory.CreateMessageVisitor(MessageFromBodyAndSender("How bar you?", rick_C137)));
-            flow.Accept(visitorFactory.CreatePulseVisitor());
-            barTransitionUsers.ShouldContain(rick_C137);
-            barTransitionUsers.ShouldNotContain(rick_J18);
-            fooTransitionUsers.ShouldNotContain(rick_C137);
-            fooTransitionUsers.ShouldNotContain(rick_J18);
+            // GIVEN "flow A".
+            var flowA = template.Copy();
 
-            // EXPECT that the A->C transition occurs when Rick J18 says "foo".
-            flow.Accept(visitorFactory.CreateMessageVisitor(MessageFromBodyAndSender("I am foo.", rick_J18)));
-            flow.Accept(visitorFactory.CreatePulseVisitor());
-            barTransitionUsers.ShouldContain(rick_C137);
-            barTransitionUsers.ShouldNotContain(rick_J18);
-            fooTransitionUsers.ShouldNotContain(rick_C137);
-            fooTransitionUsers.ShouldContain(rick_J18);
+            // EXPECT that the A->B transition occurs within flow A when Tom says "bar".
+            flowA.Accept(visitorFactory.CreateMessageVisitor(MessageFromBodyAndSender("How bar you?", tom)));
+            flowA.Accept(visitorFactory.CreatePulseVisitor());
+            barTransitionUsers.ShouldContain(tom);
+            fooTransitionUsers.ShouldNotContain(tom);
+
+            // GIVEN "flow B".
+            var flowB = template.Copy();
+
+            // EXPECT that the A->C transition occurs within flow B when Jerry says "foo".
+            flowB.Accept(visitorFactory.CreateMessageVisitor(MessageFromBodyAndSender("I am foo.", jerry)));
+            flowB.Accept(visitorFactory.CreatePulseVisitor());
+            barTransitionUsers.ShouldNotContain(jerry);
+            fooTransitionUsers.ShouldContain(jerry);
         }
 
         [Fact]
@@ -452,8 +366,8 @@ namespace Mofichan.Tests
             //  - S1 -> S0 occurs after timeout
             var nodes = new[]
             {
-                new FlowNode("S0", DecideTransitionFromMatch("bar", "T0,1"), TransitionManagerFactory),
-                new FlowNode("S1", (context, manager) =>
+                new FlowNode("S0", DecideTransitionFromMatch("bar", "T0,1")),
+                new FlowNode("S1", (context, manager, visitor) =>
                 {
                     var body = context.Message.Body;
 
@@ -466,7 +380,9 @@ namespace Mofichan.Tests
                         manager.MakeTransitionsImpossible();
                         manager["T1,0:timeout"] = (int)new Random().SampleGaussian(mu, sigma);
                     }
-                }, TransitionManagerFactory)
+
+                    return null;
+                })
             };
 
             // GIVEN a set of transitions where T1,0 will generate a response.
@@ -476,14 +392,14 @@ namespace Mofichan.Tests
             {
                 new FlowTransition("T0,0"),
                 new FlowTransition("T0,1"),
-                new FlowTransition("T1,0", (context, _) => context.Visitor.RegisterResponse(rb => rb
+                new FlowTransition("T1,0", (context, _, visitor) => visitor.RegisterResponse(rb => rb
                     .WithMessage(mb => mb.FromRaw("Yes sir, yes sir, three baz full")))),
-                new FlowTransition("T1,0:timeout", (context, _) => timeoutOccurred = true)
+                new FlowTransition("T1,0:timeout", (context, m, v) => timeoutOccurred = true)
             };
 
             // GIVEN a flow created from these nodes and transitions.
             var visitorFactory = new BehaviourVisitorFactory(MockBotContext.Instance, CreateSimpleMessageBuilder);
-            var flow = CreateDefaultFlowBuilder(nodes, transitions)
+            var flow = ConfigureDefaultFlowBuilder(new UserDrivenFlow.Builder(), nodes, transitions)
                 .WithConnection("S0", "S1", "T0,1")
                 .WithConnection("S1", "S0", "T1,0")
                 .WithConnection("S1", "S0", "T1,0:timeout")
