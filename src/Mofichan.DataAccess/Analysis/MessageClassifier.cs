@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Mofichan.Core.Interfaces;
+using Mofichan.DataAccess.Domain;
 using Serilog;
 
 namespace Mofichan.DataAccess.Analysis

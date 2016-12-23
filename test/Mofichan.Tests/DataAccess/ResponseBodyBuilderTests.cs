@@ -3,6 +3,7 @@ using System.Linq;
 using Mofichan.Core;
 using Mofichan.Core.Interfaces;
 using Mofichan.DataAccess;
+using Mofichan.DataAccess.Domain;
 using Mofichan.DataAccess.Response;
 using Moq;
 using Shouldly;

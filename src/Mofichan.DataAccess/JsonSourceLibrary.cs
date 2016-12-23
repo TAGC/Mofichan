@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Mofichan.DataAccess.Domain;
 using Newtonsoft.Json.Linq;
 
 namespace Mofichan.DataAccess

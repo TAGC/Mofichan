@@ -1,5 +1,4 @@
-﻿using Mofichan.Core;
-using Mofichan.Core.Interfaces;
+﻿using Mofichan.Core.BotState;
 using Moq;
 
 namespace Mofichan.Tests.TestUtility

@@ -1,6 +1,6 @@
 ﻿using Mofichan.Core.Interfaces;
 
-namespace Mofichan.Core
+namespace Mofichan.Core.BotState
 {
     /// <summary>
     /// Represents Mofichan's general state.

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Mofichan.DataAccess;
+using Mofichan.DataAccess.Domain;
 using Mofichan.DataAccess.Response;
 using Moq;
 using Shouldly;

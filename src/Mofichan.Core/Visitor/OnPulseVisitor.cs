@@ -1,4 +1,5 @@
 ﻿using System;
+using Mofichan.Core.BotState;
 using Mofichan.Core.Interfaces;
 
 namespace Mofichan.Core.Visitor

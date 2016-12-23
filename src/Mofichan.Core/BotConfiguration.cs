@@ -33,6 +33,14 @@ namespace Mofichan.Core
         public string SelectedBackend { get; private set; }
 
         /// <summary>
+        /// Gets the selected database adapter.
+        /// </summary>
+        /// <value>
+        /// The selected database adapter.
+        /// </value>
+        public string SelectedDatabaseAdapter { get; private set; }
+
+        /// <summary>
         /// Gets the backend configuration.
         /// </summary>
         /// <value>
@@ -41,11 +49,20 @@ namespace Mofichan.Core
         public IReadOnlyDictionary<string, string> BackendConfiguration { get; private set; }
 
         /// <summary>
+        /// Gets the database adapter configuration.
+        /// </summary>
+        /// <value>
+        /// The database adapter configuration.
+        /// </value>
+        public IReadOnlyDictionary<string, string> DatabaseAdapterConfiguration { get; private set; }
+
+        /// <summary>
         /// Builds instances of <see cref="BotConfiguration"/>. 
         /// </summary>
         public class Builder
         {
             private readonly IDictionary<string, string> backendConfiguration;
+            private readonly IDictionary<string, string> databaseAdapterConfiguration;
 
             private BotConfiguration config;
 
@@ -55,6 +72,7 @@ namespace Mofichan.Core
             public Builder()
             {
                 this.backendConfiguration = new Dictionary<string, string>();
+                this.databaseAdapterConfiguration = new Dictionary<string, string>();
             }
 
             /// <summary>
@@ -91,6 +109,17 @@ namespace Mofichan.Core
             }
 
             /// <summary>
+            /// Sets the selected database adapter.
+            /// </summary>
+            /// <param name="selectedBackend">The selected database adapter.</param>
+            /// <returns>This builder.</returns>
+            public Builder SetSelectedDatabaseAdapter(string selectedBackend)
+            {
+                this.config.SelectedDatabaseAdapter = selectedBackend;
+                return this;
+            }
+
+            /// <summary>
             /// Sets a configuration key-value pair for the selected backend.
             /// <para></para>
             /// These configuration values will be passed to the selected backend
@@ -106,6 +135,21 @@ namespace Mofichan.Core
             }
 
             /// <summary>
+            /// Sets a configuration key-value pair for the selected database adapter.
+            /// <para></para>
+            /// These configuration values will be passed to the selected database adapter
+            /// when it's constructed.
+            /// </summary>
+            /// <param name="configKey">The configuration key.</param>
+            /// <param name="configValue">The configuration value.</param>
+            /// <returns>This builder.</returns>
+            public Builder WithDatabaseAdapterSetting(string configKey, string configValue)
+            {
+                this.databaseAdapterConfiguration[configKey] = configValue;
+                return this;
+            }
+
+            /// <summary>
             /// Builds the <see cref="BotConfiguration"/> instance.
             /// </summary>
             /// <returns>A <c>BotConfiguration</c>.</returns>
@@ -113,6 +157,9 @@ namespace Mofichan.Core
             {
                 this.config.BackendConfiguration = new ReadOnlyDictionary<string, string>(
                     this.backendConfiguration);
+
+                this.config.DatabaseAdapterConfiguration = new ReadOnlyDictionary<string, string>(
+                    this.databaseAdapterConfiguration);
 
                 return this.config;
             }

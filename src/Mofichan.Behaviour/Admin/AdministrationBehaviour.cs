@@ -1,5 +1,5 @@
 ﻿using Mofichan.Behaviour.Base;
-using Mofichan.Core;
+using Mofichan.Core.BotState;
 using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
 using Serilog;

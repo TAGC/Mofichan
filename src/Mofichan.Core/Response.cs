@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Mofichan.Core.BotState;
 using Mofichan.Core.Interfaces;
 using Mofichan.Core.Relevance;
 using PommaLabs.Thrower;

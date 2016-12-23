@@ -6,6 +6,7 @@ using Autofac;
 using Mofichan.Backend;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
+using Mofichan.Core.BotState;
 using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
 using Mofichan.Core.Relevance;
@@ -43,10 +44,7 @@ namespace Mofichan.Runner
         {
             IContainer container = BuildContainer();
 
-            var botConfiguration = container
-                .Resolve<IConfigurationLoader>()
-                .LoadConfiguration(DefaultConfigPath);
-
+            var botConfiguration = container.Resolve<BotConfiguration>();
             var backendName = botConfiguration.SelectedBackend;
             var backendParams = from item in botConfiguration.BackendConfiguration
                                 let paramName = item.Key.ToLowerInvariant()
@@ -90,12 +88,14 @@ namespace Mofichan.Runner
             var backendAssembly = typeof(BaseBackend).GetTypeInfo().Assembly;
             var containerBuilder = new ContainerBuilder();
 
+            // Register configuration.
+            var botConfig = new ConfigurationLoader().LoadConfiguration(DefaultConfigPath);
+            containerBuilder.Register(_ => botConfig);
+
             // Register generic parts.
             containerBuilder
-                .RegisterType<ConfigurationLoader>()
-                .As<IConfigurationLoader>();
+                .RegisterInstance(CreateRootLogger());
 
-            containerBuilder.RegisterInstance(CreateRootLogger());
             containerBuilder
                 .RegisterType<BehaviourChainBuilder>()
                 .As<IBehaviourChainBuilder>();
@@ -139,7 +139,8 @@ namespace Mofichan.Runner
             // Register data access modules.
             containerBuilder
                 .RegisterModule<DataAccess.Analysis.AnalysisModule>()
-                .RegisterModule<DataAccess.Response.ResponseModule>();
+                .RegisterModule<DataAccess.Response.ResponseModule>()
+                .RegisterModule(new DataAccess.Database.DatabaseModule(botConfig));
 
             // Register behaviour plugins.
             containerBuilder

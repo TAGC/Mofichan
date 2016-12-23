@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using Autofac;
+using Mofichan.Core.BotState;
 using Mofichan.Core.Interfaces;
 using Serilog;
 
@@ -31,14 +32,15 @@ namespace Mofichan.DataAccess.Analysis
                 BuildLibrary("emotive")
             };
 
-            Action<MessageClassifier> trainClassifier = classifier =>
+            Action<MessageClassifier, IComponentContext> trainClassifier = (classifier, context) =>
             {
-                double requiredConfidenceRatio = 0.5;
-                classifier.Train(analysisLibraries.SelectMany(it => it.Articles), requiredConfidenceRatio);
+                var requiredConfidenceRatio = 0.5;
+                var trainingSet = context.Resolve<IQueryableMemoryManager>().LoadAnalyses();
+                classifier.Train(trainingSet, requiredConfidenceRatio);
             };
 
             builder.RegisterType<MessageClassifier>()
-                .OnActivated(e => trainClassifier(e.Instance))
+                .OnActivated(e => trainClassifier(e.Instance, e.Context))
                 .Named<IMessageClassifier>("classifier")
                 .SingleInstance();
 

@@ -7,7 +7,7 @@ using Mofichan.Core.Utility;
 using PommaLabs.Thrower;
 using Serilog;
 
-namespace Mofichan.Core.Flow
+namespace Mofichan.Core.BotState
 {
     /// <summary>
     /// An implementation of <see cref="IAttentionManager"/> that maintains attention to

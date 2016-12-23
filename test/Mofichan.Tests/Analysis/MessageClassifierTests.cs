@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
-using Mofichan.DataAccess;
 using Mofichan.DataAccess.Analysis;
+using Mofichan.DataAccess.Domain;
 using Mofichan.Tests.TestUtility;
 using Shouldly;
 using Xunit;

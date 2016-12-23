@@ -49,6 +49,20 @@ namespace Mofichan.Tests
                         it.BackendConfiguration["a"] == "1" &&
                         it.BackendConfiguration["abra"] == "kadabra")
                 };
+
+                yield return new object[]
+                {
+                    new BotConfiguration.Builder()
+                        .SetSelectedDatabaseAdapter("mockDb")
+                        .WithDatabaseAdapterSetting("url", "http://foo.bar.com")
+                        .WithDatabaseAdapterSetting("maxConnections", "3"),
+
+                    new Predicate<BotConfiguration>(it =>
+                        it.SelectedDatabaseAdapter == "mockDb" &&
+                        it.DatabaseAdapterConfiguration.Count == 2 &&
+                        it.DatabaseAdapterConfiguration["url"] == "http://foo.bar.com" &&
+                        it.DatabaseAdapterConfiguration["maxConnections"] == "3")
+                };
             }
         }
 

@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive.Subjects;
 using System.Text.RegularExpressions;
 using Autofac;
 using Mofichan.Behaviour.Base;
 using Mofichan.Core;
+using Mofichan.Core.BotState;
 using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
 using Mofichan.Core.Relevance;
@@ -74,8 +74,11 @@ namespace Mofichan.Spec
                 it.Name.ToLowerInvariant().Replace("behaviour", string.Empty);
 
             var behaviourAssembly = typeof(BaseBehaviour).Assembly();
-
+            var botConfig = this.BuildBotConfiguration();
             var containerBuilder = new ContainerBuilder();
+
+            containerBuilder.Register(_ => botConfig);
+
             containerBuilder
                 .RegisterAssemblyTypes(behaviourAssembly)
                 .AssignableTo(typeof(IMofichanBehaviour))
@@ -130,9 +133,21 @@ namespace Mofichan.Spec
             // Register data access modules.
             containerBuilder
                 .RegisterModule<DataAccess.Analysis.AnalysisModule>()
-                .RegisterModule<DataAccess.Response.ResponseModule>();
+                .RegisterModule<DataAccess.Response.ResponseModule>()
+                .RegisterModule(new DataAccess.Database.DatabaseModule(botConfig));
 
             return containerBuilder;
+        }
+
+        private BotConfiguration BuildBotConfiguration()
+        {
+            return new BotConfiguration.Builder()
+                .SetSelectedDatabaseAdapter("mongodb")
+                .WithDatabaseAdapterSetting("user", "testrunner")
+                .WithDatabaseAdapterSetting("password", "testrunner")
+                .WithDatabaseAdapterSetting("hostname", "ds141428.mlab.com")
+                .WithDatabaseAdapterSetting("port", "41428")
+                .Build();
         }
 
         private IMofichanBackend ConstructMockBackend()

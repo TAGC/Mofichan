@@ -15,6 +15,7 @@
     "Mofichan.Core": {
       "target": "project"
     },
+    "MongoDB.Driver": "2.4.0",
     "NETStandard.Library": "1.6.1",
     "Newtonsoft.Json": "9.0.2-beta1"
   },

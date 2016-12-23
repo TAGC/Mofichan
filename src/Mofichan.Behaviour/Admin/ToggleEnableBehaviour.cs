@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using Mofichan.Behaviour.Base;
 using Mofichan.Behaviour.Flow;
 using Mofichan.Core;
+using Mofichan.Core.BotState;
 using Mofichan.Core.Exceptions;
 using Mofichan.Core.Flow;
 using Mofichan.Core.Interfaces;
