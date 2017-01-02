@@ -63,6 +63,7 @@ namespace Mofichan.Runner
                 container.ResolveNamed<IMofichanBehaviour>("greeting"),
                 container.ResolveNamed<IMofichanBehaviour>("analysis"),
                 container.ResolveNamed<IMofichanBehaviour>("learning"),
+                container.ResolveNamed<IMofichanBehaviour>("confusion"),
             };
 
             var chainBuilder = container.Resolve<IBehaviourChainBuilder>();
