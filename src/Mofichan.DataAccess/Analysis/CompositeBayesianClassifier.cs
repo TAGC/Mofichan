@@ -37,6 +37,11 @@ namespace Mofichan.DataAccess.Analysis
                    select classification;
         }
 
+        private static IEnumerable<string> GetClassifications(IEnumerable<TaggedMessage> trainingSet)
+        {
+            return new HashSet<string>(trainingSet.SelectMany(it => it.Tags));
+        }
+
         private void Train(IEnumerable<TaggedMessage> trainingSet, double requiredConfidenceRatio)
         {
             this.logger.Debug("Training started. Required confidence ratio = {RequiredConfidenceRatio}",
@@ -58,11 +63,6 @@ namespace Mofichan.DataAccess.Analysis
 
             this.logger.Debug("Training complete - created bayesian classifiers for {Classifications}",
                 this.classifierMap.Keys);
-        }
-
-        private static IEnumerable<string> GetClassifications(IEnumerable<TaggedMessage> trainingSet)
-        {
-            return new HashSet<string>(trainingSet.SelectMany(it => it.Tags));
         }
 
         public class Factory

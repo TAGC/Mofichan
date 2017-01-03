@@ -28,7 +28,8 @@ namespace Mofichan.Behaviour.Admin
             ILogger logger)
             : base(chainBuilder,
             new ToggleEnableBehaviour(botContext, logger),
-            new DisplayChainBehaviour(botContext, logger))
+            new DisplayChainBehaviour(botContext, logger),
+            new SleepBehaviour(botContext, logger))
         {
         }
 

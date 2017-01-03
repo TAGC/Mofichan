@@ -69,7 +69,7 @@ namespace Mofichan.Behaviour.Admin
 
             Debug.Assert(user != null, "The message should be from a user");
 
-            bool authorised = (context.Message.From as IUser)?.Type == UserType.Adminstrator;
+            bool authorised = user.Type == UserType.Adminstrator;
             bool enableRequest = Regex.IsMatch(messageBody, EnableMatch, RegexOptions.IgnoreCase);
             bool disableRequest = Regex.IsMatch(messageBody, DisableMatch, RegexOptions.IgnoreCase);
 
