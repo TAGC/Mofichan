@@ -41,7 +41,7 @@ test_script:
 
     $TARGET_ARGS = '-targetargs:test ' + $ENV:APPVEYOR_BUILD_FOLDER + '\test\Mofichan.Tests -f netcoreapp1.0 -c ' + $ENV:CONFIGURATION
 
-    & $OPENCOVER $TARGET $TARGET_ARGS '-register:user' $FILTER '-mergeoutput' '-oldStyle'
+    & $OPENCOVER $TARGET $TARGET_ARGS '-register:user' $FILTER '-mergeoutput' '-oldStyle' '-returntargetcode'
 
 - ps: >-
     $ENV:PATH = 'C:\\Python34;C:\\Python34\\Scripts;' + $ENV:PATH
