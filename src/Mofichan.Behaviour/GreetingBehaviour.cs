@@ -54,7 +54,7 @@ namespace Mofichan.Behaviour
                     .To(context.Message)
                     .WithMessage(mb => mb
                         .FromTags(prefix: string.Empty, tags: new[] { "wellbeing,phrase" })
-                        .FromTags("emote,happy", "emote,cute"))
+                        .FromTags("emote,happy"))
                     .WithSideEffect(() => this.BotContext.Attention.RenewAttentionTowardsUser(user))
                     .RelevantBecause(it => it.SuitsMessageTags("wellbeing"))
                     .Build());
@@ -65,7 +65,7 @@ namespace Mofichan.Behaviour
                     .To(context.Message)
                     .WithMessage(mb => mb
                         .FromTags(prefix: string.Empty, tags: new[] { "greeting,phrase" })
-                        .FromTags("emote,greeting", "emote,cute"))
+                        .FromTags("emote,greeting"))
                     .WithSideEffect(() => this.BotContext.Attention.RenewAttentionTowardsUser(user))
                     .RelevantBecause(it => it.SuitsMessageTags("greeting"))
                     .Build());

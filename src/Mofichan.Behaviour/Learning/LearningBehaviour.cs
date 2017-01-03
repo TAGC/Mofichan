@@ -50,7 +50,7 @@ namespace Mofichan.Behaviour.Learning
                     .FromRaw(analysisBody)
                     .FromRaw("\" with tags: ")
                     .FromRaw(string.Join(", ", hashtags))
-                    .FromTags("cute,emote"))
+                    .FromTags("emote,cute,happy"))
                 .WithBotContextChange(ctx => ctx.Memory.SaveAnalysis(analysisBody, analysisTags))
                 .WithBotContextChange(ctx => ctx.Attention.RenewAttentionTowardsUser(user))
                 .RelevantBecause(it => it.GuaranteesRelevance()));
